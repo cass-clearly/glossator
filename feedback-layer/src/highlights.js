@@ -112,19 +112,15 @@ export function scrollToHighlight(annotationId) {
 /**
  * Update highlight style for resolved/unresolved state.
  */
+/**
+ * Hide or show highlights for a resolved/unresolved annotation.
+ */
 export function setHighlightResolved(annotationId, resolved) {
-  const marks = document.querySelectorAll(
-    `.${HIGHLIGHT_CLASS}[data-annotation-id="${annotationId}"]`
-  );
-  marks.forEach((el) => {
-    if (resolved) {
-      el.style.backgroundColor = "rgba(22, 163, 74, 0.15)";
-      el.classList.add(RESOLVED_CLASS);
-    } else {
-      el.style.backgroundColor = "rgba(255, 212, 0, 0.35)";
-      el.classList.remove(RESOLVED_CLASS);
-    }
-  });
+  if (resolved) {
+    removeHighlights(annotationId);
+  } else {
+    // Re-anchoring is handled by the caller (index.js)
+  }
 }
 
 /**

@@ -17,7 +17,6 @@ import {
   removeHighlights,
   setHighlightClickHandler,
   setActiveHighlight,
-  setHighlightResolved,
 } from "./highlights.js";
 import {
   createSidebar,
@@ -100,9 +99,8 @@ async function anchorAll(annotations) {
         { exact: ann.quote, prefix: ann.prefix, suffix: ann.suffix },
         _root
       );
-      if (range) {
+      if (range && !ann.resolved) {
         highlightRange(range, ann.id);
-        if (ann.resolved) setHighlightResolved(ann.id, true);
       }
     } catch (e) {
       console.warn(`[feedback-layer] Could not anchor annotation ${ann.id}:`, e);
@@ -219,7 +217,18 @@ async function handleResolve(annotationId, resolved) {
     const idx = _annotations.findIndex((a) => a.id === annotationId);
     if (idx !== -1) _annotations[idx] = updated;
     renderAnnotations(_annotations);
-    setHighlightResolved(annotationId, resolved);
+
+    if (resolved) {
+      removeHighlights(annotationId);
+    } else {
+      // Re-anchor the highlight when unresolving
+      const ann = updated;
+      const range = await rangeFromSelector(
+        { exact: ann.quote, prefix: ann.prefix, suffix: ann.suffix },
+        _root
+      );
+      if (range) highlightRange(range, ann.id);
+    }
   } catch (err) {
     console.error("[feedback-layer] Failed to resolve annotation:", err);
   }
