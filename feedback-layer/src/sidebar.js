@@ -134,7 +134,7 @@ export function showCommentForm(quote) {
   const textarea = _formEl.querySelector(".fb-form-textarea");
   textarea.focus();
 
-  _formEl.querySelector(".fb-submit-btn").addEventListener("click", () => {
+  const submitComment = () => {
     if (!getCommenter()) {
       const nameInput = _sidebar.querySelector(".fb-name-input");
       nameInput.focus();
@@ -147,6 +147,14 @@ export function showCommentForm(quote) {
     _onSubmit({ comment, commenter: getCommenter() });
     _formEl.style.display = "none";
     _pendingQuote = null;
+  };
+
+  _formEl.querySelector(".fb-submit-btn").addEventListener("click", submitComment);
+  textarea.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      submitComment();
+    }
   });
 
   _formEl.querySelector(".fb-cancel-btn").addEventListener("click", () => {
@@ -293,7 +301,7 @@ function showReplyForm(parentId, threadEl, replyBtn) {
     </div>
   `;
 
-  form.querySelector(".fb-reply-submit").addEventListener("click", () => {
+  const submitReply = () => {
     if (!getCommenter()) {
       const nameInput = _sidebar.querySelector(".fb-name-input");
       nameInput.focus();
@@ -306,6 +314,16 @@ function showReplyForm(parentId, threadEl, replyBtn) {
     if (_onReply) _onReply({ parent_id: parentId, comment, commenter: getCommenter() });
     form.remove();
     replyBtn.style.display = "";
+  };
+
+  form.querySelector(".fb-reply-submit").addEventListener("click", submitReply);
+
+  const replyTextarea = form.querySelector("textarea");
+  replyTextarea.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      submitReply();
+    }
   });
 
   form.querySelector(".fb-reply-cancel").addEventListener("click", () => {
@@ -314,7 +332,7 @@ function showReplyForm(parentId, threadEl, replyBtn) {
   });
 
   threadEl.insertBefore(form, replyBtn);
-  form.querySelector("textarea").focus();
+  replyTextarea.focus();
 }
 
 /**
