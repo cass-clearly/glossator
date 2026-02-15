@@ -12,7 +12,9 @@
 export function buildPrompt(documentHtml, annotations) {
   const feedbackSection = formatAnnotations(annotations);
 
-  return `You are a document editor. Below is an HTML document and feedback from ${annotations.length} reviewer annotation(s). Revise the document to address the feedback.
+  const topLevelCount = annotations.filter((a) => !a.parent_id).length;
+
+  return `You are a document editor. Below is an HTML document and feedback from ${topLevelCount} reviewer annotation(s) (with replies). Revise the document to address the feedback.
 
 ## Original Document
 
@@ -43,18 +45,36 @@ Respond with:
 }
 
 /**
- * Format annotations into a numbered list for the prompt.
+ * Format annotations into a numbered list for the prompt, with threaded replies.
  */
 function formatAnnotations(annotations) {
-  if (annotations.length === 0) {
+  // Thread into parents + replies
+  const topLevel = [];
+  const repliesByParent = new Map();
+  for (const ann of annotations) {
+    if (ann.parent_id) {
+      if (!repliesByParent.has(ann.parent_id)) repliesByParent.set(ann.parent_id, []);
+      repliesByParent.get(ann.parent_id).push(ann);
+    } else {
+      topLevel.push(ann);
+    }
+  }
+
+  if (topLevel.length === 0) {
     return "_No annotations found._";
   }
 
-  return annotations
+  return topLevel
     .map((ann, i) => {
       const parts = [`**${i + 1}. [${ann.commenter}]**`];
-      parts.push(`Highlighted text: "${ann.quote}"`);
+      if (ann.quote) parts.push(`Highlighted text: "${ann.quote}"`);
       if (ann.comment) parts.push(`Comment: ${ann.comment}`);
+
+      const replies = repliesByParent.get(ann.id) || [];
+      for (const reply of replies) {
+        parts.push(`  - **[${reply.commenter}]** (reply): ${reply.comment}`);
+      }
+
       return parts.join("\n");
     })
     .join("\n\n");

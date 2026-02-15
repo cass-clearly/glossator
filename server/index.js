@@ -25,11 +25,16 @@ db.exec(`
   )
 `);
 
-// Migration: add resolved column to existing tables
-try {
-  db.exec("ALTER TABLE annotations ADD COLUMN resolved INTEGER DEFAULT 0");
-} catch (_) {
-  // column already exists
+// Migrations
+for (const col of [
+  "resolved INTEGER DEFAULT 0",
+  "parent_id TEXT",
+]) {
+  try {
+    db.exec(`ALTER TABLE annotations ADD COLUMN ${col}`);
+  } catch (_) {
+    // column already exists
+  }
 }
 
 // Fetch all annotations for a document
@@ -43,19 +48,24 @@ app.get("/api/annotations", (req, res) => {
   res.json(rows);
 });
 
-// Create an annotation
+// Create an annotation or reply
 app.post("/api/annotations", (req, res) => {
-  const { uri, quote, prefix, suffix, comment, commenter } = req.body;
-  if (!uri || !quote || !comment || !commenter) {
+  const { uri, quote, prefix, suffix, comment, commenter, parent_id } = req.body;
+  if (!uri || !comment || !commenter) {
     return res
       .status(400)
-      .json({ error: "uri, quote, comment, and commenter are required" });
+      .json({ error: "uri, comment, and commenter are required" });
+  }
+  if (!parent_id && !quote) {
+    return res
+      .status(400)
+      .json({ error: "quote is required for top-level annotations" });
   }
 
   const id = uuidv4();
   db.prepare(
-    "INSERT INTO annotations (id, uri, quote, prefix, suffix, comment, commenter) VALUES (?, ?, ?, ?, ?, ?, ?)"
-  ).run(id, uri, quote, prefix || null, suffix || null, comment, commenter);
+    "INSERT INTO annotations (id, uri, quote, prefix, suffix, comment, commenter, parent_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+  ).run(id, uri, quote || "", prefix || null, suffix || null, comment, commenter, parent_id || null);
 
   const row = db.prepare("SELECT * FROM annotations WHERE id = ?").get(id);
   res.status(201).json(row);
@@ -77,14 +87,14 @@ app.patch("/api/annotations/:id", (req, res) => {
   res.json(row);
 });
 
-// Delete an annotation
+// Delete an annotation (and its replies)
 app.delete("/api/annotations/:id", (req, res) => {
-  const result = db
-    .prepare("DELETE FROM annotations WHERE id = ?")
-    .run(req.params.id);
-  if (result.changes === 0) {
+  const row = db.prepare("SELECT id FROM annotations WHERE id = ?").get(req.params.id);
+  if (!row) {
     return res.status(404).json({ error: "annotation not found" });
   }
+  db.prepare("DELETE FROM annotations WHERE parent_id = ?").run(req.params.id);
+  db.prepare("DELETE FROM annotations WHERE id = ?").run(req.params.id);
   res.json({ ok: true });
 });
 

@@ -23,11 +23,12 @@ export async function createAnnotation({
   suffix,
   comment,
   commenter,
+  parent_id,
 }) {
   const res = await fetch(`${_baseUrl}/api/annotations`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ uri, quote, prefix, suffix, comment, commenter }),
+    body: JSON.stringify({ uri, quote, prefix, suffix, comment, commenter, parent_id }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));

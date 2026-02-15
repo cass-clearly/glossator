@@ -57,6 +57,7 @@ function init() {
       onSubmit: handleCommentSubmit,
       onDelete: handleDelete,
       onResolve: handleResolve,
+      onReply: handleReply,
     });
 
     // Highlight click → scroll sidebar to card
@@ -234,11 +235,29 @@ async function handleResolve(annotationId, resolved) {
   }
 }
 
+async function handleReply({ parent_id, comment, commenter }) {
+  try {
+    const reply = await createAnnotation({
+      uri: _docUri,
+      comment,
+      commenter,
+      parent_id,
+    });
+    _annotations.push(reply);
+    renderAnnotations(_annotations);
+  } catch (err) {
+    console.error("[feedback-layer] Failed to create reply:", err);
+    alert("Failed to save reply: " + err.message);
+  }
+}
+
 async function handleDelete(annotationId) {
   try {
     await deleteAnnotation(annotationId);
     removeHighlights(annotationId);
-    _annotations = _annotations.filter((a) => a.id !== annotationId);
+    _annotations = _annotations.filter(
+      (a) => a.id !== annotationId && a.parent_id !== annotationId
+    );
     renderAnnotations(_annotations);
   } catch (err) {
     console.error("[feedback-layer] Failed to delete annotation:", err);

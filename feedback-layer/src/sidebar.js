@@ -17,6 +17,7 @@ let _pendingQuote = null;
 let _onSubmit = null;
 let _onDelete = null;
 let _onResolve = null;
+let _onReply = null;
 let _showResolved = false;
 let _lastAnnotations = [];
 
@@ -31,11 +32,13 @@ export function getCommenter() {
  * @param {Function} opts.onSubmit - Called with {comment, commenter} when form submitted
  * @param {Function} opts.onDelete - Called with annotationId when delete clicked
  * @param {Function} opts.onResolve - Called with (annotationId, resolved) when resolve toggled
+ * @param {Function} opts.onReply - Called with {parent_id, comment, commenter} when reply submitted
  */
-export function createSidebar({ onSubmit, onDelete, onResolve }) {
+export function createSidebar({ onSubmit, onDelete, onResolve, onReply }) {
   _onSubmit = onSubmit;
   _onDelete = onDelete;
   _onResolve = onResolve;
+  _onReply = onReply;
 
   injectStyles();
 
@@ -156,43 +159,97 @@ export function showCommentForm(quote) {
 }
 
 /**
- * Render the full annotation list.
+ * Thread flat annotations into parent + replies structure.
+ */
+function threadAnnotations(annotations) {
+  const topLevel = [];
+  const repliesByParent = new Map();
+
+  for (const ann of annotations) {
+    if (ann.parent_id) {
+      if (!repliesByParent.has(ann.parent_id)) repliesByParent.set(ann.parent_id, []);
+      repliesByParent.get(ann.parent_id).push(ann);
+    } else {
+      topLevel.push(ann);
+    }
+  }
+
+  return { topLevel, repliesByParent };
+}
+
+/**
+ * Render the full annotation list with threaded replies.
  */
 export function renderAnnotations(annotations) {
   _lastAnnotations = annotations;
   _listEl.innerHTML = "";
 
-  const visible = _showResolved
-    ? annotations
-    : annotations.filter((a) => !a.resolved);
+  const { topLevel, repliesByParent } = threadAnnotations(annotations);
 
-  if (annotations.length === 0) {
+  const visibleTopLevel = _showResolved
+    ? topLevel
+    : topLevel.filter((a) => !a.resolved);
+
+  if (topLevel.length === 0) {
     _listEl.innerHTML = `<div class="fb-empty">No annotations yet. Select text to add one.</div>`;
     return;
   }
 
-  if (visible.length === 0) {
-    const resolvedCount = annotations.length;
-    _listEl.innerHTML = `<div class="fb-empty">All ${resolvedCount} annotation(s) resolved. Check "Show resolved" to see them.</div>`;
+  if (visibleTopLevel.length === 0) {
+    _listEl.innerHTML = `<div class="fb-empty">All ${topLevel.length} annotation(s) resolved. Check "Show resolved" to see them.</div>`;
     return;
   }
 
-  for (const ann of visible) {
-    const isResolved = !!ann.resolved;
-    const card = document.createElement("div");
-    card.className = "fb-ann-card" + (isResolved ? " fb-ann-resolved" : "");
-    card.dataset.id = ann.id;
-    card.innerHTML = `
-      <div class="fb-ann-quote">"${escapeHtml(truncate(ann.quote, 100))}"</div>
-      <div class="fb-ann-comment">${escapeHtml(ann.comment)}</div>
-      <div class="fb-ann-meta">
-        <span class="fb-ann-commenter">${escapeHtml(ann.commenter)}</span>
-        <span class="fb-ann-time">${timeAgo(ann.created_at)}</span>
-        <button class="fb-ann-resolve" title="${isResolved ? "Unresolve" : "Resolve"}">${isResolved ? "&#x21a9;" : "&#x2713;"}</button>
-        <button class="fb-ann-delete" title="Delete">&times;</button>
-      </div>
-    `;
+  for (const ann of visibleTopLevel) {
+    const thread = document.createElement("div");
+    thread.className = "fb-thread";
 
+    thread.appendChild(buildCard(ann, false));
+
+    // Render replies
+    const replies = repliesByParent.get(ann.id) || [];
+    for (const reply of replies) {
+      thread.appendChild(buildCard(reply, true));
+    }
+
+    // Reply button
+    const replyBtn = document.createElement("button");
+    replyBtn.className = "fb-reply-btn";
+    replyBtn.textContent = "Reply";
+    replyBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      showReplyForm(ann.id, thread, replyBtn);
+    });
+    thread.appendChild(replyBtn);
+
+    _listEl.appendChild(thread);
+  }
+}
+
+function buildCard(ann, isReply) {
+  const isResolved = !!ann.resolved;
+  const card = document.createElement("div");
+  card.className = "fb-ann-card"
+    + (isResolved ? " fb-ann-resolved" : "")
+    + (isReply ? " fb-ann-reply" : "");
+  card.dataset.id = ann.id;
+
+  const quoteHtml = ann.quote && !isReply
+    ? `<div class="fb-ann-quote">"${escapeHtml(truncate(ann.quote, 100))}"</div>`
+    : "";
+
+  card.innerHTML = `
+    ${quoteHtml}
+    <div class="fb-ann-comment">${escapeHtml(ann.comment)}</div>
+    <div class="fb-ann-meta">
+      <span class="fb-ann-commenter">${escapeHtml(ann.commenter)}</span>
+      <span class="fb-ann-time">${timeAgo(ann.created_at)}</span>
+      ${!isReply ? `<button class="fb-ann-resolve" title="${isResolved ? "Unresolve" : "Resolve"}">${isResolved ? "&#x21a9;" : "&#x2713;"}</button>` : ""}
+      <button class="fb-ann-delete" title="Delete">&times;</button>
+    </div>
+  `;
+
+  if (!isReply) {
     card.addEventListener("click", (e) => {
       if (e.target.closest(".fb-ann-delete") || e.target.closest(".fb-ann-resolve")) return;
       setActiveHighlight(ann.id);
@@ -207,14 +264,57 @@ export function renderAnnotations(annotations) {
       e.stopPropagation();
       if (_onResolve) _onResolve(ann.id, !isResolved);
     });
-
-    card.querySelector(".fb-ann-delete").addEventListener("click", (e) => {
-      e.stopPropagation();
-      if (_onDelete) _onDelete(ann.id);
-    });
-
-    _listEl.appendChild(card);
   }
+
+  card.querySelector(".fb-ann-delete").addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (_onDelete) _onDelete(ann.id);
+  });
+
+  return card;
+}
+
+function showReplyForm(parentId, threadEl, replyBtn) {
+  openSidebar();
+
+  // Remove existing reply form if any
+  const existing = threadEl.querySelector(".fb-reply-form");
+  if (existing) { existing.remove(); replyBtn.style.display = ""; return; }
+
+  replyBtn.style.display = "none";
+
+  const form = document.createElement("div");
+  form.className = "fb-reply-form";
+  form.innerHTML = `
+    <textarea class="fb-form-textarea" placeholder="Write a reply..." rows="2"></textarea>
+    <div class="fb-form-actions">
+      <button class="fb-btn fb-btn-primary fb-reply-submit">Reply</button>
+      <button class="fb-btn fb-btn-cancel fb-reply-cancel">Cancel</button>
+    </div>
+  `;
+
+  form.querySelector(".fb-reply-submit").addEventListener("click", () => {
+    if (!getCommenter()) {
+      const nameInput = _sidebar.querySelector(".fb-name-input");
+      nameInput.focus();
+      nameInput.style.outline = "2px solid #ef4444";
+      setTimeout(() => (nameInput.style.outline = ""), 2000);
+      return;
+    }
+    const comment = form.querySelector("textarea").value.trim();
+    if (!comment) return;
+    if (_onReply) _onReply({ parent_id: parentId, comment, commenter: getCommenter() });
+    form.remove();
+    replyBtn.style.display = "";
+  });
+
+  form.querySelector(".fb-reply-cancel").addEventListener("click", () => {
+    form.remove();
+    replyBtn.style.display = "";
+  });
+
+  threadEl.insertBefore(form, replyBtn);
+  form.querySelector("textarea").focus();
 }
 
 /**
@@ -448,6 +548,48 @@ function injectStyles() {
     }
     .fb-filter-toggle input {
       cursor: pointer;
+    }
+    .fb-thread {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .fb-ann-reply {
+      margin-left: 20px;
+      border-left: 2px solid #e5e7eb;
+      font-size: 13px;
+    }
+    .fb-ann-reply .fb-ann-comment {
+      font-size: 12px;
+    }
+    .fb-reply-btn {
+      align-self: flex-start;
+      margin-left: 20px;
+      background: none;
+      border: none;
+      color: #7c3aed;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 2px 0;
+      font-family: inherit;
+    }
+    .fb-reply-btn:hover {
+      text-decoration: underline;
+    }
+    .fb-reply-form {
+      margin-left: 20px;
+      padding: 8px;
+      background: #fff;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+    }
+    .fb-reply-form .fb-form-textarea {
+      font-size: 12px;
+      min-height: unset;
+    }
+    .fb-reply-form .fb-form-actions {
+      margin-top: 6px;
     }
     .fb-form-section {
       margin-top: 12px;
