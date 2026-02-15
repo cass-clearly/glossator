@@ -1,157 +1,212 @@
-# Hypothesis Feedback → Claude
+# Glossator
 
-Collect web annotations from reviewers using a self-hosted [Hypothesis](https://web.hypothes.is/) instance, then send the feedback to Claude for automated document revision.
+Lightweight document annotation tool. Reviewers highlight text and leave threaded comments — no accounts needed, just enter a name. Authors collect the feedback and send it to Claude for AI-assisted revision.
 
 ## How It Works
 
-1. **Author** publishes an HTML document with the feedback layer script embedded
-2. **Reviewers** highlight text and leave comments using the Hypothesis sidebar
-3. **Author** clicks "Send Feedback to Claude" to collect all annotations
-4. Annotations are formatted into a structured prompt for Claude, which proposes a revised document
-
-## Prerequisites
-
-- [Docker](https://docs.docker.com/get-docker/) and Docker Compose
-- [Node.js](https://nodejs.org/) 18+ (for building the feedback layer)
-- A Claude API key (for direct API mode) or access to [claude.ai](https://claude.ai)
+1. **Embed** a single `<script>` tag in any HTML page
+2. **Reviewers** select text, leave comments, and reply to each other
+3. **Author** opens the page with `?author=true`, clicks "Send Feedback to Claude"
+4. A structured prompt is generated with all annotations — paste it into Claude for a revised document
 
 ## Quick Start
 
-### 1. Set Up Hypothesis
-
 ```bash
-cd hypothesis-feedback
-./scripts/setup.sh
+# Install dependencies
+cd server && npm install && cd ..
+cd feedback-layer && npm install && cd ..
+
+# Build the frontend bundle
+cd feedback-layer && node build.js && cp dist/feedback-layer.js ../serve/feedback-layer.js && cd ..
+
+# Start the server
+node server/index.js
 ```
 
-This clones the Hypothesis `h` repository, builds the Docker image, starts all services (PostgreSQL, Elasticsearch, RabbitMQ, h), initializes the database, and creates an admin user.
+Visit **http://localhost:3333** to see the demo page. Select some text to start annotating.
 
-Once complete:
+## Embedding in Your Pages
 
-- Hypothesis API: http://localhost:5000/api/
-- Login: http://localhost:5000/login (admin / hypothesis)
-- Generate an API token: http://localhost:5000/account/developer
-
-### 2. Build the Feedback Layer
-
-```bash
-cd feedback-layer
-npm install
-npm run build
-```
-
-This produces `dist/feedback-layer.js` — a single bundled script with zero runtime dependencies.
-
-### 3. Try the Example
-
-Open the sample document in a browser. You'll need a local HTTP server since Hypothesis requires a proper origin:
-
-```bash
-cd examples
-python3 -m http.server 8080
-```
-
-Then visit:
-
-- **As reviewer**: http://localhost:8080/sample-document.html — use the Hypothesis sidebar to annotate
-- **As author**: http://localhost:8080/sample-document.html?author=true — see the "Send Feedback to Claude" button
-
-## Embedding in Your Documents
-
-Add this script tag to any HTML page:
+Add the feedback layer to any HTML page with a single script tag:
 
 ```html
 <script
-  src="path/to/feedback-layer.js"
-  data-api-url="http://localhost:5000/api"
-  data-authority="localhost"
-  data-token="YOUR_HYPOTHESIS_API_TOKEN"
+  src="https://your-server.com/feedback-layer.js"
+  data-api-url="https://your-server.com"
   data-content-selector="article"
 ></script>
 ```
 
-### Configuration Attributes
+That's it. The sidebar, text selection, highlights, and annotation UI are all handled automatically.
+
+### Configuration
 
 | Attribute | Default | Description |
 |-----------|---------|-------------|
-| `data-api-url` | `http://localhost:5000/api` | Hypothesis API URL |
-| `data-hypothesis-url` | `https://cdn.hypothes.is/hypothesis` | Hypothesis client CDN URL |
-| `data-authority` | `localhost` | Hypothesis authority (domain) |
-| `data-token` | — | Hypothesis API bearer token |
-| `data-proxy-url` | — | CORS proxy URL for direct Claude API calls |
-| `data-model` | `claude-sonnet-4-20250514` | Claude model to use |
-| `data-content-selector` | — | CSS selector for document content (defaults to `body`) |
-| `data-document-uri` | — | Override the document URI for annotation lookup |
+| `data-api-url` | `""` (same origin) | URL of the Glossator backend |
+| `data-content-selector` | `body` | CSS selector for the annotatable content area |
+| `data-document-uri` | current page URL | Override the URI used to store/fetch annotations |
 
-### Author vs. Reviewer Mode
+### Same-Origin vs Cross-Origin
 
-The "Send Feedback to Claude" button only appears when `?author=true` is in the URL. Reviewers see only the Hypothesis annotation sidebar.
+**Same-origin (simplest):** If the backend serves your HTML files too (like the demo), you don't need `data-api-url` at all — it defaults to the same origin.
 
-## Claude API Integration
+**Cross-origin:** If your pages are hosted elsewhere, point `data-api-url` to wherever the backend is running. The backend has CORS enabled for all origins.
 
-The Claude API (`api.anthropic.com`) does not support browser CORS, so there are two modes:
+## Deploying the Backend
 
-### Clipboard Mode (Default)
+The backend is a Node.js server with SQLite — no external databases, no Docker, no infrastructure.
 
-Click "Send Feedback to Claude" → the formatted prompt is displayed in a modal → click "Copy Prompt" → paste into [claude.ai](https://claude.ai) or any Claude interface.
-
-No extra infrastructure needed.
-
-### Proxy Mode (Optional)
-
-For a single-click workflow, run a local CORS proxy that forwards requests to the Claude API:
+### Option 1: Direct
 
 ```bash
-node scripts/proxy.js
+cd server
+npm install
+node index.js
 ```
 
-Then add `data-proxy-url="http://localhost:3001/api/claude"` to your script tag. The UI will show a "Send to Claude" button that calls the API directly.
+The server listens on port 3333 by default. Set the `PORT` environment variable to change it:
+
+```bash
+PORT=8080 node server/index.js
+```
+
+### Option 2: Systemd Service
+
+```ini
+[Unit]
+Description=Glossator annotation server
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/path/to/glossator/server
+ExecStart=/usr/bin/node index.js
+Environment=PORT=3333
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+```
+
+### Option 3: Behind a Reverse Proxy (Nginx)
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name glossator.example.com;
+
+    location /api/ {
+        proxy_pass http://127.0.0.1:3333;
+    }
+
+    location /feedback-layer.js {
+        proxy_pass http://127.0.0.1:3333;
+    }
+}
+```
+
+Then on your pages:
+
+```html
+<script
+  src="https://glossator.example.com/feedback-layer.js"
+  data-api-url="https://glossator.example.com"
+  data-content-selector="article"
+></script>
+```
+
+## Distributing the Frontend Bundle
+
+The build step produces a single file: `feedback-layer/dist/feedback-layer.js` (~13KB minified). It's a self-contained IIFE with zero runtime dependencies. You can:
+
+- **Serve it from the backend** (default — the server serves files from `serve/`)
+- **Host it on a CDN** — just copy the file and point your script tags at it
+- **Vendor it** — drop it into your project's static assets
+
+To rebuild after making changes:
+
+```bash
+cd feedback-layer
+node build.js
+```
+
+## Author Mode
+
+Append `?author=true` to any annotated page URL to enable author mode. This adds a "Send Feedback to Claude" button that:
+
+1. Collects all annotations (with threaded replies)
+2. Formats them into a structured revision prompt alongside the document HTML
+3. Displays the prompt in a modal — copy and paste into Claude
+
+## Features
+
+- **No accounts** — reviewers just type their name
+- **Text anchoring** — annotations are anchored to specific text passages using TextQuoteSelectors (via Apache Annotator), so highlights survive minor edits
+- **Threaded replies** — reply to any annotation to create a discussion
+- **Resolve/unresolve** — mark feedback as addressed; resolved annotations hide their highlights
+- **Keyboard shortcuts** — Cmd+Enter (Ctrl+Enter on Windows) to submit comments and replies
+- **Persistent storage** — SQLite database, zero infrastructure
+- **Drop-in integration** — one script tag on any HTML page
+
+## API Reference
+
+All endpoints are prefixed with `/api`.
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/annotations?uri=<url>` | Fetch all annotations for a document |
+| `POST` | `/api/annotations` | Create an annotation or reply |
+| `PATCH` | `/api/annotations/:id` | Resolve or unresolve an annotation |
+| `DELETE` | `/api/annotations/:id` | Delete an annotation and its replies |
+
+### POST body
+
+```json
+{
+  "uri": "https://example.com/doc.html",
+  "quote": "selected text",
+  "prefix": "text before",
+  "suffix": "text after",
+  "comment": "This needs work",
+  "commenter": "Alice",
+  "parent_id": null
+}
+```
+
+For replies, set `parent_id` to the parent annotation's ID. Replies don't need `quote`/`prefix`/`suffix`.
 
 ## Project Structure
 
 ```
-hypothesis-feedback/
-├── docker-compose.yml          # Hypothesis stack
-├── .env                        # Environment variables
-├── scripts/
-│   └── setup.sh                # One-command setup
+glossator/
+├── server/
+│   ├── package.json          # express, better-sqlite3, cors, uuid
+│   ├── index.js              # API server + static file serving
+│   └── annotations.db        # SQLite database (auto-created)
 ├── feedback-layer/
-│   ├── package.json
-│   ├── build.js                # esbuild config
-│   ├── src/
-│   │   ├── index.js            # Entry point, reads config
-│   │   ├── hypothesis-embed.js # Loads Hypothesis client
-│   │   ├── annotation-fetch.js # Fetches annotations from h API
-│   │   ├── prompt-builder.js   # Formats prompt for Claude
-│   │   ├── claude-client.js    # Claude API / clipboard
-│   │   └── ui.js               # Button, modal, prompt view
-│   └── dist/
-│       └── feedback-layer.js   # Built bundle
-└── examples/
-    └── sample-document.html    # Demo page
+│   ├── package.json          # @apache-annotator/dom, esbuild
+│   ├── build.js              # esbuild bundler config
+│   └── src/
+│       ├── index.js          # Entry point — orchestration
+│       ├── api.js            # Backend API client
+│       ├── anchoring.js      # Text selection ↔ selectors
+│       ├── highlights.js     # Highlight rendering
+│       ├── sidebar.js        # Sidebar UI
+│       ├── prompt-builder.js # Annotation → Claude prompt
+│       └── ui.js             # Author mode button/modal
+├── serve/
+│   ├── index.html            # Demo page
+│   └── feedback-layer.js     # Built bundle (copied from dist/)
+├── test-e2e.mjs              # Puppeteer E2E tests
+└── test.sh                   # Build + test runner
 ```
 
-## Managing the Stack
+## Running Tests
 
 ```bash
-# Start everything
-docker compose up -d
-
-# View logs
-docker compose logs -f h
-
-# Stop everything
-docker compose down
-
-# Stop and remove volumes (full reset)
-docker compose down -v
+# Requires: npm install -g puppeteer (or npx)
+bash test.sh
 ```
 
-## Development
-
-For live rebuilding during development:
-
-```bash
-cd feedback-layer
-npm run watch
-```
+This builds the frontend, starts the server, runs the Puppeteer E2E suite, and cleans up.
