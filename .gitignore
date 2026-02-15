@@ -1,0 +1,21 @@
+# Cloned hypothesis repo (large, not needed in version control)
+h/
+
+# Node.js
+node_modules/
+
+# Build output
+feedback-layer/dist/
+serve/feedback-layer.js
+
+# SQLite
+server/annotations.db
+server/annotations.db-wal
+server/annotations.db-shm
+
+# Environment secrets
+.env
+
+# OS files
+.DS_Store
+Thumbs.db
