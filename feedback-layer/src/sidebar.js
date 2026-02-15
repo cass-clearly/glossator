@@ -107,6 +107,8 @@ function closeSidebar() {
  * Show the comment form for a new annotation.
  */
 export function showCommentForm(quote) {
+  openSidebar();
+
   const commenter = getCommenter();
   if (!commenter) {
     const nameInput = _sidebar.querySelector(".fb-name-input");
@@ -115,8 +117,6 @@ export function showCommentForm(quote) {
     setTimeout(() => (nameInput.style.outline = ""), 2000);
     return;
   }
-
-  openSidebar();
   _pendingQuote = quote;
   _formEl.style.display = "";
   _formEl.innerHTML = `
