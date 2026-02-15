@@ -30,7 +30,29 @@
       border-radius: 3px;
       font-size: 0.9em;
     }
+    .mermaid {
+      background: #fafafa;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 2em 0;
+    }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'default',
+      themeVariables: {
+        primaryColor: '#e0d5f5',
+        primaryTextColor: '#333',
+        primaryBorderColor: '#7c3aed',
+        lineColor: '#7c3aed',
+        secondaryColor: '#f9f5ff',
+        tertiaryColor: '#fff'
+      }
+    });
+  </script>
 </head>
 <body>
 
@@ -46,6 +68,36 @@
     However, a gap remains between <em>collecting feedback</em> and <em>acting on it</em>.
     Reviewers leave comments, but authors must manually synthesize dozens of suggestions
     into a coherent revision. This process is time-consuming and error-prone.
+  </p>
+
+  <h2>System Architecture</h2>
+  <p>
+    Glossator implements a client-server architecture where annotations are anchored to
+    text using TextQuoteSelector and stored in a backend database. Try selecting and annotating
+    text in the diagram below to test annotation support for dynamically-rendered content.
+  </p>
+
+  <pre class="mermaid">
+graph TB
+    A[User selects text] --> B[feedback-layer.js]
+    B --> C{Create or Load?}
+    C -->|Create| D[selectorFromRange]
+    C -->|Load| E[rangeFromSelector]
+    D --> F[TextQuoteSelector]
+    E --> G[Find text in DOM]
+    G --> H[highlightRange]
+    B --> I[REST API :3333]
+    I --> J[(SQLite Database)]
+
+    style B fill:#7c3aed,stroke:#6d28d9,color:#fff
+    style I fill:#7c3aed,stroke:#6d28d9,color:#fff
+    style J fill:#f9f5ff,stroke:#7c3aed
+  </pre>
+
+  <p>
+    The system uses <strong>text anchoring</strong> to maintain annotation positions even when
+    the document changes. The TextQuoteSelector stores the exact quoted text plus
+    surrounding context, allowing the system to relocate annotations if the document is edited.
   </p>
 
   <h2>The Annotation Layer</h2>
@@ -77,13 +129,35 @@
   </p>
 
   <h2>Workflow</h2>
-  <p>The proposed workflow has four steps:</p>
-  <ol>
-    <li>Author publishes an HTML document with the annotation layer embedded</li>
-    <li>Reviewers highlight text and leave comments using the Hypothesis sidebar</li>
-    <li>Author clicks "Send Feedback to Claude" to collect all annotations</li>
-    <li>The system formats annotations into a prompt and sends them to Claude for revision</li>
-  </ol>
+  <p>The collaborative review workflow follows these stages:</p>
+
+  <pre class="mermaid">
+sequenceDiagram
+    participant Author
+    participant Reviewer
+    participant Glossator
+    participant Server
+
+    Author->>Glossator: Publish document
+    Reviewer->>Glossator: Select text
+    Glossator->>Reviewer: Show ✎ Annotate
+    Reviewer->>Glossator: Add comment
+    Glossator->>Server: POST /api/annotations
+    Server-->>Glossator: Save annotation
+    Glossator->>Glossator: Highlight text
+
+    Reviewer->>Glossator: Click highlight
+    Glossator->>Glossator: Open sidebar
+
+    Author->>Glossator: Resolve ✓
+    Glossator->>Server: PATCH (resolved)
+    Glossator->>Glossator: Remove highlight
+  </pre>
+
+  <p>
+    Each step is stored persistently on the server, allowing reviewers to work asynchronously.
+    The annotation layer automatically re-anchors comments when the page reloads.
+  </p>
 
   <h2>Conclusion</h2>
   <p>
