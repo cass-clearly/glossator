@@ -5,15 +5,28 @@ All notable changes to Glossator will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.1] - 2026-02-15
+## [1.1.0] - 2026-02-15
+
+### Added
+- **Full Mermaid diagram support** - annotations now work on all Mermaid diagram types including:
+  - Flowcharts and graphs (HTML-based rendering)
+  - Sequence diagrams (SVG-based rendering)
+  - Class diagrams
+  - State diagrams
+  - Entity Relationship Diagrams (ERD)
+  - Gantt charts
+  - Pie charts
+  - Git graphs
+  - User journey diagrams
+- Automatic detection of Mermaid rendering and waits for diagrams to load before anchoring
+- SVG text highlighting using rect overlays for diagrams that render as pure SVG
+- Coordinate transformation for complex nested SVG groups (ERD support)
+- Click-to-jump functionality works on all diagram types
 
 ### Fixed
-- Verified and confirmed Mermaid diagram annotation support works correctly
-- Annotations now properly anchor to dynamically-rendered SVG content from Mermaid diagrams
-
-### Documentation
-- Marked Mermaid diagram testing as complete in TODO list
-- Added comprehensive Mermaid architecture diagram tests
+- SVG highlight positioning in transformed groups (ERD entities)
+- Click event propagation through highlight overlays to underlying text
+- Proper separation of HTML vs SVG highlighting strategies
 
 ## [1.0.0] - 2024-02-14
 

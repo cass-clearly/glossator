@@ -56,40 +56,40 @@ export function highlightRange(range, annotationId) {
 }
 
 function wrapTextRange(range, annotationId) {
-  // Check if we're inside an SVG <text> element (not foreignObject HTML)
+  // Check if we're inside an SVG <text> element
   let node = range.commonAncestorContainer;
   while (node && node.nodeType !== Node.ELEMENT_NODE) {
     node = node.parentNode;
   }
 
-  // Walk up to check if we're in SVG <text> vs foreignObject HTML
+  // Walk up to check if we're in SVG context
   let current = node;
   let inSVGText = false;
   let svgRoot = null;
 
   while (current) {
-    // If we hit a foreignObject, we're in HTML context - use regular marks
+    // If we're in a foreignObject, we're in HTML context - safe to use marks
     if (current.tagName === 'foreignObject') {
       inSVGText = false;
       break;
     }
-    // If we hit an SVG text element, we need SVG highlighting
+    // If we're in SVG text, we need SVG rect highlighting
     if (current.tagName === 'text' && current instanceof SVGElement) {
       inSVGText = true;
     }
-    // Track the SVG root for later
+    // Track the SVG root for creating rect overlays
     if (current.tagName === 'svg') {
       svgRoot = current;
     }
     current = current.parentElement;
   }
 
-  // If inside SVG <text> element, use SVG-compatible highlighting
+  // Use SVG rect highlighting for SVG text elements
   if (inSVGText && svgRoot) {
     return createSVGHighlight(range, annotationId, svgRoot);
   }
 
-  // Regular HTML highlighting
+  // Regular HTML highlighting for HTML content
   const mark = document.createElement("mark");
   mark.className = HIGHLIGHT_CLASS;
   mark.dataset.annotationId = annotationId;
@@ -111,24 +111,45 @@ function wrapTextRange(range, annotationId) {
 }
 
 /**
- * Create an SVG-compatible highlight using a <rect> element.
+ * Create an SVG-compatible highlight using <rect> overlay.
+ * Used for SVG <text> elements where HTML marks cannot be inserted.
  */
 function createSVGHighlight(range, annotationId, svgRoot) {
   try {
-    // Get the bounding box of the selected text
     const rects = range.getClientRects();
     if (rects.length === 0) return null;
 
     const svgNS = "http://www.w3.org/2000/svg";
-
-    // Get the SVG's CTM (Current Transformation Matrix) to convert screen to SVG coords
     const ctm = svgRoot.getScreenCTM();
     if (!ctm) {
       console.warn('[feedback-layer] Could not get SVG transformation matrix');
       return null;
     }
 
-    // Create a group to hold all highlight rectangles for this annotation
+    // Find the text element's parent group first (before creating rects)
+    let insertNode = range.commonAncestorContainer;
+    while (insertNode && insertNode.nodeType !== Node.ELEMENT_NODE) {
+      insertNode = insertNode.parentNode;
+    }
+
+    let insertCurrent = insertNode;
+    let textParentGroup = null;
+    while (insertCurrent && insertCurrent !== svgRoot) {
+      if (insertCurrent.tagName === 'text') {
+        textParentGroup = insertCurrent.parentElement;
+        break;
+      }
+      insertCurrent = insertCurrent.parentElement;
+    }
+
+    // Get the parent group's transform if it exists
+    const targetGroup = textParentGroup || svgRoot;
+    let parentCTM = ctm;
+    if (targetGroup !== svgRoot && targetGroup.getScreenCTM) {
+      parentCTM = targetGroup.getScreenCTM();
+    }
+
+    // Create a group to hold all highlight rectangles
     const group = document.createElementNS(svgNS, "g");
     group.setAttribute("class", HIGHLIGHT_CLASS);
     group.setAttribute("data-annotation-id", annotationId);
@@ -139,45 +160,68 @@ function createSVGHighlight(range, annotationId, svgRoot) {
       const clientRect = rects[i];
       const highlightRect = document.createElementNS(svgNS, "rect");
 
-      // Convert client coordinates to SVG coordinates
+      // Convert client coordinates to parent group's coordinate space
       const topLeft = svgRoot.createSVGPoint();
       topLeft.x = clientRect.left;
       topLeft.y = clientRect.top;
-      const svgTopLeft = topLeft.matrixTransform(ctm.inverse());
+      const localTopLeft = topLeft.matrixTransform(parentCTM.inverse());
 
-      const width = clientRect.width / ctm.a;
-      const height = clientRect.height / ctm.d;
+      const width = clientRect.width / parentCTM.a;
+      const height = clientRect.height / parentCTM.d;
 
-      highlightRect.setAttribute("x", svgTopLeft.x);
-      highlightRect.setAttribute("y", svgTopLeft.y);
+      highlightRect.setAttribute("x", localTopLeft.x);
+      highlightRect.setAttribute("y", localTopLeft.y);
       highlightRect.setAttribute("width", width);
       highlightRect.setAttribute("height", height);
-      highlightRect.setAttribute("fill", "yellow");
-      highlightRect.setAttribute("fill-opacity", "0.5");
-      highlightRect.setAttribute("stroke", "orange");
-      highlightRect.setAttribute("stroke-width", "2");
-
-      console.log('[feedback-layer] SVG highlight rect:', {
-        clientRect: { x: clientRect.left, y: clientRect.top, width: clientRect.width, height: clientRect.height },
-        svgCoords: { x: svgTopLeft.x, y: svgTopLeft.y, width, height },
-        ctm: { a: ctm.a, d: ctm.d }
-      });
+      highlightRect.setAttribute("fill", "#ffd400");
+      highlightRect.setAttribute("fill-opacity", "0.35");
+      highlightRect.setAttribute("rx", "2");
+      highlightRect.setAttribute("ry", "2");
+      highlightRect.style.pointerEvents = "none"; // Let clicks pass through to text underneath
 
       group.appendChild(highlightRect);
     }
 
-    group.addEventListener("click", () => {
+    // Insert into the target group (so it's in the same coordinate space)
+    // Append to the end so it renders on top of backgrounds
+    if (targetGroup && targetGroup !== svgRoot) {
+      targetGroup.appendChild(group);
+    } else {
+      // Fallback: append to SVG root
+      svgRoot.appendChild(group);
+    }
+
+    // Find the actual SVG text elements within the range and make them clickable
+    let node = range.commonAncestorContainer;
+    while (node && node.nodeType !== Node.ELEMENT_NODE) {
+      node = node.parentNode;
+    }
+
+    // Walk up to find the SVG text element(s)
+    const textElements = new Set();
+    let current = node;
+    while (current && current !== svgRoot) {
+      if (current.tagName === 'text' && current instanceof SVGElement) {
+        textElements.add(current);
+        // Also check for tspan children
+        const tspans = current.querySelectorAll('tspan');
+        tspans.forEach(tspan => textElements.add(tspan));
+      }
+      current = current.parentElement;
+    }
+
+    // Add click handlers to the text elements
+    const clickHandler = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       if (_onHighlightClick) _onHighlightClick(annotationId);
+    };
+
+    textElements.forEach(textEl => {
+      textEl.style.cursor = "pointer";
+      textEl.addEventListener("click", clickHandler);
+      textEl.dataset.fbAnnotationId = annotationId;
     });
-
-    // Find Mermaid's root group (or use svgRoot if not found)
-    const mermaidRoot = svgRoot.querySelector('g.root');
-    const insertTarget = mermaidRoot || svgRoot;
-
-    // Insert at the beginning of the target so highlights appear behind text
-    insertTarget.insertBefore(group, insertTarget.firstChild);
-
-    console.log('[feedback-layer] Created SVG highlight with', rects.length, 'rectangles, inserted into', insertTarget.className || 'svg root');
     return group;
   } catch (e) {
     console.warn('[feedback-layer] Failed to create SVG highlight:', e);
@@ -195,15 +239,24 @@ export function removeHighlights(annotationId) {
   marks.forEach((mark) => {
     const parent = mark.parentNode;
 
-    // SVG highlights (g elements) don't need unwrapping, just remove them
+    // SVG highlights (g elements) are overlays - just remove them
     if (mark.tagName === 'g' || mark instanceof SVGElement) {
       parent.removeChild(mark);
     } else {
-      // HTML marks need unwrapping
+      // HTML marks need unwrapping to preserve content
       while (mark.firstChild) parent.insertBefore(mark.firstChild, mark);
       parent.removeChild(mark);
       parent.normalize();
     }
+  });
+
+  // Also clean up SVG text elements that have click handlers
+  const svgTextElements = document.querySelectorAll(`[data-fb-annotation-id="${annotationId}"]`);
+  svgTextElements.forEach((el) => {
+    delete el.dataset.fbAnnotationId;
+    el.style.cursor = "";
+    // Note: We can't easily remove specific event listeners without storing the function reference
+    // But they'll be harmless once the highlight group is removed
   });
 }
 
@@ -213,16 +266,14 @@ export function removeHighlights(annotationId) {
  */
 export function removeAllHighlights() {
   const marks = document.querySelectorAll(`.${HIGHLIGHT_CLASS}`);
-  console.log('[feedback-layer] removeAllHighlights() called, removing', marks.length, 'highlights');
   marks.forEach((mark) => {
     const parent = mark.parentNode;
 
-    // SVG highlights (g elements) don't need unwrapping, just remove them
+    // SVG highlights (g elements) are overlays - just remove them
     if (mark.tagName === 'g' || mark instanceof SVGElement) {
-      console.log('[feedback-layer] Removing SVG highlight:', mark);
       parent.removeChild(mark);
     } else {
-      // HTML marks need unwrapping
+      // HTML marks need unwrapping to preserve content
       while (mark.firstChild) parent.insertBefore(mark.firstChild, mark);
       parent.removeChild(mark);
       parent.normalize();
@@ -245,7 +296,7 @@ export function setActiveHighlight(annotationId) {
       el.classList.remove(ACTIVE_CLASS);
     }
 
-    // Handle SVG highlights
+    // Handle SVG highlights (update fill on rect children)
     if (el.tagName === 'g' || el instanceof SVGElement) {
       const rects = el.querySelectorAll('rect');
       rects.forEach(rect => {

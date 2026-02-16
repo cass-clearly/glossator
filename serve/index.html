@@ -159,6 +159,190 @@ sequenceDiagram
     The annotation layer automatically re-anchors comments when the page reloads.
   </p>
 
+  <h2>Class Diagram Example</h2>
+  <p>
+    Object-oriented design uses classes to model domain entities. Try annotating the class
+    names or relationships below to test annotation support on class diagrams.
+  </p>
+
+  <pre class="mermaid">
+classDiagram
+    class Document {
+        +String uri
+        +String content
+        +Date createdAt
+        +addAnnotation()
+        +render()
+    }
+    class Annotation {
+        +String id
+        +String quote
+        +String comment
+        +String commenter
+        +Boolean resolved
+        +resolve()
+        +delete()
+    }
+    class TextSelector {
+        +String exact
+        +String prefix
+        +String suffix
+        +anchor()
+        +serialize()
+    }
+
+    Document "1" --> "*" Annotation : contains
+    Annotation "1" --> "1" TextSelector : uses
+  </pre>
+
+  <h2>State Diagram Example</h2>
+  <p>
+    State machines help model application behavior. Try selecting state names or transitions.
+  </p>
+
+  <pre class="mermaid">
+stateDiagram-v2
+    [*] --> Draft
+    Draft --> UnderReview: Submit for review
+    UnderReview --> Draft: Request changes
+    UnderReview --> Approved: Approve
+    Approved --> Published: Publish
+    Published --> Archived: Archive
+    Archived --> [*]
+
+    UnderReview --> HasAnnotations: Add comments
+    HasAnnotations --> UnderReview: Address feedback
+  </pre>
+
+  <h2>Entity Relationship Diagram</h2>
+  <p>
+    Database schemas visualized with ERD notation. Test annotations on entity names and attributes.
+  </p>
+
+  <pre class="mermaid">
+erDiagram
+    DOCUMENT ||--o{ ANNOTATION : contains
+    ANNOTATION ||--o{ REPLY : has
+    ANNOTATION }o--|| USER : "created by"
+    REPLY }o--|| USER : "created by"
+
+    DOCUMENT {
+        string uri PK
+        string content
+        datetime created_at
+    }
+    ANNOTATION {
+        int id PK
+        string uri FK
+        string quote
+        string prefix
+        string suffix
+        string comment
+        string commenter
+        boolean resolved
+        datetime created_at
+    }
+    REPLY {
+        int id PK
+        int parent_id FK
+        string comment
+        string commenter
+        datetime created_at
+    }
+    USER {
+        string username PK
+        string email
+        string avatar_url
+    }
+  </pre>
+
+  <h2>Gantt Chart Example</h2>
+  <p>
+    Project timelines and task dependencies. Try annotating task names or dates.
+  </p>
+
+  <pre class="mermaid">
+gantt
+    title Glossator Development Timeline
+    dateFormat YYYY-MM-DD
+    section Planning
+    Requirements gathering       :done, req, 2024-01-01, 7d
+    Architecture design          :done, arch, after req, 5d
+
+    section Development
+    Text anchoring implementation :done, anchor, 2024-01-15, 10d
+    Sidebar UI                   :done, sidebar, after anchor, 7d
+    API server                   :done, api, after anchor, 5d
+    Mermaid support              :active, mermaid, 2024-02-10, 5d
+
+    section Testing
+    E2E tests                    :test, after mermaid, 3d
+    Bug fixes                    :bugfix, after test, 5d
+
+    section Deployment
+    Documentation                :doc, after bugfix, 3d
+    NPM publish                  :publish, after doc, 1d
+  </pre>
+
+  <h2>Pie Chart Example</h2>
+  <p>
+    Simple data visualization with labeled segments.
+  </p>
+
+  <pre class="mermaid">
+pie title Annotation Types Distribution
+    "Feature requests" : 42
+    "Bug reports" : 28
+    "Questions" : 18
+    "General feedback" : 12
+  </pre>
+
+  <h2>Git Graph Example</h2>
+  <p>
+    Version control branch and merge visualization.
+  </p>
+
+  <pre class="mermaid">
+gitGraph
+    commit id: "Initial commit"
+    commit id: "Add basic annotation"
+    branch feature-sidebar
+    checkout feature-sidebar
+    commit id: "Create sidebar UI"
+    commit id: "Add styling"
+    checkout main
+    commit id: "Fix anchoring bug"
+    checkout feature-sidebar
+    merge main
+    commit id: "Complete sidebar"
+    checkout main
+    merge feature-sidebar
+    commit id: "Release v1.0.0"
+  </pre>
+
+  <h2>User Journey Example</h2>
+  <p>
+    User experience mapping across touchpoints.
+  </p>
+
+  <pre class="mermaid">
+journey
+    title Reviewer's annotation workflow
+    section Reading Document
+      Open document: 5: Reviewer
+      Read content: 4: Reviewer
+      Identify issue: 3: Reviewer
+    section Adding Feedback
+      Select text: 4: Reviewer
+      Click Annotate button: 5: Reviewer
+      Write comment: 4: Reviewer
+      Submit: 5: Reviewer
+    section Follow-up
+      Receive notification: 4: Reviewer, System
+      Read author response: 5: Reviewer
+      Mark as resolved: 5: Reviewer
+  </pre>
+
   <h2>Conclusion</h2>
   <p>
     By combining open web annotation standards with modern AI, we can create a
