@@ -12,15 +12,9 @@ Lightweight document annotation tool. Reviewers highlight text and leave threade
 ## Quick Start
 
 ```bash
-# Install dependencies
-cd server && npm install && cd ..
-cd feedback-layer && npm install && cd ..
-
-# Build the frontend bundle
-cd feedback-layer && node build.js && cp dist/feedback-layer.js ../serve/feedback-layer.js && cd ..
-
-# Start the server
-node server/index.js
+git clone <repo>
+npm install
+npm start
 ```
 
 Visit **http://localhost:3333** to see the demo page. Select some text to start annotating.
@@ -31,9 +25,8 @@ Add the feedback layer to any HTML page with a single script tag:
 
 ```html
 <script
-  src="https://your-server.com/feedback-layer.js"
-  data-api-url="https://your-server.com"
-  data-content-selector="article"
+  src="http://localhost:3333/feedback-layer.js"
+  data-api-url="http://localhost:3333"
 ></script>
 ```
 
@@ -60,15 +53,14 @@ The backend is a Node.js server with SQLite — no external databases, no Docker
 ### Option 1: Direct
 
 ```bash
-cd server
 npm install
-node index.js
+npm start
 ```
 
 The server listens on port 3333 by default. Set the `PORT` environment variable to change it:
 
 ```bash
-PORT=8080 node server/index.js
+PORT=8080 npm start
 ```
 
 ### Option 2: Systemd Service
@@ -80,8 +72,8 @@ After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/path/to/glossator/server
-ExecStart=/usr/bin/node index.js
+WorkingDirectory=/path/to/glossator
+ExecStart=/usr/bin/node server/index.js
 Environment=PORT=3333
 Restart=on-failure
 
@@ -96,7 +88,7 @@ server {
     listen 443 ssl;
     server_name glossator.example.com;
 
-    location /api/ {
+    location /v1/ {
         proxy_pass http://127.0.0.1:3333;
     }
 
@@ -124,11 +116,10 @@ The build step produces a single file: `feedback-layer/dist/feedback-layer.js` (
 - **Host it on a CDN** — just copy the file and point your script tags at it
 - **Vendor it** — drop it into your project's static assets
 
-To rebuild after making changes:
+To rebuild after making changes to the frontend source:
 
 ```bash
-cd feedback-layer
-node build.js
+npm run build
 ```
 
 ## Author Mode
@@ -151,39 +142,47 @@ Append `?author=true` to any annotated page URL to enable author mode. This adds
 
 ## API Reference
 
-All endpoints are prefixed with `/api`.
+All endpoints are prefixed with `/v1`.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/api/annotations?uri=<url>` | Fetch all annotations for a document |
-| `POST` | `/api/annotations` | Create an annotation or reply |
-| `PATCH` | `/api/annotations/:id` | Resolve or unresolve an annotation |
-| `DELETE` | `/api/annotations/:id` | Delete an annotation and its replies |
+| `GET` | `/v1/documents` | List all documents |
+| `POST` | `/v1/documents` | Register a document by URI |
+| `GET` | `/v1/comments?document=<uri-or-id>` | Fetch all comments for a document |
+| `POST` | `/v1/comments` | Create a comment or reply |
+| `PATCH` | `/v1/comments/:id` | Update a comment (e.g. close/reopen) |
+| `DELETE` | `/v1/comments/:id` | Delete a comment and its replies |
 
-### POST body
+### POST /v1/comments body
 
 ```json
 {
-  "uri": "https://example.com/doc.html",
-  "quote": "selected text",
-  "prefix": "text before",
-  "suffix": "text after",
+  "document": "https://example.com/doc.html",
+  "selectors": [
+    {
+      "type": "TextQuoteSelector",
+      "exact": "selected text",
+      "prefix": "text before",
+      "suffix": "text after"
+    }
+  ],
   "comment": "This needs work",
   "commenter": "Alice",
   "parent_id": null
 }
 ```
 
-For replies, set `parent_id` to the parent annotation's ID. Replies don't need `quote`/`prefix`/`suffix`.
+For replies, set `parent_id` to the parent comment's ID. Replies don't need `selectors`.
 
 ## Project Structure
 
 ```
 glossator/
+├── package.json              # Root: npm install + npm start
 ├── server/
-│   ├── package.json          # express, better-sqlite3, cors, uuid
+│   ├── package.json          # express, better-sqlite3, cors
 │   ├── index.js              # API server + static file serving
-│   └── annotations.db        # SQLite database (auto-created)
+│   └── glossator.db          # SQLite database (auto-created)
 ├── feedback-layer/
 │   ├── package.json          # @apache-annotator/dom, esbuild
 │   ├── build.js              # esbuild bundler config
@@ -197,7 +196,7 @@ glossator/
 │       └── ui.js             # Author mode button/modal
 ├── serve/
 │   ├── index.html            # Demo page
-│   └── feedback-layer.js     # Built bundle (copied from dist/)
+│   └── feedback-layer.js     # Pre-built bundle (committed)
 ├── test-e2e.mjs              # Puppeteer E2E tests
 └── test.sh                   # Build + test runner
 ```

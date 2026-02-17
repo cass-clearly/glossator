@@ -6,7 +6,6 @@ node_modules/
 
 # Build output
 feedback-layer/dist/
-serve/feedback-layer.js
 
 # SQLite
 server/annotations.db
