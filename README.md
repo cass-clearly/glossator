@@ -25,8 +25,9 @@ Add the feedback layer to any HTML page with a single script tag:
 
 ```html
 <script
-  src="http://localhost:3333/feedback-layer.js"
-  data-api-url="http://localhost:3333"
+  src="https://your-server.com/feedback-layer.js"
+  data-api-url="https://your-server.com"
+  data-content-selector="article"
 ></script>
 ```
 
@@ -88,7 +89,7 @@ server {
     listen 443 ssl;
     server_name glossator.example.com;
 
-    location /v1/ {
+    location /api/ {
         proxy_pass http://127.0.0.1:3333;
     }
 
@@ -142,37 +143,30 @@ Append `?author=true` to any annotated page URL to enable author mode. This adds
 
 ## API Reference
 
-All endpoints are prefixed with `/v1`.
+All endpoints are prefixed with `/api`.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/v1/documents` | List all documents |
-| `POST` | `/v1/documents` | Register a document by URI |
-| `GET` | `/v1/comments?document=<uri-or-id>` | Fetch all comments for a document |
-| `POST` | `/v1/comments` | Create a comment or reply |
-| `PATCH` | `/v1/comments/:id` | Update a comment (e.g. close/reopen) |
-| `DELETE` | `/v1/comments/:id` | Delete a comment and its replies |
+| `GET` | `/api/annotations?uri=<url>` | Fetch all annotations for a document |
+| `POST` | `/api/annotations` | Create an annotation or reply |
+| `PATCH` | `/api/annotations/:id` | Resolve or unresolve an annotation |
+| `DELETE` | `/api/annotations/:id` | Delete an annotation and its replies |
 
-### POST /v1/comments body
+### POST body
 
 ```json
 {
-  "document": "https://example.com/doc.html",
-  "selectors": [
-    {
-      "type": "TextQuoteSelector",
-      "exact": "selected text",
-      "prefix": "text before",
-      "suffix": "text after"
-    }
-  ],
+  "uri": "https://example.com/doc.html",
+  "quote": "selected text",
+  "prefix": "text before",
+  "suffix": "text after",
   "comment": "This needs work",
   "commenter": "Alice",
   "parent_id": null
 }
 ```
 
-For replies, set `parent_id` to the parent comment's ID. Replies don't need `selectors`.
+For replies, set `parent_id` to the parent annotation's ID. Replies don't need `quote`/`prefix`/`suffix`.
 
 ## Project Structure
 
@@ -180,9 +174,9 @@ For replies, set `parent_id` to the parent comment's ID. Replies don't need `sel
 glossator/
 ├── package.json              # Root: npm install + npm start
 ├── server/
-│   ├── package.json          # express, better-sqlite3, cors
+│   ├── package.json          # express, better-sqlite3, cors, uuid
 │   ├── index.js              # API server + static file serving
-│   └── glossator.db          # SQLite database (auto-created)
+│   └── annotations.db        # SQLite database (auto-created)
 ├── feedback-layer/
 │   ├── package.json          # @apache-annotator/dom, esbuild
 │   ├── build.js              # esbuild bundler config
