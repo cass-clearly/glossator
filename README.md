@@ -12,15 +12,9 @@ Lightweight document annotation tool. Reviewers highlight text and leave threade
 ## Quick Start
 
 ```bash
-# Install dependencies
-cd server && npm install && cd ..
-cd feedback-layer && npm install && cd ..
-
-# Build the frontend bundle
-cd feedback-layer && node build.js && cp dist/feedback-layer.js ../serve/feedback-layer.js && cd ..
-
-# Start the server
-node server/index.js
+git clone <repo>
+npm install
+npm start
 ```
 
 Visit **http://localhost:3333** to see the demo page. Select some text to start annotating.
@@ -60,15 +54,14 @@ The backend is a Node.js server with SQLite — no external databases, no Docker
 ### Option 1: Direct
 
 ```bash
-cd server
 npm install
-node index.js
+npm start
 ```
 
 The server listens on port 3333 by default. Set the `PORT` environment variable to change it:
 
 ```bash
-PORT=8080 node server/index.js
+PORT=8080 npm start
 ```
 
 ### Option 2: Systemd Service
@@ -80,8 +73,8 @@ After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/path/to/glossator/server
-ExecStart=/usr/bin/node index.js
+WorkingDirectory=/path/to/glossator
+ExecStart=/usr/bin/node server/index.js
 Environment=PORT=3333
 Restart=on-failure
 
@@ -124,11 +117,10 @@ The build step produces a single file: `feedback-layer/dist/feedback-layer.js` (
 - **Host it on a CDN** — just copy the file and point your script tags at it
 - **Vendor it** — drop it into your project's static assets
 
-To rebuild after making changes:
+To rebuild after making changes to the frontend source:
 
 ```bash
-cd feedback-layer
-node build.js
+npm run build
 ```
 
 ## Author Mode
@@ -180,6 +172,7 @@ For replies, set `parent_id` to the parent annotation's ID. Replies don't need `
 
 ```
 glossator/
+├── package.json              # Root: npm install + npm start
 ├── server/
 │   ├── package.json          # express, better-sqlite3, cors, uuid
 │   ├── index.js              # API server + static file serving
@@ -197,7 +190,7 @@ glossator/
 │       └── ui.js             # Author mode button/modal
 ├── serve/
 │   ├── index.html            # Demo page
-│   └── feedback-layer.js     # Built bundle (copied from dist/)
+│   └── feedback-layer.js     # Pre-built bundle (committed)
 ├── test-e2e.mjs              # Puppeteer E2E tests
 └── test.sh                   # Build + test runner
 ```

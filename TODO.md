@@ -5,7 +5,7 @@
 - [ ] Handle edge case: overlapping highlights
 - [ ] Keyboard navigation for sidebar
 - [ ] **Test with complex content types:**
-  - [ ] Mermaid diagrams (dynamically rendered SVG)
+  - [x] Mermaid diagrams (dynamically rendered SVG) ✅ Works!
   - [ ] Code blocks with syntax highlighting
   - [ ] Interactive widgets/components
   - [ ] Canvas/WebGL content
@@ -126,4 +126,5 @@
 - [x] Resolve/unresolve
 - [x] Orphaned annotation filtering
 - [x] Click highlights to open sidebar
-- [x] Speech bubble style for "Annotate" button
+- [x] Speech bubble style for "✎ Annotate" button
+- [x] Test with Mermaid diagrams - works perfectly!

@@ -30,7 +30,29 @@
       border-radius: 3px;
       font-size: 0.9em;
     }
+    .mermaid {
+      background: #fafafa;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 2em 0;
+    }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'default',
+      themeVariables: {
+        primaryColor: '#e0d5f5',
+        primaryTextColor: '#333',
+        primaryBorderColor: '#7c3aed',
+        lineColor: '#7c3aed',
+        secondaryColor: '#f9f5ff',
+        tertiaryColor: '#fff'
+      }
+    });
+  </script>
 </head>
 <body>
 
@@ -46,6 +68,36 @@
     However, a gap remains between <em>collecting feedback</em> and <em>acting on it</em>.
     Reviewers leave comments, but authors must manually synthesize dozens of suggestions
     into a coherent revision. This process is time-consuming and error-prone.
+  </p>
+
+  <h2>System Architecture</h2>
+  <p>
+    Glossator implements a client-server architecture where annotations are anchored to
+    text using TextQuoteSelector and stored in a backend database. Try selecting and annotating
+    text in the diagram below to test annotation support for dynamically-rendered content.
+  </p>
+
+  <pre class="mermaid">
+graph TB
+    A[User selects text] --> B[feedback-layer.js]
+    B --> C{Create or Load?}
+    C -->|Create| D[selectorFromRange]
+    C -->|Load| E[rangeFromSelector]
+    D --> F[TextQuoteSelector]
+    E --> G[Find text in DOM]
+    G --> H[highlightRange]
+    B --> I[REST API :3333]
+    I --> J[(SQLite Database)]
+
+    style B fill:#7c3aed,stroke:#6d28d9,color:#fff
+    style I fill:#7c3aed,stroke:#6d28d9,color:#fff
+    style J fill:#f9f5ff,stroke:#7c3aed
+  </pre>
+
+  <p>
+    The system uses <strong>text anchoring</strong> to maintain annotation positions even when
+    the document changes. The TextQuoteSelector stores the exact quoted text plus
+    surrounding context, allowing the system to relocate annotations if the document is edited.
   </p>
 
   <h2>The Annotation Layer</h2>
@@ -77,13 +129,219 @@
   </p>
 
   <h2>Workflow</h2>
-  <p>The proposed workflow has four steps:</p>
-  <ol>
-    <li>Author publishes an HTML document with the annotation layer embedded</li>
-    <li>Reviewers highlight text and leave comments using the Hypothesis sidebar</li>
-    <li>Author clicks "Send Feedback to Claude" to collect all annotations</li>
-    <li>The system formats annotations into a prompt and sends them to Claude for revision</li>
-  </ol>
+  <p>The collaborative review workflow follows these stages:</p>
+
+  <pre class="mermaid">
+sequenceDiagram
+    participant Author
+    participant Reviewer
+    participant Glossator
+    participant Server
+
+    Author->>Glossator: Publish document
+    Reviewer->>Glossator: Select text
+    Glossator->>Reviewer: Show ✎ Annotate
+    Reviewer->>Glossator: Add comment
+    Glossator->>Server: POST /api/annotations
+    Server-->>Glossator: Save annotation
+    Glossator->>Glossator: Highlight text
+
+    Reviewer->>Glossator: Click highlight
+    Glossator->>Glossator: Open sidebar
+
+    Author->>Glossator: Resolve ✓
+    Glossator->>Server: PATCH (resolved)
+    Glossator->>Glossator: Remove highlight
+  </pre>
+
+  <p>
+    Each step is stored persistently on the server, allowing reviewers to work asynchronously.
+    The annotation layer automatically re-anchors comments when the page reloads.
+  </p>
+
+  <h2>Class Diagram Example</h2>
+  <p>
+    Object-oriented design uses classes to model domain entities. Try annotating the class
+    names or relationships below to test annotation support on class diagrams.
+  </p>
+
+  <pre class="mermaid">
+classDiagram
+    class Document {
+        +String uri
+        +String content
+        +Date createdAt
+        +addAnnotation()
+        +render()
+    }
+    class Annotation {
+        +String id
+        +String quote
+        +String comment
+        +String commenter
+        +Boolean resolved
+        +resolve()
+        +delete()
+    }
+    class TextSelector {
+        +String exact
+        +String prefix
+        +String suffix
+        +anchor()
+        +serialize()
+    }
+
+    Document "1" --> "*" Annotation : contains
+    Annotation "1" --> "1" TextSelector : uses
+  </pre>
+
+  <h2>State Diagram Example</h2>
+  <p>
+    State machines help model application behavior. Try selecting state names or transitions.
+  </p>
+
+  <pre class="mermaid">
+stateDiagram-v2
+    [*] --> Draft
+    Draft --> UnderReview: Submit for review
+    UnderReview --> Draft: Request changes
+    UnderReview --> Approved: Approve
+    Approved --> Published: Publish
+    Published --> Archived: Archive
+    Archived --> [*]
+
+    UnderReview --> HasAnnotations: Add comments
+    HasAnnotations --> UnderReview: Address feedback
+  </pre>
+
+  <h2>Entity Relationship Diagram</h2>
+  <p>
+    Database schemas visualized with ERD notation. Test annotations on entity names and attributes.
+  </p>
+
+  <pre class="mermaid">
+erDiagram
+    DOCUMENT ||--o{ ANNOTATION : contains
+    ANNOTATION ||--o{ REPLY : has
+    ANNOTATION }o--|| USER : "created by"
+    REPLY }o--|| USER : "created by"
+
+    DOCUMENT {
+        string uri PK
+        string content
+        datetime created_at
+    }
+    ANNOTATION {
+        int id PK
+        string uri FK
+        string quote
+        string prefix
+        string suffix
+        string comment
+        string commenter
+        boolean resolved
+        datetime created_at
+    }
+    REPLY {
+        int id PK
+        int parent_id FK
+        string comment
+        string commenter
+        datetime created_at
+    }
+    USER {
+        string username PK
+        string email
+        string avatar_url
+    }
+  </pre>
+
+  <h2>Gantt Chart Example</h2>
+  <p>
+    Project timelines and task dependencies. Try annotating task names or dates.
+  </p>
+
+  <pre class="mermaid">
+gantt
+    title Glossator Development Timeline
+    dateFormat YYYY-MM-DD
+    section Planning
+    Requirements gathering       :done, req, 2024-01-01, 7d
+    Architecture design          :done, arch, after req, 5d
+
+    section Development
+    Text anchoring implementation :done, anchor, 2024-01-15, 10d
+    Sidebar UI                   :done, sidebar, after anchor, 7d
+    API server                   :done, api, after anchor, 5d
+    Mermaid support              :active, mermaid, 2024-02-10, 5d
+
+    section Testing
+    E2E tests                    :test, after mermaid, 3d
+    Bug fixes                    :bugfix, after test, 5d
+
+    section Deployment
+    Documentation                :doc, after bugfix, 3d
+    NPM publish                  :publish, after doc, 1d
+  </pre>
+
+  <h2>Pie Chart Example</h2>
+  <p>
+    Simple data visualization with labeled segments.
+  </p>
+
+  <pre class="mermaid">
+pie title Annotation Types Distribution
+    "Feature requests" : 42
+    "Bug reports" : 28
+    "Questions" : 18
+    "General feedback" : 12
+  </pre>
+
+  <h2>Git Graph Example</h2>
+  <p>
+    Version control branch and merge visualization.
+  </p>
+
+  <pre class="mermaid">
+gitGraph
+    commit id: "Initial commit"
+    commit id: "Add basic annotation"
+    branch feature-sidebar
+    checkout feature-sidebar
+    commit id: "Create sidebar UI"
+    commit id: "Add styling"
+    checkout main
+    commit id: "Fix anchoring bug"
+    checkout feature-sidebar
+    merge main
+    commit id: "Complete sidebar"
+    checkout main
+    merge feature-sidebar
+    commit id: "Release v1.0.0"
+  </pre>
+
+  <h2>User Journey Example</h2>
+  <p>
+    User experience mapping across touchpoints.
+  </p>
+
+  <pre class="mermaid">
+journey
+    title Reviewer's annotation workflow
+    section Reading Document
+      Open document: 5: Reviewer
+      Read content: 4: Reviewer
+      Identify issue: 3: Reviewer
+    section Adding Feedback
+      Select text: 4: Reviewer
+      Click Annotate button: 5: Reviewer
+      Write comment: 4: Reviewer
+      Submit: 5: Reviewer
+    section Follow-up
+      Receive notification: 4: Reviewer, System
+      Read author response: 5: Reviewer
+      Mark as resolved: 5: Reviewer
+  </pre>
 
   <h2>Conclusion</h2>
   <p>
