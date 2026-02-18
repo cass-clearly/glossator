@@ -15,17 +15,17 @@ function generateId(prefix) {
 }
 
 /**
- * Run insertFn with a generated ID, retrying up to 3 times on UNIQUE constraint failures.
+ * Run insertFn with a generated ID, retrying up to 3 times on unique constraint failures.
  * @param {string} prefix
- * @param {(id: string) => any} insertFn
- * @returns result of insertFn
+ * @param {(id: string) => Promise<any>} insertFn
+ * @returns {Promise<any>} result of insertFn
  */
-function insertWithId(prefix, insertFn) {
+async function insertWithId(prefix, insertFn) {
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      return insertFn(generateId(prefix));
+      return await insertFn(generateId(prefix));
     } catch (err) {
-      if (err.message.includes('UNIQUE constraint failed') && attempt < 2) continue;
+      if (err.code === '23505' && attempt < 2) continue;
       throw err;
     }
   }

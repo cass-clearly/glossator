@@ -11,6 +11,8 @@ feedback-layer/dist/
 server/annotations.db
 server/annotations.db-wal
 server/annotations.db-shm
+server/remarq.db*
+server/glossator.db*
 
 # Environment secrets
 .env

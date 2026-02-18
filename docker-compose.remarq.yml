@@ -1,0 +1,32 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    ports:
+      - "127.0.0.1:5433:5432"
+    environment:
+      POSTGRES_DB: remarq
+      POSTGRES_USER: remarq
+      POSTGRES_PASSWORD: remarq
+    volumes:
+      - remarq-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U remarq -d remarq"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  server:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    ports:
+      - "0.0.0.0:3333:3333"
+    environment:
+      DATABASE_URL: postgres://remarq:remarq@postgres/remarq
+      PORT: "3333"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  remarq-pgdata:
