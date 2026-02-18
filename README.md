@@ -96,11 +96,7 @@ server {
     listen 443 ssl;
     server_name remarq.example.com;
 
-    location /api/ {
-        proxy_pass http://127.0.0.1:3333;
-    }
-
-    location /feedback-layer.js {
+    location / {
         proxy_pass http://127.0.0.1:3333;
     }
 }
