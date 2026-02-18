@@ -2,40 +2,37 @@
 
 Lightweight document annotation tool. Reviewers highlight text and leave threaded comments — no accounts needed, just enter a name. Authors collect the feedback and send it to Claude for AI-assisted revision.
 
-## How It Works
-
-1. **Embed** a single `<script>` tag in any HTML page
-2. **Reviewers** select text, leave comments, and reply to each other
-3. **Author** opens the page with `?author=true`, clicks "Send Feedback to Claude"
-4. A structured prompt is generated with all annotations — paste it into Claude for a revised document
-
 ## Quick Start
+
+### 1. Start the backend
 
 Requires Docker.
 
 ```bash
-git clone <repo>
+git clone https://github.com/cass-clearly/remarq.git
 cd remarq
 docker compose -f docker-compose.remarq.yml up --build
 ```
 
-Visit **http://localhost:3333** to see the demo page. Select some text to start annotating.
+This starts Postgres and the Remarq server on port 3333. For production, see [Production](#production) to set a secure database password.
 
-## Embedding in Your Pages
+### 2. Add to your page
 
-Add the feedback layer to any HTML page with a single script tag:
+Drop a single script tag into any HTML page:
 
 ```html
 <script
-  src="https://your-server.com/feedback-layer.js"
-  data-api-url="https://your-server.com"
+  src="http://localhost:3333/feedback-layer.js"
+  data-api-url="http://localhost:3333"
   data-content-selector="article"
 ></script>
 ```
 
-That's it. The sidebar, text selection, highlights, and annotation UI are all handled automatically.
+That's it. The sidebar, text selection, highlights, and annotation UI are all handled automatically. Visit **http://localhost:3333** to try the built-in demo page.
 
-### Configuration
+## Configuration
+
+Configure via `data-` attributes on the script tag:
 
 | Attribute | Default | Description |
 |-----------|---------|-------------|
@@ -49,19 +46,25 @@ That's it. The sidebar, text selection, highlights, and annotation UI are all ha
 
 **Cross-origin:** If your pages are hosted elsewhere, point `data-api-url` to wherever the backend is running. The backend has CORS enabled for all origins.
 
-## Deploying the Backend
+## Production
 
-The backend is a Node.js server backed by PostgreSQL. Docker is the recommended deployment method.
+### Docker Compose (recommended)
 
-### Option 1: Docker Compose (recommended)
+Create a `.env` file next to `docker-compose.remarq.yml`:
 
-```bash
-docker compose -f docker-compose.remarq.yml up --build
+```
+POSTGRES_PASSWORD=your-secure-password-here
 ```
 
-This starts both Postgres and the server. The server listens on port 3333.
+Then start the stack:
 
-### Option 2: Direct (bring your own Postgres)
+```bash
+docker compose -f docker-compose.remarq.yml up --build -d
+```
+
+The compose file reads `POSTGRES_PASSWORD` from the environment and passes it to both Postgres and the server. If no `.env` is present, it defaults to `remarq` — fine for local development, not for production. Avoid `@`, `/`, `:`, and `%` in the password (or URL-encode them) since it's interpolated into the database connection string.
+
+### Direct (bring your own Postgres)
 
 ```bash
 npm install --prefix server
@@ -69,62 +72,6 @@ DATABASE_URL=postgres://user:pass@localhost:5432/remarq node server/index.js
 ```
 
 The `DATABASE_URL` environment variable is required. The server creates tables automatically on first start. Set the `PORT` environment variable to change the listen port (default 3333).
-
-### Option 3: Systemd Service
-
-```ini
-[Unit]
-Description=Remarq annotation server
-After=network.target postgresql.service
-
-[Service]
-Type=simple
-WorkingDirectory=/path/to/remarq
-ExecStart=/usr/bin/node server/index.js
-Environment=PORT=3333
-Environment=DATABASE_URL=postgres://remarq:remarq@localhost:5432/remarq
-Restart=on-failure
-
-[Install]
-WantedBy=multi-user.target
-```
-
-### Option 4: Behind a Reverse Proxy (Nginx)
-
-```nginx
-server {
-    listen 443 ssl;
-    server_name remarq.example.com;
-
-    location / {
-        proxy_pass http://127.0.0.1:3333;
-    }
-}
-```
-
-Then on your pages:
-
-```html
-<script
-  src="https://remarq.example.com/feedback-layer.js"
-  data-api-url="https://remarq.example.com"
-  data-content-selector="article"
-></script>
-```
-
-## Distributing the Frontend Bundle
-
-The build step produces a single file: `feedback-layer/dist/feedback-layer.js` (~13KB minified). It's a self-contained IIFE with zero runtime dependencies. You can:
-
-- **Serve it from the backend** (default — the server serves files from `serve/`)
-- **Host it on a CDN** — just copy the file and point your script tags at it
-- **Vendor it** — drop it into your project's static assets
-
-To rebuild after making changes to the frontend source:
-
-```bash
-npm run build
-```
 
 ## Author Mode
 
