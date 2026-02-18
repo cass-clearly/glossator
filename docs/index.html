@@ -83,13 +83,9 @@
             <span class="ml-2 text-xs text-gray-500 font-mono">Quick Start</span>
           </div>
           <div class="code-block p-5 font-mono text-sm leading-relaxed">
-            <div class="text-gray-400"><span class="text-violet-400">$</span> <span class="text-green-300">git clone</span> <span class="text-white">https://github.com/cass-clearly/remarq.git</span></div>
-            <div class="text-gray-400"><span class="text-violet-400">$</span> <span class="text-green-300">npm install</span></div>
-            <div class="text-gray-400"><span class="text-violet-400">$</span> <span class="text-green-300">npm start</span></div>
-            <div class="mt-2 text-gray-500"># Visit http://localhost:3333</div>
-            <button class="copy-btn bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white px-2.5 py-1.5 rounded-md text-xs transition-all" data-copy="git clone https://github.com/cass-clearly/remarq.git
-npm install
-npm start">Copy</button>
+            <div class="text-gray-400"><span class="text-violet-400">$</span> <span class="text-green-300">npx</span> <span class="text-white">@csalvato/remarq-server</span></div>
+            <div class="mt-2 text-gray-500"># Server running at http://localhost:3333</div>
+            <button class="copy-btn bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white px-2.5 py-1.5 rounded-md text-xs transition-all" data-copy="npx @csalvato/remarq-server">Copy</button>
           </div>
         </div>
 
@@ -128,7 +124,7 @@ npm start">Copy</button>
           <div class="text-violet-200 text-sm mt-1">accounts needed</div>
         </div>
         <div>
-          <div class="text-2xl font-bold">SQLite</div>
+          <div class="text-2xl font-bold">Postgres</div>
           <div class="text-violet-200 text-sm mt-1">backed</div>
         </div>
         <div>
@@ -234,7 +230,7 @@ npm start">Copy</button>
             <svg class="w-6 h-6 text-violet-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"/></svg>
           </div>
           <h3 class="text-xl font-semibold mb-3">Self-Hosted, Zero Dependencies</h3>
-          <p class="text-gray-600 leading-relaxed">Node.js + SQLite. No external databases, no Docker, no third-party services. Your data stays on your infrastructure.</p>
+          <p class="text-gray-600 leading-relaxed">Node.js + PostgreSQL. Your data stays on your infrastructure.</p>
         </div>
         <!-- Card 9: Resolve/Unresolve -->
         <div class="fade-in bg-gray-50 rounded-2xl p-8 border border-gray-100 hover:border-violet-200 transition-colors">
@@ -356,7 +352,7 @@ npm start">Copy</button>
           </div>
           <div>
             <h4 class="font-semibold mb-1">Self-Hosted</h4>
-            <p class="text-sm text-gray-500">Node.js + SQLite. Your data, your server.</p>
+            <p class="text-sm text-gray-500">Node.js + PostgreSQL. Your data, your server.</p>
           </div>
         </div>
         <div class="fade-in flex items-start gap-4 p-5 rounded-xl hover:bg-gray-50 transition-colors">
@@ -386,7 +382,7 @@ npm start">Copy</button>
     <div class="max-w-6xl mx-auto px-6">
       <div class="text-center mb-16 fade-in">
         <h2 class="text-3xl sm:text-4xl font-bold">Set up in 2 minutes</h2>
-        <p class="text-gray-500 mt-3">Clone, start, embed. That's it.</p>
+        <p class="text-gray-500 mt-3">Install, start, embed. That's it.</p>
       </div>
 
       <!-- Step 1: Run the server -->
@@ -394,17 +390,12 @@ npm start">Copy</button>
         <h3 class="text-lg font-semibold mb-4">1. Start the server</h3>
         <div class="code-block bg-gray-900 rounded-xl overflow-hidden">
           <div class="p-5 font-mono text-sm leading-relaxed">
-            <div class="text-gray-400"><span class="text-violet-400">$</span> <span class="text-green-300">git clone</span> <span class="text-white">https://github.com/cass-clearly/remarq.git</span></div>
-            <div class="text-gray-400"><span class="text-violet-400">$</span> <span class="text-green-300">cd</span> <span class="text-white">remarq</span></div>
-            <div class="text-gray-400"><span class="text-violet-400">$</span> <span class="text-green-300">npm install</span></div>
-            <div class="text-gray-400"><span class="text-violet-400">$</span> <span class="text-green-300">npm start</span></div>
+            <div class="text-gray-400"><span class="text-violet-400">$</span> <span class="text-green-300">npx</span> <span class="text-white">@csalvato/remarq-server</span></div>
             <div class="mt-2 text-gray-500"># Server running at http://localhost:3333</div>
-            <button class="copy-btn bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white px-2.5 py-1.5 rounded-md text-xs transition-all" data-copy="git clone https://github.com/cass-clearly/remarq.git
-cd remarq
-npm install
-npm start">Copy</button>
+            <button class="copy-btn bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white px-2.5 py-1.5 rounded-md text-xs transition-all" data-copy="npx @csalvato/remarq-server">Copy</button>
           </div>
         </div>
+        <p class="text-sm text-gray-500 mt-3">Or clone the repo: <code class="bg-gray-200 px-1.5 py-0.5 rounded">git clone https://github.com/cass-clearly/remarq.git && cd remarq && npm install && npm start</code></p>
       </div>
 
       <!-- Step 2: Embed -->
@@ -465,7 +456,7 @@ npm start">Copy</button>
   <section class="py-24 bg-gradient-to-br from-gray-950 via-violet-950 to-gray-950 text-white">
     <div class="max-w-6xl mx-auto px-6 text-center">
       <h2 class="text-3xl sm:text-4xl font-bold mb-4 fade-in">Ready to add annotations?</h2>
-      <p class="text-violet-200 mb-10 text-lg fade-in">Clone the repo. Start the server. Embed one script tag.</p>
+      <p class="text-violet-200 mb-10 text-lg fade-in">Install the server. Embed one script tag. Done.</p>
       <div class="flex flex-wrap justify-center gap-4 fade-in">
         <a href="https://github.com/cass-clearly/remarq" target="_blank" rel="noopener" class="bg-violet-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-violet-500 transition-colors flex items-center gap-2">
           <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
@@ -473,6 +464,9 @@ npm start">Copy</button>
         </a>
         <a href="https://www.npmjs.com/package/@csalvato/remarq" target="_blank" rel="noopener" class="border border-violet-400/30 text-violet-200 px-6 py-3 rounded-lg font-semibold hover:bg-violet-900/40 transition-colors">
           npm install @csalvato/remarq
+        </a>
+        <a href="https://www.npmjs.com/package/@csalvato/remarq-server" target="_blank" rel="noopener" class="border border-violet-400/30 text-violet-200 px-6 py-3 rounded-lg font-semibold hover:bg-violet-900/40 transition-colors">
+          npx @csalvato/remarq-server
         </a>
       </div>
     </div>
