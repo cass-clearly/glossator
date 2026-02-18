@@ -6,13 +6,13 @@ Lightweight annotation and feedback layer for HTML documents. Add collaborative 
 
 ## Features
 
-✨ **Text Highlighting** - Select any text and add comments
-💬 **Threaded Discussions** - Reply to annotations with nested conversations
-✏️ **Edit Comments** - Update your feedback anytime
-📍 **Document-Order Display** - Annotations appear in reading order
-🎯 **Smart Anchoring** - Comments stay attached even when content changes
-🔍 **Filter & Resolve** - Mark feedback as resolved, toggle visibility
-⚡ **Zero Dependencies** - Just one script tag
+- **Text Highlighting** - Select any text and add comments
+- **Threaded Discussions** - Reply to annotations with nested conversations
+- **Edit Comments** - Update your feedback anytime
+- **Document-Order Display** - Annotations appear in reading order
+- **Smart Anchoring** - Comments stay attached even when content changes
+- **Filter & Resolve** - Mark feedback as resolved, toggle visibility
+- **Zero Dependencies** - Just one script tag
 
 ## Quick Start
 
@@ -56,7 +56,7 @@ Configure via data attributes on the script tag:
 
 | Attribute | Required | Default | Description |
 |-----------|----------|---------|-------------|
-| `data-api-url` | Yes | - | URL of your annotation server |
+| `data-api-url` | Yes | - | URL of your Remarq server |
 | `data-content-selector` | No | `"body"` | CSS selector for annotatable content |
 | `data-document-uri` | No | `window.location.pathname` | Unique identifier for this document |
 
@@ -94,32 +94,39 @@ Configure via data attributes on the script tag:
 
 Remarq requires a backend server to store annotations.
 
-### Quick Start with the Example Server
-
-Clone the repository and run the included server:
+### Quick Start with Docker
 
 ```bash
-# Clone the repo
 git clone https://github.com/cass-clearly/remarq.git
-cd remarq/server
-
-# Start the server
-npm install
-node index.js
+cd remarq
+docker compose -f docker-compose.remarq.yml up --build
 ```
 
-The server runs on `http://localhost:3333` by default.
+The server runs on `http://localhost:3333` with PostgreSQL.
 
 ### API Endpoints
 
-The server must implement these endpoints:
+The server implements these endpoints:
 
-- `GET /api/annotations?uri={documentUri}` - Fetch annotations
-- `POST /api/annotations` - Create annotation
-- `PATCH /api/annotations/:id` - Update annotation
-- `DELETE /api/annotations/:id` - Delete annotation
+**Documents**
 
-See the [API specification](./server/README.md) for details.
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/documents` | List all documents |
+| `POST` | `/documents` | Create or find a document by URI |
+| `GET` | `/documents/:id` | Retrieve a document |
+| `DELETE` | `/documents/:id` | Delete a document and its comments |
+
+**Comments**
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/comments?document=<id>` | List comments by document ID |
+| `GET` | `/comments?uri=<url>` | List comments by document URI |
+| `POST` | `/comments` | Create a comment |
+| `GET` | `/comments/:id` | Retrieve a comment |
+| `PATCH` | `/comments/:id` | Update body or status |
+| `DELETE` | `/comments/:id` | Delete a comment and its replies |
 
 ## Usage
 
@@ -127,8 +134,8 @@ See the [API specification](./server/README.md) for details.
 2. **Click "Annotate"** - Add your comment
 3. **View annotations** - Click highlights or open the sidebar
 4. **Reply** - Click "Reply" to start a discussion
-5. **Edit** - Click the pencil icon (✎) to edit comments
-6. **Resolve** - Click the checkmark (✓) to mark as resolved
+5. **Edit** - Click the pencil icon to edit comments
+6. **Resolve** - Click the checkmark to mark as resolved
 
 ## Keyboard Shortcuts
 
@@ -143,27 +150,17 @@ See the [API specification](./server/README.md) for details.
 ## Development
 
 ```bash
-# Clone the repo
 git clone https://github.com/cass-clearly/remarq.git
 cd remarq/feedback-layer
 
-# Install dependencies
 npm install
-
-# Build
-npm run build
-
-# Watch mode
-npm run watch
+npm run build    # one-off build
+npm run watch    # rebuild on changes
 ```
 
 ## License
 
-MIT © Your Name
-
-## Contributing
-
-Contributions welcome! Please read [CONTRIBUTING.md](./CONTRIBUTING.md) first.
+MIT
 
 ## Credits
 

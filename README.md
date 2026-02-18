@@ -11,10 +11,12 @@ Lightweight document annotation tool. Reviewers highlight text and leave threade
 
 ## Quick Start
 
+Requires Docker.
+
 ```bash
 git clone <repo>
-npm install
-npm start
+cd remarq
+docker compose -f docker-compose.remarq.yml up --build
 ```
 
 Visit **http://localhost:3333** to see the demo page. Select some text to start annotating.
@@ -49,51 +51,52 @@ That's it. The sidebar, text selection, highlights, and annotation UI are all ha
 
 ## Deploying the Backend
 
-The backend is a Node.js server with SQLite — no external databases, no Docker, no infrastructure.
+The backend is a Node.js server backed by PostgreSQL. Docker is the recommended deployment method.
 
-### Option 1: Direct
-
-```bash
-npm install
-npm start
-```
-
-The server listens on port 3333 by default. Set the `PORT` environment variable to change it:
+### Option 1: Docker Compose (recommended)
 
 ```bash
-PORT=8080 npm start
+docker compose -f docker-compose.remarq.yml up --build
 ```
 
-### Option 2: Systemd Service
+This starts both Postgres and the server. The server listens on port 3333.
+
+### Option 2: Direct (bring your own Postgres)
+
+```bash
+npm install --prefix server
+DATABASE_URL=postgres://user:pass@localhost:5432/remarq node server/index.js
+```
+
+The `DATABASE_URL` environment variable is required. The server creates tables automatically on first start. Set the `PORT` environment variable to change the listen port (default 3333).
+
+### Option 3: Systemd Service
 
 ```ini
 [Unit]
 Description=Remarq annotation server
-After=network.target
+After=network.target postgresql.service
 
 [Service]
 Type=simple
 WorkingDirectory=/path/to/remarq
 ExecStart=/usr/bin/node server/index.js
 Environment=PORT=3333
+Environment=DATABASE_URL=postgres://remarq:remarq@localhost:5432/remarq
 Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target
 ```
 
-### Option 3: Behind a Reverse Proxy (Nginx)
+### Option 4: Behind a Reverse Proxy (Nginx)
 
 ```nginx
 server {
     listen 443 ssl;
     server_name remarq.example.com;
 
-    location /api/ {
-        proxy_pass http://127.0.0.1:3333;
-    }
-
-    location /feedback-layer.js {
+    location / {
         proxy_pass http://127.0.0.1:3333;
     }
 }
@@ -138,21 +141,34 @@ Append `?author=true` to any annotated page URL to enable author mode. This adds
 - **Threaded replies** — reply to any annotation to create a discussion
 - **Resolve/unresolve** — mark feedback as addressed; resolved annotations hide their highlights
 - **Keyboard shortcuts** — Cmd+Enter (Ctrl+Enter on Windows) to submit comments and replies
-- **Persistent storage** — SQLite database, zero infrastructure
+- **Persistent storage** — PostgreSQL database via Docker
 - **Drop-in integration** — one script tag on any HTML page
 
 ## API Reference
 
-All endpoints are prefixed with `/api`.
+The API follows a Stripe-like resource pattern. All responses include an `object` field identifying the resource type.
+
+### Documents
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/api/annotations?uri=<url>` | Fetch all annotations for a document |
-| `POST` | `/api/annotations` | Create an annotation or reply |
-| `PATCH` | `/api/annotations/:id` | Resolve or unresolve an annotation |
-| `DELETE` | `/api/annotations/:id` | Delete an annotation and its replies |
+| `GET` | `/documents` | List all documents |
+| `POST` | `/documents` | Create or find a document by URI |
+| `GET` | `/documents/:id` | Retrieve a document |
+| `DELETE` | `/documents/:id` | Delete a document and its comments |
 
-### POST body
+### Comments
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/comments?document=<id>` | List comments by document ID |
+| `GET` | `/comments?uri=<url>` | List comments by document URI |
+| `POST` | `/comments` | Create a comment |
+| `GET` | `/comments/:id` | Retrieve a comment |
+| `PATCH` | `/comments/:id` | Update body or status |
+| `DELETE` | `/comments/:id` | Delete a comment and its replies |
+
+### POST /comments body
 
 ```json
 {
@@ -160,46 +176,55 @@ All endpoints are prefixed with `/api`.
   "quote": "selected text",
   "prefix": "text before",
   "suffix": "text after",
-  "comment": "This needs work",
-  "commenter": "Alice",
-  "parent_id": null
+  "body": "This needs work",
+  "author": "Alice",
+  "parent": null
 }
 ```
 
-For replies, set `parent_id` to the parent annotation's ID. Replies don't need `quote`/`prefix`/`suffix`.
+For replies, set `parent` to the parent comment's ID. Replies don't need `quote`/`prefix`/`suffix`.
 
 ## Project Structure
 
 ```
 remarq/
-├── package.json              # Root: npm install + npm start
+├── package.json                 # Root: build + test scripts
+├── docker-compose.remarq.yml   # Postgres + server (production)
 ├── server/
-│   ├── package.json          # express, better-sqlite3, cors, uuid
-│   ├── index.js              # API server + static file serving
-│   └── annotations.db        # SQLite database (auto-created)
+│   ├── package.json             # express, pg, cors
+│   ├── Dockerfile               # Node 22 Alpine container
+│   ├── index.js                 # API server + static file serving
+│   ├── generate-id.js           # Prefixed ID generation (doc_*, cmt_*)
+│   ├── normalize-uri.js         # URI normalization
+│   ├── sanitize.js              # HTML sanitization
+│   └── test.mjs                 # Unit + integration tests
 ├── feedback-layer/
-│   ├── package.json          # @apache-annotator/dom, esbuild
-│   ├── build.js              # esbuild bundler config
+│   ├── package.json             # @apache-annotator/dom, esbuild
+│   ├── build.js                 # esbuild bundler config
 │   └── src/
-│       ├── index.js          # Entry point — orchestration
-│       ├── api.js            # Backend API client
-│       ├── anchoring.js      # Text selection ↔ selectors
-│       ├── highlights.js     # Highlight rendering
-│       ├── sidebar.js        # Sidebar UI
-│       ├── prompt-builder.js # Annotation → Claude prompt
-│       └── ui.js             # Author mode button/modal
+│       ├── index.js             # Entry point — orchestration
+│       ├── api.js               # Backend API client
+│       ├── anchoring.js         # Text selection ↔ selectors
+│       ├── highlights.js        # Highlight rendering
+│       ├── sidebar.js           # Sidebar UI
+│       ├── prompt-builder.js    # Annotation → Claude prompt
+│       └── ui.js                # Author mode button/modal
 ├── serve/
-│   ├── index.html            # Demo page
-│   └── feedback-layer.js     # Pre-built bundle (committed)
-├── test-e2e.mjs              # Puppeteer E2E tests
-└── test.sh                   # Build + test runner
+│   ├── index.html               # Demo page
+│   └── feedback-layer.js        # Pre-built bundle (committed)
+├── test-e2e.mjs                 # Puppeteer E2E tests
+└── test.sh                      # Build + test runner
 ```
 
 ## Running Tests
 
+Requires Docker (for Postgres).
+
 ```bash
-# Requires: npm install -g puppeteer (or npx)
+# Server unit + integration tests
+docker compose -f docker-compose.remarq.yml up -d postgres
+DATABASE_URL=postgres://remarq:remarq@localhost:5433/remarq npm run test:server
+
+# Full E2E (builds frontend, starts server, runs Puppeteer)
 bash test.sh
 ```
-
-This builds the frontend, starts the server, runs the Puppeteer E2E suite, and cleans up.
