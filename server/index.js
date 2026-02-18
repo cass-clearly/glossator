@@ -10,7 +10,15 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+if (!process.env.DATABASE_URL) {
+  throw new Error("DATABASE_URL environment variable is required");
+}
+
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+
+// Express 4 does not catch rejected promises from async handlers.
+// Wrap them so unhandled rejections become proper error responses.
+const asyncHandler = (fn) => (req, res, next) => fn(req, res, next).catch(next);
 
 async function initSchema() {
   await pool.query(`
@@ -67,22 +75,33 @@ async function findOrCreateDocument(uri) {
   const { rows } = await pool.query("SELECT * FROM documents WHERE uri = $1", [normalized]);
   if (rows.length > 0) return { doc: rows[0], created: false };
 
-  const doc = await insertWithId("doc", async (id) => {
-    await pool.query("INSERT INTO documents (id, uri) VALUES ($1, $2)", [id, normalized]);
-    const result = await pool.query("SELECT * FROM documents WHERE id = $1", [id]);
-    return result.rows[0];
-  });
-  return { doc, created: true };
+  try {
+    const doc = await insertWithId("doc", async (id) => {
+      const { rows } = await pool.query(
+        "INSERT INTO documents (id, uri) VALUES ($1, $2) RETURNING *",
+        [id, normalized]
+      );
+      return rows[0];
+    });
+    return { doc, created: true };
+  } catch (err) {
+    // Lost the race — another request created the document concurrently
+    if (err.code === '23505') {
+      const { rows } = await pool.query("SELECT * FROM documents WHERE uri = $1", [normalized]);
+      if (rows.length > 0) return { doc: rows[0], created: false };
+    }
+    throw err;
+  }
 }
 
 // ── Document endpoints ──────────────────────────────────────────────
 
-app.get("/documents", async (_req, res) => {
+app.get("/documents", asyncHandler(async (_req, res) => {
   const { rows } = await pool.query("SELECT * FROM documents ORDER BY created_at ASC");
   res.json(listResponse(rows.map(formatDocument)));
-});
+}));
 
-app.post("/documents", async (req, res) => {
+app.post("/documents", asyncHandler(async (req, res) => {
   const { uri } = req.body;
   if (!uri) return res.status(400).json(errorResponse("uri is required"));
 
@@ -92,26 +111,24 @@ app.post("/documents", async (req, res) => {
   } catch (err) {
     res.status(400).json(errorResponse(err.message));
   }
-});
+}));
 
-app.get("/documents/:id", async (req, res) => {
+app.get("/documents/:id", asyncHandler(async (req, res) => {
   const { rows } = await pool.query("SELECT * FROM documents WHERE id = $1", [req.params.id]);
   if (rows.length === 0) return res.status(404).json(errorResponse("Document not found"));
   res.json(formatDocument(rows[0]));
-});
+}));
 
-app.delete("/documents/:id", async (req, res) => {
-  const { rows } = await pool.query("SELECT * FROM documents WHERE id = $1", [req.params.id]);
-  if (rows.length === 0) return res.status(404).json(errorResponse("Document not found"));
-
+app.delete("/documents/:id", asyncHandler(async (req, res) => {
   await pool.query("DELETE FROM comments WHERE document = $1", [req.params.id]);
-  await pool.query("DELETE FROM documents WHERE id = $1", [req.params.id]);
+  const { rows } = await pool.query("DELETE FROM documents WHERE id = $1 RETURNING *", [req.params.id]);
+  if (rows.length === 0) return res.status(404).json(errorResponse("Document not found"));
   res.json(formatDocument(rows[0]));
-});
+}));
 
 // ── Comment endpoints ───────────────────────────────────────────────
 
-app.get("/comments", async (req, res) => {
+app.get("/comments", asyncHandler(async (req, res) => {
   const { document: docId, uri } = req.query;
 
   if (docId) {
@@ -129,9 +146,9 @@ app.get("/comments", async (req, res) => {
   }
 
   res.status(400).json(errorResponse("document or uri query param required"));
-});
+}));
 
-app.post("/comments", async (req, res) => {
+app.post("/comments", asyncHandler(async (req, res) => {
   const { uri, document: docId, quote, prefix, suffix, body, author, parent } = req.body;
 
   if (!body || !author) {
@@ -162,24 +179,23 @@ app.post("/comments", async (req, res) => {
   }
 
   const comment = await insertWithId("cmt", async (id) => {
-    await pool.query(
-      "INSERT INTO comments (id, document, quote, prefix, suffix, body, author, parent) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+    const { rows } = await pool.query(
+      "INSERT INTO comments (id, document, quote, prefix, suffix, body, author, parent) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *",
       [id, documentId, quote || "", prefix || null, suffix || null, cleanBody, cleanAuthor, parent || null]
     );
-    const result = await pool.query("SELECT * FROM comments WHERE id = $1", [id]);
-    return result.rows[0];
+    return rows[0];
   });
 
   res.status(201).json(formatComment(comment));
-});
+}));
 
-app.get("/comments/:id", async (req, res) => {
+app.get("/comments/:id", asyncHandler(async (req, res) => {
   const { rows } = await pool.query("SELECT * FROM comments WHERE id = $1", [req.params.id]);
   if (rows.length === 0) return res.status(404).json(errorResponse("Comment not found"));
   res.json(formatComment(rows[0]));
-});
+}));
 
-app.patch("/comments/:id", async (req, res) => {
+app.patch("/comments/:id", asyncHandler(async (req, res) => {
   const { rows } = await pool.query("SELECT * FROM comments WHERE id = $1", [req.params.id]);
   if (rows.length === 0) return res.status(404).json(errorResponse("Comment not found"));
 
@@ -198,20 +214,25 @@ app.patch("/comments/:id", async (req, res) => {
 
   const updated = await pool.query("SELECT * FROM comments WHERE id = $1", [req.params.id]);
   res.json(formatComment(updated.rows[0]));
-});
+}));
 
-app.delete("/comments/:id", async (req, res) => {
-  const { rows } = await pool.query("SELECT * FROM comments WHERE id = $1", [req.params.id]);
-  if (rows.length === 0) return res.status(404).json(errorResponse("Comment not found"));
-
+app.delete("/comments/:id", asyncHandler(async (req, res) => {
   await pool.query("DELETE FROM comments WHERE parent = $1", [req.params.id]);
-  await pool.query("DELETE FROM comments WHERE id = $1", [req.params.id]);
+  const { rows } = await pool.query("DELETE FROM comments WHERE id = $1 RETURNING *", [req.params.id]);
+  if (rows.length === 0) return res.status(404).json(errorResponse("Comment not found"));
   res.json(formatComment(rows[0]));
-});
+}));
 
 // ── Static files ────────────────────────────────────────────────────
 
 app.use(express.static(path.join(__dirname, "..", "serve")));
+
+// ── Error handling ──────────────────────────────────────────────────
+
+app.use((err, _req, res, _next) => {
+  console.error(err);
+  res.status(500).json({ error: { message: "Internal server error" } });
+});
 
 // ── Start server ────────────────────────────────────────────────────
 
