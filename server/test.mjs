@@ -1,0 +1,544 @@
+import { describe, it, before, after, beforeEach } from "node:test";
+import assert from "node:assert/strict";
+
+// ── Utility unit tests ──────────────────────────────────────────────
+
+describe("generate-id", async () => {
+  const { generateId, insertWithId } = await import("./generate-id.js");
+
+  it("produces prefixed IDs", () => {
+    const id = generateId("doc");
+    assert.match(id, /^doc_[A-Za-z0-9_-]+$/);
+  });
+
+  it("produces unique IDs", () => {
+    const ids = new Set(Array.from({ length: 100 }, () => generateId("cmt")));
+    assert.equal(ids.size, 100);
+  });
+
+  it("insertWithId retries on collision", () => {
+    let calls = 0;
+    const result = insertWithId("doc", (id) => {
+      calls++;
+      if (calls < 3) throw new Error("UNIQUE constraint failed");
+      return id;
+    });
+    assert.equal(calls, 3);
+    assert.match(result, /^doc_/);
+  });
+
+  it("insertWithId throws after max retries", () => {
+    assert.throws(
+      () => insertWithId("doc", () => { throw new Error("UNIQUE constraint failed"); }),
+      /UNIQUE constraint failed/
+    );
+  });
+});
+
+describe("normalize-uri", async () => {
+  const { normalizeUri } = await import("./normalize-uri.js");
+
+  it("lowercases scheme and host", () => {
+    assert.equal(normalizeUri("HTTPS://Example.COM/Page"), "https://example.com/Page");
+  });
+
+  it("upgrades http to https", () => {
+    assert.equal(normalizeUri("http://example.com/page"), "https://example.com/page");
+  });
+
+  it("removes trailing slash", () => {
+    assert.equal(normalizeUri("https://example.com/page/"), "https://example.com/page");
+  });
+
+  it("preserves root path slash", () => {
+    assert.equal(normalizeUri("https://example.com/"), "https://example.com/");
+  });
+
+  it("strips tracking params", () => {
+    assert.equal(
+      normalizeUri("https://example.com/page?utm_source=twitter&foo=bar"),
+      "https://example.com/page?foo=bar"
+    );
+  });
+
+  it("removes fragment", () => {
+    assert.equal(normalizeUri("https://example.com/page#section"), "https://example.com/page");
+  });
+
+  it("sorts query params", () => {
+    assert.equal(
+      normalizeUri("https://example.com/page?z=1&a=2"),
+      "https://example.com/page?a=2&z=1"
+    );
+  });
+
+  it("throws on invalid URI", () => {
+    assert.throws(() => normalizeUri("not a url"), /Invalid URI/);
+  });
+});
+
+describe("sanitize", async () => {
+  const { sanitize } = await import("./sanitize.js");
+
+  it("strips HTML tags", () => {
+    assert.equal(sanitize("<b>bold</b>"), "bold");
+  });
+
+  it("trims whitespace", () => {
+    assert.equal(sanitize("  hello  "), "hello");
+  });
+
+  it("passes through non-strings", () => {
+    assert.equal(sanitize(42), 42);
+    assert.equal(sanitize(null), null);
+  });
+});
+
+// ── Integration tests ───────────────────────────────────────────────
+
+describe("API", async () => {
+  let app, db, server, BASE;
+
+  before(async () => {
+    // Use a test database
+    process.env.REMARQ_DB = ":memory:";
+    ({ app, db } = await import("./index.js"));
+
+    await new Promise((resolve) => {
+      server = app.listen(0, "127.0.0.1", () => {
+        const port = server.address().port;
+        BASE = `http://127.0.0.1:${port}`;
+        resolve();
+      });
+    });
+  });
+
+  after(() => {
+    server.close();
+    db.close();
+  });
+
+  beforeEach(() => {
+    db.exec("DELETE FROM comments");
+    db.exec("DELETE FROM documents");
+  });
+
+  // ── Documents ─────────────────────────────────────────────────
+
+  describe("GET /documents", () => {
+    it("returns empty list", async () => {
+      const res = await fetch(`${BASE}/documents`);
+      const json = await res.json();
+      assert.equal(res.status, 200);
+      assert.deepEqual(json, { object: "list", data: [] });
+    });
+  });
+
+  describe("POST /documents", () => {
+    it("creates a document", async () => {
+      const res = await fetch(`${BASE}/documents`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uri: "http://example.com/page" }),
+      });
+      const json = await res.json();
+      assert.equal(res.status, 201);
+      assert.match(json.id, /^doc_/);
+      assert.equal(json.object, "document");
+      assert.equal(json.uri, "https://example.com/page"); // normalized
+    });
+
+    it("returns existing document for duplicate URI", async () => {
+      const res1 = await fetch(`${BASE}/documents`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uri: "https://example.com/page" }),
+      });
+      const doc1 = await res1.json();
+      assert.equal(res1.status, 201);
+
+      const res2 = await fetch(`${BASE}/documents`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uri: "https://example.com/page" }),
+      });
+      const doc2 = await res2.json();
+      assert.equal(res2.status, 200);
+      assert.equal(doc2.id, doc1.id);
+    });
+
+    it("returns 400 when uri is missing", async () => {
+      const res = await fetch(`${BASE}/documents`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      assert.equal(res.status, 400);
+      const json = await res.json();
+      assert.ok(json.error.message);
+    });
+  });
+
+  describe("GET /documents/:id", () => {
+    it("retrieves a document", async () => {
+      const create = await fetch(`${BASE}/documents`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uri: "https://example.com/page" }),
+      });
+      const doc = await create.json();
+
+      const res = await fetch(`${BASE}/documents/${doc.id}`);
+      const json = await res.json();
+      assert.equal(res.status, 200);
+      assert.equal(json.id, doc.id);
+      assert.equal(json.object, "document");
+    });
+
+    it("returns 404 for missing document", async () => {
+      const res = await fetch(`${BASE}/documents/doc_nonexistent`);
+      assert.equal(res.status, 404);
+      const json = await res.json();
+      assert.ok(json.error.message);
+    });
+  });
+
+  describe("DELETE /documents/:id", () => {
+    it("deletes document and cascades comments", async () => {
+      // Create doc + comment
+      const docRes = await fetch(`${BASE}/documents`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uri: "https://example.com/page" }),
+      });
+      const doc = await docRes.json();
+
+      await fetch(`${BASE}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ document: doc.id, quote: "text", body: "hello", author: "me" }),
+      });
+
+      const delRes = await fetch(`${BASE}/documents/${doc.id}`, { method: "DELETE" });
+      const deleted = await delRes.json();
+      assert.equal(delRes.status, 200);
+      assert.equal(deleted.id, doc.id);
+
+      // Verify comments are gone
+      const cmts = await fetch(`${BASE}/comments?document=${doc.id}`);
+      const cmtJson = await cmts.json();
+      assert.equal(cmtJson.data.length, 0);
+    });
+
+    it("returns 404 for missing document", async () => {
+      const res = await fetch(`${BASE}/documents/doc_nonexistent`, { method: "DELETE" });
+      assert.equal(res.status, 404);
+    });
+  });
+
+  // ── Comments ──────────────────────────────────────────────────
+
+  describe("POST /comments", () => {
+    it("creates comment with URI (auto-creates document)", async () => {
+      const res = await fetch(`${BASE}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          uri: "https://example.com/page",
+          quote: "some text",
+          body: "my comment",
+          author: "tester",
+        }),
+      });
+      const json = await res.json();
+      assert.equal(res.status, 201);
+      assert.match(json.id, /^cmt_/);
+      assert.equal(json.object, "comment");
+      assert.match(json.document, /^doc_/);
+      assert.equal(json.body, "my comment");
+      assert.equal(json.author, "tester");
+      assert.equal(json.status, "open");
+    });
+
+    it("creates comment with document ID", async () => {
+      const docRes = await fetch(`${BASE}/documents`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uri: "https://example.com/page" }),
+      });
+      const doc = await docRes.json();
+
+      const res = await fetch(`${BASE}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ document: doc.id, quote: "text", body: "hi", author: "me" }),
+      });
+      const json = await res.json();
+      assert.equal(res.status, 201);
+      assert.equal(json.document, doc.id);
+    });
+
+    it("creates reply without quote", async () => {
+      const parent = await fetch(`${BASE}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uri: "https://example.com/p", quote: "q", body: "b", author: "a" }),
+      });
+      const parentJson = await parent.json();
+
+      const res = await fetch(`${BASE}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          uri: "https://example.com/p",
+          body: "reply",
+          author: "a",
+          parent: parentJson.id,
+        }),
+      });
+      const json = await res.json();
+      assert.equal(res.status, 201);
+      assert.equal(json.parent, parentJson.id);
+    });
+
+    it("returns 400 when body is missing", async () => {
+      const res = await fetch(`${BASE}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uri: "https://example.com/p", quote: "q", author: "a" }),
+      });
+      assert.equal(res.status, 400);
+      const json = await res.json();
+      assert.ok(json.error.message);
+    });
+
+    it("returns 400 when quote is missing for top-level comment", async () => {
+      const res = await fetch(`${BASE}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uri: "https://example.com/p", body: "b", author: "a" }),
+      });
+      assert.equal(res.status, 400);
+      const json = await res.json();
+      assert.ok(json.error.message);
+    });
+
+    it("sanitizes body, author, and quote", async () => {
+      const res = await fetch(`${BASE}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          uri: "https://example.com/p",
+          quote: "<em>quoted</em> text",
+          body: "<script>alert(1)</script>hello",
+          author: "<b>user</b>",
+        }),
+      });
+      const json = await res.json();
+      assert.equal(json.body, "alert(1)hello");
+      assert.equal(json.author, "user");
+      assert.equal(json.quote, "quoted text");
+    });
+
+    it("normalizes URI", async () => {
+      const res = await fetch(`${BASE}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          uri: "http://example.com/page?utm_source=x",
+          quote: "q",
+          body: "b",
+          author: "a",
+        }),
+      });
+      const json = await res.json();
+      // Verify the document was created with normalized URI
+      const docRes = await fetch(`${BASE}/documents/${json.document}`);
+      const doc = await docRes.json();
+      assert.equal(doc.uri, "https://example.com/page");
+    });
+  });
+
+  describe("GET /comments", () => {
+    it("lists comments by document ID", async () => {
+      const cmtRes = await fetch(`${BASE}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uri: "https://example.com/p", quote: "q", body: "b", author: "a" }),
+      });
+      const cmt = await cmtRes.json();
+
+      const res = await fetch(`${BASE}/comments?document=${cmt.document}`);
+      const json = await res.json();
+      assert.equal(json.object, "list");
+      assert.equal(json.data.length, 1);
+      assert.equal(json.data[0].id, cmt.id);
+    });
+
+    it("lists comments by URI", async () => {
+      await fetch(`${BASE}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uri: "https://example.com/byuri", quote: "q", body: "b", author: "a" }),
+      });
+
+      const res = await fetch(`${BASE}/comments?uri=${encodeURIComponent("https://example.com/byuri")}`);
+      const json = await res.json();
+      assert.equal(json.data.length, 1);
+    });
+
+    it("returns empty list for unknown URI", async () => {
+      const res = await fetch(`${BASE}/comments?uri=${encodeURIComponent("https://unknown.com")}`);
+      const json = await res.json();
+      assert.equal(res.status, 200);
+      assert.deepEqual(json, { object: "list", data: [] });
+    });
+
+    it("returns 400 without document or uri param", async () => {
+      const res = await fetch(`${BASE}/comments`);
+      assert.equal(res.status, 400);
+    });
+  });
+
+  describe("GET /comments/:id", () => {
+    it("retrieves a comment", async () => {
+      const create = await fetch(`${BASE}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uri: "https://example.com/p", quote: "q", body: "b", author: "a" }),
+      });
+      const cmt = await create.json();
+
+      const res = await fetch(`${BASE}/comments/${cmt.id}`);
+      const json = await res.json();
+      assert.equal(res.status, 200);
+      assert.equal(json.id, cmt.id);
+      assert.equal(json.object, "comment");
+    });
+
+    it("returns 404 for missing comment", async () => {
+      const res = await fetch(`${BASE}/comments/cmt_nonexistent`);
+      assert.equal(res.status, 404);
+    });
+  });
+
+  describe("PATCH /comments/:id", () => {
+    it("updates body", async () => {
+      const create = await fetch(`${BASE}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uri: "https://example.com/p", quote: "q", body: "old", author: "a" }),
+      });
+      const cmt = await create.json();
+
+      const res = await fetch(`${BASE}/comments/${cmt.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body: "new body" }),
+      });
+      const json = await res.json();
+      assert.equal(res.status, 200);
+      assert.equal(json.body, "new body");
+    });
+
+    it("updates status to closed", async () => {
+      const create = await fetch(`${BASE}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uri: "https://example.com/p", quote: "q", body: "b", author: "a" }),
+      });
+      const cmt = await create.json();
+
+      const res = await fetch(`${BASE}/comments/${cmt.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "closed" }),
+      });
+      const json = await res.json();
+      assert.equal(json.status, "closed");
+    });
+
+    it("updates status to open", async () => {
+      const create = await fetch(`${BASE}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uri: "https://example.com/p", quote: "q", body: "b", author: "a" }),
+      });
+      const cmt = await create.json();
+
+      // Close first
+      await fetch(`${BASE}/comments/${cmt.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "closed" }),
+      });
+
+      const res = await fetch(`${BASE}/comments/${cmt.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "open" }),
+      });
+      const json = await res.json();
+      assert.equal(json.status, "open");
+    });
+
+    it("returns 400 for invalid status", async () => {
+      const create = await fetch(`${BASE}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uri: "https://example.com/p", quote: "q", body: "b", author: "a" }),
+      });
+      const cmt = await create.json();
+
+      const res = await fetch(`${BASE}/comments/${cmt.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "invalid" }),
+      });
+      assert.equal(res.status, 400);
+      const json = await res.json();
+      assert.ok(json.error.message);
+    });
+
+    it("returns 404 for missing comment", async () => {
+      const res = await fetch(`${BASE}/comments/cmt_nonexistent`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body: "new" }),
+      });
+      assert.equal(res.status, 404);
+    });
+  });
+
+  describe("DELETE /comments/:id", () => {
+    it("deletes comment and cascades replies", async () => {
+      const parent = await fetch(`${BASE}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uri: "https://example.com/p", quote: "q", body: "parent", author: "a" }),
+      });
+      const parentJson = await parent.json();
+
+      await fetch(`${BASE}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uri: "https://example.com/p", body: "reply", author: "a", parent: parentJson.id }),
+      });
+
+      const res = await fetch(`${BASE}/comments/${parentJson.id}`, { method: "DELETE" });
+      const json = await res.json();
+      assert.equal(res.status, 200);
+      assert.equal(json.id, parentJson.id);
+
+      // Verify replies are also deleted
+      const cmts = await fetch(`${BASE}/comments?document=${parentJson.document}`);
+      const cmtJson = await cmts.json();
+      assert.equal(cmtJson.data.length, 0);
+    });
+
+    it("returns 404 for missing comment", async () => {
+      const res = await fetch(`${BASE}/comments/cmt_nonexistent`, { method: "DELETE" });
+      assert.equal(res.status, 404);
+    });
+  });
+});

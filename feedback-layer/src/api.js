@@ -1,5 +1,5 @@
 /**
- * Backend API client for the annotation server.
+ * Backend API client for the Remarq server.
  */
 
 let _baseUrl = "";
@@ -8,58 +8,59 @@ export function setBaseUrl(url) {
   _baseUrl = url.replace(/\/+$/, "");
 }
 
-export async function fetchAnnotations(uri) {
+export async function fetchComments(uri) {
   const res = await fetch(
-    `${_baseUrl}/api/annotations?uri=${encodeURIComponent(uri)}`
+    `${_baseUrl}/comments?uri=${encodeURIComponent(uri)}`
   );
-  if (!res.ok) throw new Error(`Failed to fetch annotations: ${res.status}`);
-  return res.json();
+  if (!res.ok) throw new Error(`Failed to fetch comments: ${res.status}`);
+  const json = await res.json();
+  return json.data;
 }
 
-export async function createAnnotation({
+export async function createComment({
   uri,
   quote,
   prefix,
   suffix,
-  comment,
-  commenter,
-  parent_id,
+  body,
+  author,
+  parent,
 }) {
-  const res = await fetch(`${_baseUrl}/api/annotations`, {
+  const res = await fetch(`${_baseUrl}/comments`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ uri, quote, prefix, suffix, comment, commenter, parent_id }),
+    body: JSON.stringify({ uri, quote, prefix, suffix, body, author, parent }),
   });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err.error || "Failed to create annotation");
+    const err = await res.json().catch(() => ({ error: { message: res.statusText } }));
+    throw new Error(err.error?.message || "Failed to create comment");
   }
   return res.json();
 }
 
-export async function updateAnnotation(id, { comment }) {
-  const res = await fetch(`${_baseUrl}/api/annotations/${id}`, {
+export async function updateComment(id, { body }) {
+  const res = await fetch(`${_baseUrl}/comments/${id}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ comment }),
+    body: JSON.stringify({ body }),
   });
-  if (!res.ok) throw new Error(`Failed to update annotation: ${res.status}`);
+  if (!res.ok) throw new Error(`Failed to update comment: ${res.status}`);
   return res.json();
 }
 
-export async function resolveAnnotation(id, resolved) {
-  const res = await fetch(`${_baseUrl}/api/annotations/${id}`, {
+export async function updateCommentStatus(id, status) {
+  const res = await fetch(`${_baseUrl}/comments/${id}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ resolved }),
+    body: JSON.stringify({ status }),
   });
-  if (!res.ok) throw new Error(`Failed to update annotation: ${res.status}`);
+  if (!res.ok) throw new Error(`Failed to update comment: ${res.status}`);
   return res.json();
 }
 
-export async function deleteAnnotation(id) {
-  const res = await fetch(`${_baseUrl}/api/annotations/${id}`, {
+export async function deleteComment(id) {
+  const res = await fetch(`${_baseUrl}/comments/${id}`, {
     method: "DELETE",
   });
-  if (!res.ok) throw new Error(`Failed to delete annotation: ${res.status}`);
+  if (!res.ok) throw new Error(`Failed to delete comment: ${res.status}`);
 }

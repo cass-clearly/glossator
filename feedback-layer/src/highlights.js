@@ -2,7 +2,7 @@
  * Highlight rendering and management.
  *
  * Creates <mark> elements around anchored text ranges
- * and handles click-to-select for scrolling the sidebar to the annotation.
+ * and handles click-to-select for scrolling the sidebar to the comment.
  */
 
 const HIGHLIGHT_CLASS = "fb-highlight";
@@ -19,7 +19,7 @@ export function setHighlightClickHandler(fn) {
  * Wrap a Range in <mark> elements. Returns an array of the created marks
  * (may be multiple if the range spans multiple text nodes).
  */
-export function highlightRange(range, annotationId) {
+export function highlightRange(range, commentId) {
   const marks = [];
 
   // If the range is within a single text node, simple wrap
@@ -27,7 +27,7 @@ export function highlightRange(range, annotationId) {
     range.startContainer === range.endContainer &&
     range.startContainer.nodeType === Node.TEXT_NODE
   ) {
-    const mark = wrapTextRange(range, annotationId);
+    const mark = wrapTextRange(range, commentId);
     marks.push(mark);
   } else {
     // Complex range spanning multiple nodes — collect text nodes in range
@@ -47,7 +47,7 @@ export function highlightRange(range, annotationId) {
       }
 
       if (!nodeRange.collapsed) {
-        marks.push(wrapTextRange(nodeRange, annotationId));
+        marks.push(wrapTextRange(nodeRange, commentId));
       }
     }
   }
@@ -55,7 +55,7 @@ export function highlightRange(range, annotationId) {
   return marks;
 }
 
-function wrapTextRange(range, annotationId) {
+function wrapTextRange(range, commentId) {
   // Check if we're inside an SVG <text> element
   let node = range.commonAncestorContainer;
   while (node && node.nodeType !== Node.ELEMENT_NODE) {
@@ -86,18 +86,18 @@ function wrapTextRange(range, annotationId) {
 
   // Use SVG rect highlighting for SVG text elements
   if (inSVGText && svgRoot) {
-    return createSVGHighlight(range, annotationId, svgRoot);
+    return createSVGHighlight(range, commentId, svgRoot);
   }
 
   // Regular HTML highlighting for HTML content
   const mark = document.createElement("mark");
   mark.className = HIGHLIGHT_CLASS;
-  mark.dataset.annotationId = annotationId;
+  mark.dataset.commentId = commentId;
   mark.style.backgroundColor = "rgba(255, 212, 0, 0.35)";
   mark.style.cursor = "pointer";
   mark.style.borderRadius = "2px";
   mark.addEventListener("click", () => {
-    if (_onHighlightClick) _onHighlightClick(annotationId);
+    if (_onHighlightClick) _onHighlightClick(commentId);
   });
 
   try {
@@ -114,7 +114,7 @@ function wrapTextRange(range, annotationId) {
  * Create an SVG-compatible highlight using <rect> overlay.
  * Used for SVG <text> elements where HTML marks cannot be inserted.
  */
-function createSVGHighlight(range, annotationId, svgRoot) {
+function createSVGHighlight(range, commentId, svgRoot) {
   try {
     const rects = range.getClientRects();
     if (rects.length === 0) return null;
@@ -152,7 +152,7 @@ function createSVGHighlight(range, annotationId, svgRoot) {
     // Create a group to hold all highlight rectangles
     const group = document.createElementNS(svgNS, "g");
     group.setAttribute("class", HIGHLIGHT_CLASS);
-    group.setAttribute("data-annotation-id", annotationId);
+    group.setAttribute("data-comment-id", commentId);
     group.style.cursor = "pointer";
 
     // Create a rect for each line of text
@@ -214,13 +214,13 @@ function createSVGHighlight(range, annotationId, svgRoot) {
     const clickHandler = (e) => {
       e.preventDefault();
       e.stopPropagation();
-      if (_onHighlightClick) _onHighlightClick(annotationId);
+      if (_onHighlightClick) _onHighlightClick(commentId);
     };
 
     textElements.forEach(textEl => {
       textEl.style.cursor = "pointer";
       textEl.addEventListener("click", clickHandler);
-      textEl.dataset.fbAnnotationId = annotationId;
+      textEl.dataset.fbCommentId = commentId;
     });
     return group;
   } catch (e) {
@@ -230,11 +230,11 @@ function createSVGHighlight(range, annotationId, svgRoot) {
 }
 
 /**
- * Remove all highlights for a given annotation ID.
+ * Remove all highlights for a given comment ID.
  */
-export function removeHighlights(annotationId) {
+export function removeHighlights(commentId) {
   const marks = document.querySelectorAll(
-    `.${HIGHLIGHT_CLASS}[data-annotation-id="${annotationId}"]`
+    `.${HIGHLIGHT_CLASS}[data-comment-id="${commentId}"]`
   );
   marks.forEach((mark) => {
     const parent = mark.parentNode;
@@ -251,17 +251,15 @@ export function removeHighlights(annotationId) {
   });
 
   // Also clean up SVG text elements that have click handlers
-  const svgTextElements = document.querySelectorAll(`[data-fb-annotation-id="${annotationId}"]`);
+  const svgTextElements = document.querySelectorAll(`[data-fb-comment-id="${commentId}"]`);
   svgTextElements.forEach((el) => {
-    delete el.dataset.fbAnnotationId;
+    delete el.dataset.fbCommentId;
     el.style.cursor = "";
-    // Note: We can't easily remove specific event listeners without storing the function reference
-    // But they'll be harmless once the highlight group is removed
   });
 }
 
 /**
- * Remove ALL highlights from the document (for all annotations).
+ * Remove ALL highlights from the document (for all comments).
  * Use this before re-anchoring to ensure a clean slate.
  */
 export function removeAllHighlights() {
@@ -284,9 +282,9 @@ export function removeAllHighlights() {
 /**
  * Set the active (focused) highlight, removing active state from others.
  */
-export function setActiveHighlight(annotationId) {
+export function setActiveHighlight(commentId) {
   document.querySelectorAll(`.${HIGHLIGHT_CLASS}`).forEach((el) => {
-    const isActive = el.dataset.annotationId === annotationId;
+    const isActive = el.dataset.commentId === commentId;
     const activeColor = "rgba(255, 180, 0, 0.55)";
     const normalColor = "rgba(255, 212, 0, 0.35)";
 
@@ -310,24 +308,21 @@ export function setActiveHighlight(annotationId) {
 }
 
 /**
- * Scroll the first highlight for an annotation into view.
+ * Scroll the first highlight for a comment into view.
  */
-export function scrollToHighlight(annotationId) {
+export function scrollToHighlight(commentId) {
   const mark = document.querySelector(
-    `.${HIGHLIGHT_CLASS}[data-annotation-id="${annotationId}"]`
+    `.${HIGHLIGHT_CLASS}[data-comment-id="${commentId}"]`
   );
   if (mark) mark.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
 /**
- * Update highlight style for resolved/unresolved state.
+ * Hide or show highlights for a closed/open comment.
  */
-/**
- * Hide or show highlights for a resolved/unresolved annotation.
- */
-export function setHighlightResolved(annotationId, resolved) {
+export function setHighlightResolved(commentId, resolved) {
   if (resolved) {
-    removeHighlights(annotationId);
+    removeHighlights(commentId);
   } else {
     // Re-anchoring is handled by the caller (index.js)
   }

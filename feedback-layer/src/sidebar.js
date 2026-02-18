@@ -1,5 +1,5 @@
 /**
- * Sidebar UI: name input, annotation list, comment form.
+ * Sidebar UI: name input, comment list, comment form.
  */
 
 import {
@@ -20,7 +20,7 @@ let _onResolve = null;
 let _onReply = null;
 let _onEdit = null;
 let _showResolved = false;
-let _lastAnnotations = [];
+let _lastComments = [];
 let _lastAnchoredIds = new Set();
 
 export function getCommenter() {
@@ -32,10 +32,10 @@ export function getCommenter() {
  *
  * @param {Object} opts
  * @param {Function} opts.onSubmit - Called with {comment, commenter} when form submitted
- * @param {Function} opts.onDelete - Called with annotationId when delete clicked
- * @param {Function} opts.onResolve - Called with (annotationId, resolved) when resolve toggled
+ * @param {Function} opts.onDelete - Called with commentId when delete clicked
+ * @param {Function} opts.onResolve - Called with (commentId, resolved) when resolve toggled
  * @param {Function} opts.onReply - Called with {parent_id, comment, commenter} when reply submitted
- * @param {Function} opts.onEdit - Called with (annotationId, comment) when edit saved
+ * @param {Function} opts.onEdit - Called with (commentId, comment) when edit saved
  */
 export function createSidebar({ onSubmit, onDelete, onResolve, onReply, onEdit }) {
   _onSubmit = onSubmit;
@@ -62,10 +62,10 @@ export function createSidebar({ onSubmit, onDelete, onResolve, onReply, onEdit }
       <div class="fb-filter-section">
         <label class="fb-filter-toggle">
           <input type="checkbox" class="fb-show-resolved-cb">
-          <span>Show resolved</span>
+          <span>Show closed</span>
         </label>
       </div>
-      <div class="fb-annotation-list"></div>
+      <div class="fb-comment-list"></div>
       <div class="fb-form-section" style="display:none"></div>
     </div>
   `;
@@ -79,7 +79,7 @@ export function createSidebar({ onSubmit, onDelete, onResolve, onReply, onEdit }
 
   document.body.appendChild(_sidebar);
 
-  _listEl = _sidebar.querySelector(".fb-annotation-list");
+  _listEl = _sidebar.querySelector(".fb-comment-list");
   _formEl = _sidebar.querySelector(".fb-form-section");
 
   // Name input
@@ -96,7 +96,7 @@ export function createSidebar({ onSubmit, onDelete, onResolve, onReply, onEdit }
   const resolvedCb = _sidebar.querySelector(".fb-show-resolved-cb");
   resolvedCb.addEventListener("change", () => {
     _showResolved = resolvedCb.checked;
-    renderAnnotations(_lastAnnotations, _lastAnchoredIds);  // Use stored anchoredIds
+    renderComments(_lastComments, _lastAnchoredIds);  // Use stored anchoredIds
   });
 }
 
@@ -111,7 +111,7 @@ function closeSidebar() {
 }
 
 /**
- * Show the comment form for a new annotation.
+ * Show the comment form for a new comment.
  */
 export function showCommentForm(quote) {
   openSidebar();
@@ -171,16 +171,16 @@ export function showCommentForm(quote) {
 }
 
 /**
- * Thread flat annotations into parent + replies structure.
+ * Thread flat comments into parent + replies structure.
  */
-function threadAnnotations(annotations) {
+function threadComments(comments) {
   const topLevel = [];
   const repliesByParent = new Map();
 
-  for (const ann of annotations) {
-    if (ann.parent_id) {
-      if (!repliesByParent.has(ann.parent_id)) repliesByParent.set(ann.parent_id, []);
-      repliesByParent.get(ann.parent_id).push(ann);
+  for (const ann of comments) {
+    if (ann.parent) {
+      if (!repliesByParent.has(ann.parent)) repliesByParent.set(ann.parent, []);
+      repliesByParent.get(ann.parent).push(ann);
     } else {
       topLevel.push(ann);
     }
@@ -190,24 +190,24 @@ function threadAnnotations(annotations) {
 }
 
 /**
- * Render the full annotation list with threaded replies.
- * Only shows annotations whose text was successfully found in the document.
+ * Render the full comment list with threaded replies.
+ * Only shows comments whose text was successfully found in the document.
  *
- * @param {Array} annotations - All annotations
- * @param {Set} anchoredIds - Set of annotation IDs that successfully anchored to text
- * @param {Map} annotationRanges - Map of annotation ID to Range for position sorting
+ * @param {Array} comments - All comments
+ * @param {Set} anchoredIds - Set of comment IDs that successfully anchored to text
+ * @param {Map} commentRanges - Map of comment ID to Range for position sorting
  */
-export function renderAnnotations(annotations, anchoredIds = new Set(), annotationRanges = new Map()) {
-  _lastAnnotations = annotations;
+export function renderComments(comments, anchoredIds = new Set(), commentRanges = new Map()) {
+  _lastComments = comments;
   _lastAnchoredIds = anchoredIds;  // Store for later use
   _listEl.innerHTML = "";
 
-  const { topLevel, repliesByParent } = threadAnnotations(annotations);
+  const { topLevel, repliesByParent } = threadComments(comments);
 
-  // Sort top-level annotations by document position
+  // Sort top-level comments by document position
   const sortedTopLevel = topLevel.slice().sort((a, b) => {
-    const rangeA = annotationRanges.get(a.id);
-    const rangeB = annotationRanges.get(b.id);
+    const rangeA = commentRanges.get(a.id);
+    const rangeB = commentRanges.get(b.id);
 
     // If either doesn't have a range, keep original order
     if (!rangeA || !rangeB) return 0;
@@ -216,39 +216,39 @@ export function renderAnnotations(annotations, anchoredIds = new Set(), annotati
     return rangeA.compareBoundaryPoints(Range.START_TO_START, rangeB);
   });
 
-  // Filter to only show annotations that:
+  // Filter to only show comments that:
   // 1. Successfully anchored (text found in document), OR
-  // 2. Are resolved and "show resolved" is enabled
+  // 2. Are closed and "show closed" is enabled
   const anchoredTopLevel = sortedTopLevel.filter((a) => {
     const hasAnchor = anchoredIds.has(a.id);
-    const isResolved = !!a.resolved;
+    const isClosed = a.status === 'closed';
 
-    // Show if anchored, or if resolved and user wants to see resolved
-    return hasAnchor || (isResolved && _showResolved);
+    // Show if anchored, or if closed and user wants to see closed
+    return hasAnchor || (isClosed && _showResolved);
   });
 
-  // Apply resolved filter on top of anchored filter
+  // Apply closed filter on top of anchored filter
   const visibleTopLevel = _showResolved
     ? anchoredTopLevel
-    : anchoredTopLevel.filter((a) => !a.resolved);
+    : anchoredTopLevel.filter((a) => a.status !== 'closed');
 
   if (sortedTopLevel.length === 0) {
-    _listEl.innerHTML = `<div class="fb-empty">No annotations yet. Select text to add one.</div>`;
+    _listEl.innerHTML = `<div class="fb-empty">No comments yet. Select text to add one.</div>`;
     return;
   }
 
-  // Calculate orphaned annotations (text no longer exists in document)
-  const orphanedCount = sortedTopLevel.filter((a) => !anchoredIds.has(a.id) && !a.resolved).length;
+  // Calculate orphaned comments (text no longer exists in document)
+  const orphanedCount = sortedTopLevel.filter((a) => !anchoredIds.has(a.id) && a.status !== 'closed').length;
 
   if (visibleTopLevel.length === 0) {
     if (orphanedCount > 0) {
       _listEl.innerHTML = `<div class="fb-empty">
-        ${anchoredTopLevel.length} annotation(s) resolved.
-        ${orphanedCount > 0 ? `<br>${orphanedCount} annotation(s) not shown because their quoted text no longer exists in the document.` : ''}
-        <br>Check "Show resolved" to see resolved annotations.
+        ${anchoredTopLevel.length} comment(s) resolved.
+        ${orphanedCount > 0 ? `<br>${orphanedCount} comment(s) not shown because their quoted text no longer exists in the document.` : ''}
+        <br>Check "Show closed" to see resolved comments.
       </div>`;
     } else {
-      _listEl.innerHTML = `<div class="fb-empty">All ${sortedTopLevel.length} annotation(s) resolved. Check "Show resolved" to see them.</div>`;
+      _listEl.innerHTML = `<div class="fb-empty">All ${sortedTopLevel.length} comment(s) resolved. Check "Show closed" to see them.</div>`;
     }
     return;
   }
@@ -280,47 +280,47 @@ export function renderAnnotations(annotations, anchoredIds = new Set(), annotati
 }
 
 function buildCard(ann, isReply) {
-  const isResolved = !!ann.resolved;
+  const isClosed = ann.status === 'closed';
   const card = document.createElement("div");
-  card.className = "fb-ann-card"
-    + (isResolved ? " fb-ann-resolved" : "")
-    + (isReply ? " fb-ann-reply" : "");
+  card.className = "fb-cmt-card"
+    + (isClosed ? " fb-cmt-closed" : "")
+    + (isReply ? " fb-cmt-reply" : "");
   card.dataset.id = ann.id;
 
   card.innerHTML = `
-    <div class="fb-ann-comment">${escapeHtml(ann.comment)}</div>
-    <div class="fb-ann-meta">
-      <span class="fb-ann-commenter">${escapeHtml(ann.commenter)}</span>
-      <span class="fb-ann-time">${timeAgo(ann.created_at)}</span>
-      <button class="fb-ann-edit" title="Edit">&#x270E;</button>
-      ${!isReply ? `<button class="fb-ann-resolve" title="${isResolved ? "Unresolve" : "Resolve"}">${isResolved ? "&#x21a9;" : "&#x2713;"}</button>` : ""}
-      <button class="fb-ann-delete" title="Delete">&times;</button>
+    <div class="fb-cmt-body">${escapeHtml(ann.body)}</div>
+    <div class="fb-cmt-meta">
+      <span class="fb-cmt-author">${escapeHtml(ann.author)}</span>
+      <span class="fb-cmt-time">${timeAgo(ann.created_at)}</span>
+      <button class="fb-cmt-edit" title="Edit">&#x270E;</button>
+      ${!isReply ? `<button class="fb-cmt-resolve" title="${isClosed ? "Reopen" : "Resolve"}">${isClosed ? "&#x21a9;" : "&#x2713;"}</button>` : ""}
+      <button class="fb-cmt-delete" title="Delete">&times;</button>
     </div>
   `;
 
   if (!isReply) {
     card.addEventListener("click", (e) => {
-      if (e.target.closest(".fb-ann-delete") || e.target.closest(".fb-ann-resolve") || e.target.closest(".fb-ann-edit")) return;
+      if (e.target.closest(".fb-cmt-delete") || e.target.closest(".fb-cmt-resolve") || e.target.closest(".fb-cmt-edit")) return;
       setActiveHighlight(ann.id);
       scrollToHighlight(ann.id);
       _listEl
-        .querySelectorAll(".fb-ann-card")
-        .forEach((c) => c.classList.remove("fb-ann-active"));
-      card.classList.add("fb-ann-active");
+        .querySelectorAll(".fb-cmt-card")
+        .forEach((c) => c.classList.remove("fb-cmt-active"));
+      card.classList.add("fb-cmt-active");
     });
 
-    card.querySelector(".fb-ann-resolve").addEventListener("click", (e) => {
+    card.querySelector(".fb-cmt-resolve").addEventListener("click", (e) => {
       e.stopPropagation();
-      if (_onResolve) _onResolve(ann.id, !isResolved);
+      if (_onResolve) _onResolve(ann.id, !isClosed);
     });
   }
 
-  card.querySelector(".fb-ann-edit").addEventListener("click", (e) => {
+  card.querySelector(".fb-cmt-edit").addEventListener("click", (e) => {
     e.stopPropagation();
     showEditForm(ann, card);
   });
 
-  card.querySelector(".fb-ann-delete").addEventListener("click", (e) => {
+  card.querySelector(".fb-cmt-delete").addEventListener("click", (e) => {
     e.stopPropagation();
     if (_onDelete) _onDelete(ann.id);
   });
@@ -382,8 +382,8 @@ function showReplyForm(parentId, threadEl, replyBtn) {
 }
 
 function showEditForm(ann, card) {
-  const commentEl = card.querySelector(".fb-ann-comment");
-  const originalText = ann.comment;
+  const commentEl = card.querySelector(".fb-cmt-body");
+  const originalText = ann.body;
 
   // Replace comment with edit form
   commentEl.innerHTML = `
@@ -418,17 +418,17 @@ function showEditForm(ann, card) {
 }
 
 /**
- * Scroll the sidebar to a specific annotation card and highlight it.
+ * Scroll the sidebar to a specific comment card and highlight it.
  */
-export function focusAnnotationCard(annotationId) {
+export function focusCommentCard(commentId) {
   const card = _listEl.querySelector(
-    `.fb-ann-card[data-id="${annotationId}"]`
+    `.fb-cmt-card[data-id="${commentId}"]`
   );
   if (card) {
     _listEl
-      .querySelectorAll(".fb-ann-card")
-      .forEach((c) => c.classList.remove("fb-ann-active"));
-    card.classList.add("fb-ann-active");
+      .querySelectorAll(".fb-cmt-card")
+      .forEach((c) => c.classList.remove("fb-cmt-active"));
+    card.classList.add("fb-cmt-active");
     card.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
 }
@@ -438,7 +438,7 @@ function truncate(str, max) {
 }
 
 function timeAgo(iso) {
-  const diff = Date.now() - new Date(iso + "Z").getTime();
+  const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 60000);
   if (mins < 1) return "just now";
   if (mins < 60) return `${mins}m ago`;
@@ -551,7 +551,7 @@ function injectStyles() {
     .fb-name-section {
       margin-bottom: 16px;
     }
-    .fb-annotation-list {
+    .fb-comment-list {
       display: flex;
       flex-direction: column;
       gap: 8px;
@@ -562,7 +562,7 @@ function injectStyles() {
       text-align: center;
       padding: 24px 12px;
     }
-    .fb-ann-card {
+    .fb-cmt-card {
       background: #fff;
       border: 1px solid #e5e7eb;
       border-radius: 8px;
@@ -570,37 +570,37 @@ function injectStyles() {
       cursor: pointer;
       transition: border-color 0.15s;
     }
-    .fb-ann-card:hover {
+    .fb-cmt-card:hover {
       border-color: #c4b5fd;
     }
-    .fb-ann-active {
+    .fb-cmt-active {
       border-color: #7c3aed;
       box-shadow: 0 0 0 2px rgba(124,58,237,0.12);
     }
-    .fb-ann-quote {
+    .fb-cmt-quote {
       font-size: 12px;
       color: #888;
       font-style: italic;
       margin-bottom: 6px;
       line-height: 1.4;
     }
-    .fb-ann-comment {
+    .fb-cmt-body {
       font-size: 13px;
       line-height: 1.5;
       margin-bottom: 6px;
     }
-    .fb-ann-meta {
+    .fb-cmt-meta {
       display: flex;
       align-items: center;
       gap: 8px;
       font-size: 11px;
       color: #999;
     }
-    .fb-ann-commenter {
+    .fb-cmt-author {
       font-weight: 600;
       color: #7c3aed;
     }
-    .fb-ann-resolve {
+    .fb-cmt-resolve {
       background: none;
       border: none;
       color: #aaa;
@@ -610,10 +610,10 @@ function injectStyles() {
       line-height: 1;
       margin-left: auto;
     }
-    .fb-ann-resolve:hover {
+    .fb-cmt-resolve:hover {
       color: #16a34a;
     }
-    .fb-ann-edit {
+    .fb-cmt-edit {
       background: none;
       border: none;
       color: #aaa;
@@ -622,10 +622,10 @@ function injectStyles() {
       padding: 0 2px;
       line-height: 1;
     }
-    .fb-ann-edit:hover {
+    .fb-cmt-edit:hover {
       color: #7c3aed;
     }
-    .fb-ann-delete {
+    .fb-cmt-delete {
       background: none;
       border: none;
       color: #ccc;
@@ -634,17 +634,17 @@ function injectStyles() {
       padding: 0 2px;
       line-height: 1;
     }
-    .fb-ann-delete:hover {
+    .fb-cmt-delete:hover {
       color: #ef4444;
     }
-    .fb-ann-resolved {
+    .fb-cmt-closed {
       opacity: 0.5;
       border-left: 3px solid #16a34a;
     }
-    .fb-ann-resolved .fb-ann-comment {
+    .fb-cmt-closed .fb-cmt-body {
       text-decoration: line-through;
     }
-    .fb-ann-resolved .fb-ann-resolve {
+    .fb-cmt-closed .fb-cmt-resolve {
       color: #16a34a;
     }
     .fb-filter-section {
@@ -666,12 +666,12 @@ function injectStyles() {
       flex-direction: column;
       gap: 4px;
     }
-    .fb-ann-reply {
+    .fb-cmt-reply {
       margin-left: 20px;
       border-left: 2px solid #e5e7eb;
       font-size: 13px;
     }
-    .fb-ann-reply .fb-ann-comment {
+    .fb-cmt-reply .fb-cmt-body {
       font-size: 12px;
     }
     .fb-reply-btn {

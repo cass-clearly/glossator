@@ -11,7 +11,7 @@ echo "Bundle built"
 # Restart server
 kill $(lsof -ti:3333) 2>/dev/null || true
 sleep 1
-rm -f server/annotations.db*
+rm -f server/remarq.db*
 (cd server && node index.js) &
 sleep 1
 

@@ -1,13 +1,15 @@
 const esbuild = require("esbuild");
+const path = require("path");
 
 const watch = process.argv.includes("--watch");
+const dir = __dirname;
 
 const buildOptions = {
-  entryPoints: ["src/index.js"],
+  entryPoints: [path.join(dir, "src/index.js")],
   bundle: true,
   format: "iife",
   globalName: "FeedbackLayer",
-  outfile: "dist/feedback-layer.js",
+  outfile: path.join(dir, "dist/feedback-layer.js"),
   minify: !watch,
   sourcemap: watch,
   target: ["es2020"],

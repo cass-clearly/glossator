@@ -1,7 +1,7 @@
 /**
  * Feedback Layer — Entry Point
  *
- * Orchestrates: sidebar, text selection, annotation creation/loading, highlights.
+ * Orchestrates: sidebar, text selection, comment creation/loading, highlights.
  *
  * Usage:
  *   <script src="feedback-layer.js"
@@ -10,7 +10,7 @@
  *   ></script>
  */
 
-import { setBaseUrl, fetchAnnotations, createAnnotation, updateAnnotation, deleteAnnotation, resolveAnnotation } from "./api.js";
+import { setBaseUrl, fetchComments, createComment, updateComment, deleteComment, updateCommentStatus } from "./api.js";
 import { selectorFromRange, rangeFromSelector } from "./anchoring.js";
 import {
   highlightRange,
@@ -22,8 +22,8 @@ import {
 import {
   createSidebar,
   showCommentForm,
-  renderAnnotations,
-  focusAnnotationCard,
+  renderComments,
+  focusCommentCard,
   openSidebar,
   getCommenter,
 } from "./sidebar.js";
@@ -31,11 +31,11 @@ import { initAuthorUI } from "./ui.js";
 
 let _root = null;      // content root element
 let _docUri = null;     // canonical URI for this document
-let _annotations = [];  // current annotation list
+let _comments = [];     // current comment list
 let _pendingSelector = null; // selector awaiting comment submission
 let _tooltip = null;    // the "Annotate" tooltip element
-let _anchoredIds = new Set();  // Track successfully anchored annotations
-let _annotationRanges = new Map();  // Map annotation ID to its range for position sorting
+let _anchoredIds = new Set();  // Track successfully anchored comments
+let _commentRanges = new Map();  // Map comment ID to its range for position sorting
 
 function init() {
   const scriptTag =
@@ -54,7 +54,7 @@ function init() {
 
   /**
    * Wait for Mermaid diagrams to finish rendering.
-   * Mermaid renders asynchronously, so we need to wait before anchoring annotations.
+   * Mermaid renders asynchronously, so we need to wait before anchoring comments.
    */
   async function waitForMermaid() {
     // Check if Mermaid is present on the page
@@ -96,21 +96,21 @@ function init() {
     // Highlight click → scroll sidebar to card
     setHighlightClickHandler((id) => {
       openSidebar();
-      focusAnnotationCard(id);
+      focusCommentCard(id);
       setActiveHighlight(id);
     });
 
     // Text selection → "Annotate" tooltip
     setupSelectionListener();
 
-    // Wait for Mermaid to finish rendering before anchoring annotations
+    // Wait for Mermaid to finish rendering before anchoring comments
     await waitForMermaid();
 
-    // Load existing annotations
-    loadAnnotations();
+    // Load existing comments
+    loadComments();
 
     // Author mode
-    initAuthorUI(config, () => _annotations);
+    initAuthorUI(config, () => _comments);
   };
 
   if (document.readyState === "loading") {
@@ -120,27 +120,27 @@ function init() {
   }
 }
 
-async function loadAnnotations() {
+async function loadComments() {
   try {
-    _annotations = await fetchAnnotations(_docUri);
-    const anchored = await anchorAll(_annotations);
+    _comments = await fetchComments(_docUri);
+    const anchored = await anchorAll(_comments);
     _anchoredIds = anchored;
-    renderAnnotations(_annotations, _anchoredIds, _annotationRanges);
+    renderComments(_comments, _anchoredIds, _commentRanges);
   } catch (err) {
-    console.error("[feedback-layer] Failed to load annotations:", err);
+    console.error("[feedback-layer] Failed to load comments:", err);
   }
 }
 
-async function anchorAll(annotations) {
+async function anchorAll(comments) {
   // Clean slate: remove all existing highlights before re-anchoring
   removeAllHighlights();
 
   const anchored = new Set();
-  _annotationRanges.clear();
+  _commentRanges.clear();
 
-  for (const ann of annotations) {
+  for (const ann of comments) {
     // Skip replies - they don't have text anchors
-    if (ann.parent_id) continue;
+    if (ann.parent) continue;
 
     try {
       const range = await rangeFromSelector(
@@ -148,17 +148,17 @@ async function anchorAll(annotations) {
         _root
       );
 
-      if (range && !ann.resolved) {
+      if (range && ann.status !== 'closed') {
         highlightRange(range, ann.id);
         anchored.add(ann.id);
-        _annotationRanges.set(ann.id, range);
-      } else if (range && ann.resolved) {
-        // Track as anchored even if resolved (for unresolve functionality)
+        _commentRanges.set(ann.id, range);
+      } else if (range && ann.status === 'closed') {
+        // Track as anchored even if closed (for reopen functionality)
         anchored.add(ann.id);
-        _annotationRanges.set(ann.id, range);
+        _commentRanges.set(ann.id, range);
       }
     } catch (e) {
-      console.warn(`[feedback-layer] Could not anchor annotation ${ann.id}:`, e);
+      console.warn(`[feedback-layer] Could not anchor comment ${ann.id}:`, e);
     }
   }
 
@@ -239,18 +239,18 @@ async function handleCommentSubmit({ comment, commenter }) {
   if (!_pendingSelector) return;
 
   try {
-    const ann = await createAnnotation({
+    const ann = await createComment({
       uri: _docUri,
       quote: _pendingSelector.exact,
       prefix: _pendingSelector.prefix,
       suffix: _pendingSelector.suffix,
-      comment,
-      commenter,
+      body: comment,
+      author: commenter,
     });
 
-    _annotations.push(ann);
+    _comments.push(ann);
 
-    // Anchor and highlight the new annotation
+    // Anchor and highlight the new comment
     const range = await rangeFromSelector(
       { exact: ann.quote, prefix: ann.prefix, suffix: ann.suffix },
       _root
@@ -260,28 +260,29 @@ async function handleCommentSubmit({ comment, commenter }) {
       _anchoredIds.add(ann.id);
     }
 
-    renderAnnotations(_annotations, _anchoredIds, _annotationRanges);
+    renderComments(_comments, _anchoredIds, _commentRanges);
 
     // Clear selection
     window.getSelection().removeAllRanges();
   } catch (err) {
-    console.error("[feedback-layer] Failed to create annotation:", err);
-    alert("Failed to save annotation: " + err.message);
+    console.error("[feedback-layer] Failed to create comment:", err);
+    alert("Failed to save comment: " + err.message);
   }
 
   _pendingSelector = null;
 }
 
-async function handleResolve(annotationId, resolved) {
+async function handleResolve(commentId, resolved) {
   try {
-    const updated = await resolveAnnotation(annotationId, resolved);
-    const idx = _annotations.findIndex((a) => a.id === annotationId);
-    if (idx !== -1) _annotations[idx] = updated;
+    const status = resolved ? "closed" : "open";
+    const updated = await updateCommentStatus(commentId, status);
+    const idx = _comments.findIndex((a) => a.id === commentId);
+    if (idx !== -1) _comments[idx] = updated;
 
     if (resolved) {
-      removeHighlights(annotationId);
+      removeHighlights(commentId);
     } else {
-      // Re-anchor the highlight when unresolving
+      // Re-anchor the highlight when reopening
       const ann = updated;
       const range = await rangeFromSelector(
         { exact: ann.quote, prefix: ann.prefix, suffix: ann.suffix },
@@ -296,51 +297,51 @@ async function handleResolve(annotationId, resolved) {
       }
     }
 
-    renderAnnotations(_annotations, _anchoredIds, _annotationRanges);
+    renderComments(_comments, _anchoredIds, _commentRanges);
   } catch (err) {
-    console.error("[feedback-layer] Failed to resolve annotation:", err);
+    console.error("[feedback-layer] Failed to resolve comment:", err);
   }
 }
 
 async function handleReply({ parent_id, comment, commenter }) {
   try {
-    const reply = await createAnnotation({
+    const reply = await createComment({
       uri: _docUri,
-      comment,
-      commenter,
-      parent_id,
+      body: comment,
+      author: commenter,
+      parent: parent_id,
     });
-    _annotations.push(reply);
-    renderAnnotations(_annotations, _anchoredIds, _annotationRanges);
+    _comments.push(reply);
+    renderComments(_comments, _anchoredIds, _commentRanges);
   } catch (err) {
     console.error("[feedback-layer] Failed to create reply:", err);
     alert("Failed to save reply: " + err.message);
   }
 }
 
-async function handleEdit(annotationId, comment) {
+async function handleEdit(commentId, comment) {
   try {
-    const updated = await updateAnnotation(annotationId, { comment });
-    const idx = _annotations.findIndex((a) => a.id === annotationId);
-    if (idx !== -1) _annotations[idx] = updated;
-    renderAnnotations(_annotations, _anchoredIds, _annotationRanges);
+    const updated = await updateComment(commentId, { body: comment });
+    const idx = _comments.findIndex((a) => a.id === commentId);
+    if (idx !== -1) _comments[idx] = updated;
+    renderComments(_comments, _anchoredIds, _commentRanges);
   } catch (err) {
-    console.error("[feedback-layer] Failed to edit annotation:", err);
+    console.error("[feedback-layer] Failed to edit comment:", err);
     alert("Failed to update comment: " + err.message);
   }
 }
 
-async function handleDelete(annotationId) {
+async function handleDelete(commentId) {
   try {
-    await deleteAnnotation(annotationId);
-    removeHighlights(annotationId);
-    _anchoredIds.delete(annotationId);
-    _annotations = _annotations.filter(
-      (a) => a.id !== annotationId && a.parent_id !== annotationId
+    await deleteComment(commentId);
+    removeHighlights(commentId);
+    _anchoredIds.delete(commentId);
+    _comments = _comments.filter(
+      (a) => a.id !== commentId && a.parent !== commentId
     );
-    renderAnnotations(_annotations, _anchoredIds, _annotationRanges);
+    renderComments(_comments, _anchoredIds, _commentRanges);
   } catch (err) {
-    console.error("[feedback-layer] Failed to delete annotation:", err);
+    console.error("[feedback-layer] Failed to delete comment:", err);
   }
 }
 

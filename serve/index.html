@@ -142,15 +142,15 @@ sequenceDiagram
     Reviewer->>Remarq: Select text
     Remarq->>Reviewer: Show ✎ Annotate
     Reviewer->>Remarq: Add comment
-    Remarq->>Server: POST /api/annotations
-    Server-->>Remarq: Save annotation
+    Remarq->>Server: POST /comments
+    Server-->>Remarq: Save comment
     Remarq->>Remarq: Highlight text
 
     Reviewer->>Remarq: Click highlight
     Remarq->>Remarq: Open sidebar
 
     Author->>Remarq: Resolve ✓
-    Remarq->>Server: PATCH (resolved)
+    Remarq->>Server: PATCH (status: closed)
     Remarq->>Remarq: Remove highlight
   </pre>
 
