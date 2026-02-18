@@ -90,9 +90,9 @@ Configure via data attributes on the script tag:
 ></script>
 ```
 
-## Annotation Server
+## Comment Server
 
-Remarq requires a backend server to store annotations.
+Remarq requires a backend server to store comments.
 
 ### Quick Start with Docker
 
@@ -102,7 +102,7 @@ cd remarq
 docker compose -f docker-compose.remarq.yml up --build
 ```
 
-The server runs on `http://localhost:3333` with PostgreSQL.
+This starts Postgres and the Remarq server on `http://localhost:3333`. For production, create a `.env` file next to the compose file with `POSTGRES_PASSWORD=your-secure-password` — see the [main README](https://github.com/cass-clearly/remarq#production) for details.
 
 ### API Endpoints
 
