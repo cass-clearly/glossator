@@ -323,13 +323,13 @@ describe("API", async () => {
       assert.ok(json.error.message);
     });
 
-    it("sanitizes body, author, and quote", async () => {
+    it("sanitizes body and author", async () => {
       const res = await fetch(`${BASE}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           uri: "https://example.com/p",
-          quote: "<em>quoted</em> text",
+          quote: "quoted text",
           body: "<script>alert(1)</script>hello",
           author: "<b>user</b>",
         }),
@@ -337,7 +337,21 @@ describe("API", async () => {
       const json = await res.json();
       assert.equal(json.body, "alert(1)hello");
       assert.equal(json.author, "user");
-      assert.equal(json.quote, "quoted text");
+    });
+
+    it("preserves quote text exactly for anchoring", async () => {
+      const res = await fetch(`${BASE}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          uri: "https://example.com/p",
+          quote: "Future of ",
+          body: "test",
+          author: "a",
+        }),
+      });
+      const json = await res.json();
+      assert.equal(json.quote, "Future of ");
     });
 
     it("normalizes URI", async () => {

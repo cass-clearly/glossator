@@ -141,7 +141,6 @@ app.post("/comments", (req, res) => {
 
   const cleanBody = sanitize(body);
   const cleanAuthor = sanitize(author);
-  const cleanQuote = sanitize(quote);
 
   let documentId;
   try {
@@ -160,7 +159,7 @@ app.post("/comments", (req, res) => {
   const comment = insertWithId("cmt", (id) => {
     db.prepare(
       "INSERT INTO comments (id, document, quote, prefix, suffix, body, author, parent) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
-    ).run(id, documentId, cleanQuote || "", prefix || null, suffix || null, cleanBody, cleanAuthor, parent || null);
+    ).run(id, documentId, quote || "", prefix || null, suffix || null, cleanBody, cleanAuthor, parent || null);
     return db.prepare("SELECT * FROM comments WHERE id = ?").get(id);
   });
 
