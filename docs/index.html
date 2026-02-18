@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="scroll-smooth">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -492,17 +492,14 @@ npm start">Copy</button>
 
       // Sticky nav: show after scrolling past hero
       var navbar = document.getElementById('navbar');
-      var lastScroll = 0;
       window.addEventListener('scroll', function() {
-        var scrollY = window.scrollY;
-        if (scrollY > 200) {
+        if (window.scrollY > 200) {
           navbar.classList.remove('-translate-y-full');
           navbar.classList.add('translate-y-0');
         } else {
           navbar.classList.add('-translate-y-full');
           navbar.classList.remove('translate-y-0');
         }
-        lastScroll = scrollY;
       }, { passive: true });
 
       // Smooth scroll for anchor links
@@ -548,7 +545,7 @@ npm start">Copy</button>
               btn.textContent = 'Copy';
               btn.classList.remove('copied');
             }, 2000);
-          });
+          }).catch(function() {});
         });
       });
     })();
