@@ -1,20 +1,20 @@
 /**
- * Formats annotations and document content into a structured prompt for Claude.
+ * Formats comments and document content into a structured prompt for Claude.
  */
 
 /**
- * Build a Claude prompt from the document HTML and reviewer annotations.
+ * Build a Claude prompt from the document HTML and reviewer comments.
  *
  * @param {string} documentHtml - The full HTML of the document being reviewed
- * @param {Array<{quote: string, comment: string, commenter: string}>} annotations
+ * @param {Array<{quote: string, body: string, author: string}>} comments
  * @returns {string} The formatted prompt
  */
-export function buildPrompt(documentHtml, annotations) {
-  const feedbackSection = formatAnnotations(annotations);
+export function buildPrompt(documentHtml, comments) {
+  const feedbackSection = formatComments(comments);
 
-  const topLevelCount = annotations.filter((a) => !a.parent_id).length;
+  const topLevelCount = comments.filter((a) => !a.parent).length;
 
-  return `You are a document editor. Below is an HTML document and feedback from ${topLevelCount} reviewer annotation(s) (with replies). Revise the document to address the feedback.
+  return `You are a document editor. Below is an HTML document and feedback from ${topLevelCount} reviewer comment(s) (with replies). Revise the document to address the feedback.
 
 ## Original Document
 
@@ -45,34 +45,34 @@ Respond with:
 }
 
 /**
- * Format annotations into a numbered list for the prompt, with threaded replies.
+ * Format comments into a numbered list for the prompt, with threaded replies.
  */
-function formatAnnotations(annotations) {
+function formatComments(comments) {
   // Thread into parents + replies
   const topLevel = [];
   const repliesByParent = new Map();
-  for (const ann of annotations) {
-    if (ann.parent_id) {
-      if (!repliesByParent.has(ann.parent_id)) repliesByParent.set(ann.parent_id, []);
-      repliesByParent.get(ann.parent_id).push(ann);
+  for (const ann of comments) {
+    if (ann.parent) {
+      if (!repliesByParent.has(ann.parent)) repliesByParent.set(ann.parent, []);
+      repliesByParent.get(ann.parent).push(ann);
     } else {
       topLevel.push(ann);
     }
   }
 
   if (topLevel.length === 0) {
-    return "_No annotations found._";
+    return "_No comments found._";
   }
 
   return topLevel
     .map((ann, i) => {
-      const parts = [`**${i + 1}. [${ann.commenter}]**`];
+      const parts = [`**${i + 1}. [${ann.author}]**`];
       if (ann.quote) parts.push(`Highlighted text: "${ann.quote}"`);
-      if (ann.comment) parts.push(`Comment: ${ann.comment}`);
+      if (ann.body) parts.push(`Comment: ${ann.body}`);
 
       const replies = repliesByParent.get(ann.id) || [];
       for (const reply of replies) {
-        parts.push(`  - **[${reply.commenter}]** (reply): ${reply.comment}`);
+        parts.push(`  - **[${reply.author}]** (reply): ${reply.body}`);
       }
 
       return parts.join("\n");

@@ -1,5 +1,5 @@
 /**
- * E2E test for the custom annotation system.
+ * E2E test for the Remarq comment system.
  * Run with: node test-e2e.mjs
  * Requires: server on :3333 (serves both API and static files), puppeteer installed
  */
@@ -20,9 +20,9 @@ async function run() {
   try {
     await testPageLoads();
     await testSidebarRenders();
-    await testCreateAnnotation();
-    await testAnnotationPersistsOnReload();
-    await testDeleteAnnotation();
+    await testCreateComment();
+    await testCommentPersistsOnReload();
+    await testDeleteComment();
     await testAuthorMode();
     console.log("\n✅ All tests passed!");
   } catch (err) {
@@ -67,17 +67,17 @@ async function testSidebarRenders() {
   const nameInput = await page.$(".fb-name-input");
   if (!nameInput) throw new Error("Name input not found");
 
-  // Wait for annotation list to load (async), then check empty state
-  await page.waitForSelector(".fb-empty, .fb-ann-card", { timeout: 3000 });
+  // Wait for comment list to load (async), then check empty state
+  await page.waitForSelector(".fb-empty, .fb-cmt-card", { timeout: 3000 });
   const emptyMsg = await page.$eval(".fb-empty", (el) => el.textContent);
-  if (!emptyMsg.includes("No annotations")) throw new Error("Empty state not shown");
+  if (!emptyMsg.includes("No comments")) throw new Error("Empty state not shown");
 
   await page.close();
   console.log("OK");
 }
 
-async function testCreateAnnotation() {
-  process.stdout.write("Test: create annotation... ");
+async function testCreateComment() {
+  process.stdout.write("Test: create comment... ");
 
   // Clean slate
   await cleanDB();
@@ -132,35 +132,35 @@ async function testCreateAnnotation() {
   await page.type(".fb-form-textarea", "This is a test comment");
   await page.click(".fb-submit-btn");
 
-  // Wait for the annotation to be saved
-  await page.waitForSelector(".fb-ann-card", { timeout: 3000 });
+  // Wait for the comment to be saved
+  await page.waitForSelector(".fb-cmt-card", { timeout: 3000 });
 
   // Verify it shows in the sidebar
-  const cardText = await page.$eval(".fb-ann-card", (el) => el.textContent);
-  if (!cardText.includes("test comment")) throw new Error("Annotation not visible in sidebar");
-  if (!cardText.includes("TestUser")) throw new Error("Commenter name not visible");
+  const cardText = await page.$eval(".fb-cmt-card", (el) => el.textContent);
+  if (!cardText.includes("test comment")) throw new Error("Comment not visible in sidebar");
+  if (!cardText.includes("TestUser")) throw new Error("Author name not visible");
 
   // Verify it's in the backend
-  const res = await fetch(API + "/api/annotations?uri=" + encodeURIComponent("http://localhost:3333/index.html"));
-  const annotations = await res.json();
-  if (annotations.length !== 1) throw new Error(`Expected 1 annotation in DB, got ${annotations.length}`);
-  if (annotations[0].commenter !== "TestUser") throw new Error("Wrong commenter in DB");
+  const res = await fetch(API + "/comments?uri=" + encodeURIComponent("http://localhost:3333/index.html"));
+  const json = await res.json();
+  if (json.data.length !== 1) throw new Error(`Expected 1 comment in DB, got ${json.data.length}`);
+  if (json.data[0].author !== "TestUser") throw new Error("Wrong author in DB");
 
   await page.close();
   console.log("OK");
 }
 
-async function testAnnotationPersistsOnReload() {
-  process.stdout.write("Test: annotations persist on reload... ");
+async function testCommentPersistsOnReload() {
+  process.stdout.write("Test: comments persist on reload... ");
   const page = await browser.newPage();
   collectErrors(page);
   await page.goto(BASE + "/index.html", { waitUntil: "networkidle0" });
 
-  // Wait for annotations to load
-  await page.waitForSelector(".fb-ann-card", { timeout: 3000 });
+  // Wait for comments to load
+  await page.waitForSelector(".fb-cmt-card", { timeout: 3000 });
 
-  const count = await page.$$eval(".fb-ann-card", (els) => els.length);
-  if (count !== 1) throw new Error(`Expected 1 annotation card after reload, got ${count}`);
+  const count = await page.$$eval(".fb-cmt-card", (els) => els.length);
+  if (count !== 1) throw new Error(`Expected 1 comment card after reload, got ${count}`);
 
   // Check that highlight exists in the document
   const highlights = await page.$$eval(".fb-highlight", (els) => els.length);
@@ -170,8 +170,8 @@ async function testAnnotationPersistsOnReload() {
   console.log("OK");
 }
 
-async function testDeleteAnnotation() {
-  process.stdout.write("Test: delete annotation... ");
+async function testDeleteComment() {
+  process.stdout.write("Test: delete comment... ");
   const page = await browser.newPage();
   collectErrors(page);
   await page.goto(BASE + "/index.html", { waitUntil: "networkidle0" });
@@ -182,7 +182,7 @@ async function testDeleteAnnotation() {
   });
   await new Promise((r) => setTimeout(r, 300));
   await page.evaluate(() => {
-    document.querySelector(".fb-ann-delete").click();
+    document.querySelector(".fb-cmt-delete").click();
   });
 
   // Wait for deletion
@@ -193,9 +193,9 @@ async function testDeleteAnnotation() {
   if (!empty) throw new Error("Empty state not shown after delete");
 
   // Backend should be empty
-  const res = await fetch(API + "/api/annotations?uri=" + encodeURIComponent("http://localhost:3333/index.html"));
-  const annotations = await res.json();
-  if (annotations.length !== 0) throw new Error(`Expected 0 annotations after delete, got ${annotations.length}`);
+  const res = await fetch(API + "/comments?uri=" + encodeURIComponent("http://localhost:3333/index.html"));
+  const json = await res.json();
+  if (json.data.length !== 0) throw new Error(`Expected 0 comments after delete, got ${json.data.length}`);
 
   await page.close();
   console.log("OK");
@@ -204,17 +204,15 @@ async function testDeleteAnnotation() {
 async function testAuthorMode() {
   process.stdout.write("Test: author mode... ");
 
-  // Create an annotation first
-  await fetch(API + "/api/annotations", {
+  // Create a comment first
+  await fetch(API + "/comments", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       uri: "http://localhost:3333/index.html",
       quote: "Collaborative document editing",
-      prefix: "",
-      suffix: "",
-      comment: "Needs expansion",
-      commenter: "Reviewer1",
+      body: "Needs expansion",
+      author: "Reviewer1",
     }),
   });
 
@@ -232,8 +230,8 @@ async function testAuthorMode() {
 
   // Check prompt area has content
   const promptText = await page.$eval(".hf-prompt-area", (el) => el.value);
-  if (!promptText.includes("Needs expansion")) throw new Error("Prompt doesn't contain annotation");
-  if (!promptText.includes("Reviewer1")) throw new Error("Prompt doesn't contain commenter name");
+  if (!promptText.includes("Needs expansion")) throw new Error("Prompt doesn't contain comment");
+  if (!promptText.includes("Reviewer1")) throw new Error("Prompt doesn't contain author name");
 
   // Clean up
   await cleanDB();
@@ -242,10 +240,10 @@ async function testAuthorMode() {
 }
 
 async function cleanDB() {
-  const res = await fetch(API + "/api/annotations?uri=" + encodeURIComponent("http://localhost:3333/index.html"));
-  const anns = await res.json();
-  for (const ann of anns) {
-    await fetch(API + "/api/annotations/" + ann.id, { method: "DELETE" });
+  const res = await fetch(API + "/comments?uri=" + encodeURIComponent("http://localhost:3333/index.html"));
+  const json = await res.json();
+  for (const ann of json.data) {
+    await fetch(API + "/comments/" + ann.id, { method: "DELETE" });
   }
 }
 

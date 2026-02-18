@@ -131,21 +131,21 @@ const STYLES = `
   .hf-status-error { background: #fef2f2; color: #991b1b; }
 `;
 
-let _getAnnotations = null;
+let _getComments = null;
 let _config = null;
 
 /**
  * Initialize the author-mode UI.
  *
  * @param {Object} config
- * @param {Function} getAnnotations - Returns the current annotation list
+ * @param {Function} getComments - Returns the current comment list
  */
-export function initAuthorUI(config, getAnnotations) {
+export function initAuthorUI(config, getComments) {
   const params = new URLSearchParams(window.location.search);
   if (params.get("author") !== "true") return;
 
   _config = config;
-  _getAnnotations = getAnnotations;
+  _getComments = getComments;
 
   injectStyles();
   createFloatingButton();
@@ -166,7 +166,7 @@ function createFloatingButton() {
 }
 
 function openModal() {
-  const annotations = _getAnnotations();
+  const comments = _getComments();
 
   const overlay = document.createElement("div");
   overlay.className = "hf-overlay";
@@ -199,8 +199,8 @@ function openModal() {
   });
   document.body.appendChild(overlay);
 
-  if (annotations.length === 0) {
-    body.innerHTML = `<div class="hf-status hf-status-info">No annotations yet. Ask reviewers to highlight text and add comments first.</div>`;
+  if (comments.length === 0) {
+    body.innerHTML = `<div class="hf-status hf-status-info">No comments yet. Ask reviewers to highlight text and add comments first.</div>`;
     return;
   }
 
@@ -208,11 +208,11 @@ function openModal() {
     _config.contentSelector || "body"
   ).innerHTML;
 
-  const prompt = buildPrompt(docHtml, annotations);
+  const prompt = buildPrompt(docHtml, comments);
 
   body.innerHTML = `
     <div class="hf-status hf-status-success">
-      ${annotations.length} annotation(s) found &mdash; prompt ready (${prompt.length.toLocaleString()} chars)
+      ${comments.length} comment(s) found &mdash; prompt ready (${prompt.length.toLocaleString()} chars)
     </div>
     <textarea class="hf-prompt-area" readonly>${escapeHtml(prompt)}</textarea>
   `;
