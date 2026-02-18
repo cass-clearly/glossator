@@ -67,6 +67,12 @@ The compose file reads `POSTGRES_PASSWORD` from the environment and passes it to
 ### Direct (bring your own Postgres)
 
 ```bash
+npx @csalvato/remarq-server
+```
+
+Or if cloning the repo:
+
+```bash
 npm install --prefix server
 DATABASE_URL=postgres://user:pass@localhost:5432/remarq node server/index.js
 ```
@@ -138,7 +144,7 @@ remarq/
 ├── package.json                 # Root: build + test scripts
 ├── docker-compose.remarq.yml   # Postgres + server (production)
 ├── server/
-│   ├── package.json             # express, pg, cors
+│   ├── package.json             # @csalvato/remarq-server — express, pg, cors
 │   ├── Dockerfile               # Node 22 Alpine container
 │   ├── index.js                 # API server + static file serving
 │   ├── generate-id.js           # Prefixed ID generation (doc_*, cmt_*)
