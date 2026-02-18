@@ -16,21 +16,29 @@ describe("generate-id", async () => {
     assert.equal(ids.size, 100);
   });
 
-  it("insertWithId retries on collision", () => {
+  it("insertWithId retries on collision", async () => {
     let calls = 0;
-    const result = insertWithId("doc", (id) => {
+    const result = await insertWithId("doc", async (id) => {
       calls++;
-      if (calls < 3) throw new Error("UNIQUE constraint failed");
+      if (calls < 3) {
+        const err = new Error("unique violation");
+        err.code = '23505';
+        throw err;
+      }
       return id;
     });
     assert.equal(calls, 3);
     assert.match(result, /^doc_/);
   });
 
-  it("insertWithId throws after max retries", () => {
-    assert.throws(
-      () => insertWithId("doc", () => { throw new Error("UNIQUE constraint failed"); }),
-      /UNIQUE constraint failed/
+  it("insertWithId throws after max retries", async () => {
+    await assert.rejects(
+      () => insertWithId("doc", async () => {
+        const err = new Error("unique violation");
+        err.code = '23505';
+        throw err;
+      }),
+      (err) => err.code === '23505'
     );
   });
 });
@@ -97,12 +105,11 @@ describe("sanitize", async () => {
 // ── Integration tests ───────────────────────────────────────────────
 
 describe("API", async () => {
-  let app, db, server, BASE;
+  let app, pool, initSchema, server, BASE;
 
   before(async () => {
-    // Use a test database
-    process.env.REMARQ_DB = ":memory:";
-    ({ app, db } = await import("./index.js"));
+    ({ app, pool, initSchema } = await import("./index.js"));
+    await initSchema();
 
     await new Promise((resolve) => {
       server = app.listen(0, "127.0.0.1", () => {
@@ -113,14 +120,14 @@ describe("API", async () => {
     });
   });
 
-  after(() => {
+  after(async () => {
     server.close();
-    db.close();
+    await pool.end();
   });
 
-  beforeEach(() => {
-    db.exec("DELETE FROM comments");
-    db.exec("DELETE FROM documents");
+  beforeEach(async () => {
+    await pool.query("DELETE FROM comments");
+    await pool.query("DELETE FROM documents");
   });
 
   // ── Documents ─────────────────────────────────────────────────
