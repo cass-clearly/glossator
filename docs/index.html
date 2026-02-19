@@ -209,8 +209,94 @@ docker compose -f docker-compose.remarq.yml up --build">Copy</button>
     </div>
   </section>
 
+  <!-- Two Ways to Use It -->
+  <section id="workflows" class="py-24 bg-white">
+    <div class="max-w-6xl mx-auto px-6">
+      <div class="max-w-3xl mx-auto">
+        <div class="text-center mb-12 fade-in">
+          <p class="text-violet-600 font-semibold text-sm uppercase tracking-wider mb-3">Two Ways to Use It</p>
+          <h2 class="text-3xl sm:text-4xl font-bold">Same tool. Solo or team.</h2>
+        </div>
+
+        <div class="fade-in">
+          <!-- Tab bar -->
+          <div class="flex justify-center mb-8">
+            <div class="bg-gray-100 rounded-full p-1 inline-flex" role="tablist">
+              <button data-tab-target="solo" role="tab" aria-selected="true" aria-controls="panel-solo" class="tab-btn px-6 py-2 rounded-full text-sm font-semibold transition-colors bg-violet-600 text-white">Solo: You + Your AI</button>
+              <button data-tab-target="team" role="tab" aria-selected="false" aria-controls="panel-team" class="tab-btn px-6 py-2 rounded-full text-sm font-semibold transition-colors bg-transparent text-gray-600 hover:bg-gray-200">Team: Reviewers + AI</button>
+            </div>
+          </div>
+
+          <!-- Solo panel -->
+          <div id="panel-solo" class="tab-panel" role="tabpanel" aria-labelledby="panel-solo">
+            <div class="bg-white rounded-2xl p-8 border border-gray-200 shadow-sm">
+              <p class="text-gray-600 text-lg mb-6">Just you and your AI, iterating on a document. Annotations are the shared language — more natural than chat because you're pointing at exact text.</p>
+              <ol class="space-y-4 text-gray-700">
+                <li class="flex gap-3 items-start">
+                  <span class="w-8 h-8 bg-violet-100 rounded-lg flex items-center justify-center text-violet-600 font-bold text-sm shrink-0">1</span>
+                  <span class="pt-1">Your agent writes a first draft and publishes it to a page</span>
+                </li>
+                <li class="flex gap-3 items-start">
+                  <span class="w-8 h-8 bg-violet-100 rounded-lg flex items-center justify-center text-violet-600 font-bold text-sm shrink-0">2</span>
+                  <span class="pt-1">You read it, highlight what needs work — <em>"too formal," "add an example," "cut this"</em></span>
+                </li>
+                <li class="flex gap-3 items-start">
+                  <span class="w-8 h-8 bg-violet-100 rounded-lg flex items-center justify-center text-violet-600 font-bold text-sm shrink-0">3</span>
+                  <span class="pt-1">You tell your agent: "feedback's ready, go revise"</span>
+                </li>
+                <li class="flex gap-3 items-start">
+                  <span class="w-8 h-8 bg-violet-100 rounded-lg flex items-center justify-center text-violet-600 font-bold text-sm shrink-0">4</span>
+                  <span class="pt-1">Agent calls <code class="bg-gray-100 px-1.5 py-0.5 rounded text-sm font-mono">GET /comments?status=open</code>, rewrites, resolves</span>
+                </li>
+                <li class="flex gap-3 items-start">
+                  <span class="w-8 h-8 bg-violet-600 rounded-lg flex items-center justify-center text-white font-bold text-sm shrink-0">5</span>
+                  <span class="pt-1 font-bold text-gray-900">Read the new draft. Repeat until you're happy.</span>
+                </li>
+              </ol>
+              <div class="mt-6 pt-6 border-t border-gray-100">
+                <p class="text-gray-600 text-sm"><strong class="text-gray-900">Key insight:</strong> Pair-writing where annotations are the shared language. Your agent doesn't autonomously poll — you tell it when feedback is ready.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Team panel -->
+          <div id="panel-team" class="tab-panel hidden" role="tabpanel" aria-labelledby="panel-team">
+            <div class="bg-white rounded-2xl p-8 border border-gray-200 shadow-sm">
+              <p class="text-gray-600 text-lg mb-6">Multiple reviewers, threaded discussions, one agent to process it all. No accounts needed — just share the link.</p>
+              <ol class="space-y-4 text-gray-700">
+                <li class="flex gap-3 items-start">
+                  <span class="w-8 h-8 bg-violet-100 rounded-lg flex items-center justify-center text-violet-600 font-bold text-sm shrink-0">1</span>
+                  <span class="pt-1">Agent writes the first draft, publishes to a page</span>
+                </li>
+                <li class="flex gap-3 items-start">
+                  <span class="w-8 h-8 bg-violet-100 rounded-lg flex items-center justify-center text-violet-600 font-bold text-sm shrink-0">2</span>
+                  <span class="pt-1">Share the link — reviewers highlight and comment, <strong>no accounts needed</strong></span>
+                </li>
+                <li class="flex gap-3 items-start">
+                  <span class="w-8 h-8 bg-violet-100 rounded-lg flex items-center justify-center text-violet-600 font-bold text-sm shrink-0">3</span>
+                  <span class="pt-1">Discussion happens inline: replies, threads, agreements</span>
+                </li>
+                <li class="flex gap-3 items-start">
+                  <span class="w-8 h-8 bg-violet-100 rounded-lg flex items-center justify-center text-violet-600 font-bold text-sm shrink-0">4</span>
+                  <span class="pt-1">When the team's done, tell your agent to incorporate the feedback</span>
+                </li>
+                <li class="flex gap-3 items-start">
+                  <span class="w-8 h-8 bg-violet-600 rounded-lg flex items-center justify-center text-white font-bold text-sm shrink-0">5</span>
+                  <span class="pt-1 font-bold text-gray-900">Agent revises, resolves, team reviews the next draft.</span>
+                </li>
+              </ol>
+              <div class="mt-6 pt-6 border-t border-gray-100">
+                <p class="text-gray-600 text-sm"><strong class="text-gray-900">Key insight:</strong> Same tool, same API — just more humans. Your agent doesn't autonomously poll — you tell it when feedback is ready.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- Why Remarq Kills It -->
-  <section id="why" class="py-24 bg-white">
+  <section id="why" class="py-24 bg-gray-50">
     <div class="max-w-6xl mx-auto px-6">
       <div class="text-center mb-16 fade-in">
         <p class="text-violet-600 font-semibold text-sm uppercase tracking-wider mb-3">Why Remarq</p>
@@ -295,7 +381,7 @@ docker compose -f docker-compose.remarq.yml up --build">Copy</button>
   </section>
 
   <!-- Before / After -->
-  <section id="compare" class="py-24 bg-gray-50">
+  <section id="compare" class="py-24 bg-white">
     <div class="max-w-6xl mx-auto px-6">
       <div class="text-center mb-16 fade-in">
         <h2 class="text-3xl sm:text-4xl font-bold">The Before / After</h2>
@@ -355,7 +441,7 @@ docker compose -f docker-compose.remarq.yml up --build">Copy</button>
   </section>
 
   <!-- Social Proof -->
-  <section id="proof" class="py-24 bg-white">
+  <section id="proof" class="py-24 bg-gray-50">
     <div class="max-w-6xl mx-auto px-6">
       <div class="max-w-3xl mx-auto">
         <div class="text-center mb-12 fade-in">
@@ -484,6 +570,23 @@ docker compose -f docker-compose.remarq.yml up --build">Copy</button>
           el.classList.add('visible');
         });
       }
+
+      // Tab switcher
+      document.querySelectorAll('[data-tab-target]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var target = this.getAttribute('data-tab-target');
+          document.querySelectorAll('.tab-panel').forEach(function(p) { p.classList.add('hidden'); });
+          document.getElementById('panel-' + target).classList.remove('hidden');
+          document.querySelectorAll('.tab-btn').forEach(function(b) {
+            b.classList.remove('bg-violet-600', 'text-white');
+            b.classList.add('bg-transparent', 'text-gray-600', 'hover:bg-gray-200');
+            b.setAttribute('aria-selected', 'false');
+          });
+          this.classList.add('bg-violet-600', 'text-white');
+          this.classList.remove('bg-transparent', 'text-gray-600', 'hover:bg-gray-200');
+          this.setAttribute('aria-selected', 'true');
+        });
+      });
 
       // Copy buttons
       document.querySelectorAll('.copy-btn').forEach(function(btn) {
