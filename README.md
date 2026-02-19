@@ -31,6 +31,8 @@ Reviewer highlights text → leaves comment → agent reads API → agent revise
 
 That's Remarq. Human judgment in, machine execution out. The feedback cycle is closed.
 
+**Works for solo creators** pair-writing with their AI — you annotate, your agent revises — **or teams** with multiple reviewers feeding back into one agent loop. Same tool, same API, just different numbers of humans.
+
 ## Quick Start
 
 ### 1. Start the backend
