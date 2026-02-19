@@ -1,5 +1,5 @@
 {
-  "name": "@csalvato/remarq-server",
+  "name": "remarq-server",
   "version": "1.3.0",
   "description": "Lightweight document annotation server for Remarq",
   "main": "index.js",
