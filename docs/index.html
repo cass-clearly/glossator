@@ -221,14 +221,14 @@ docker compose -f docker-compose.remarq.yml up --build">Copy</button>
         <div class="fade-in">
           <!-- Tab bar -->
           <div class="flex justify-center mb-8">
-            <div class="bg-gray-100 rounded-full p-1 inline-flex">
-              <button data-tab-target="solo" class="tab-btn px-6 py-2 rounded-full text-sm font-semibold transition-colors bg-violet-600 text-white">Solo: You + Your AI</button>
-              <button data-tab-target="team" class="tab-btn px-6 py-2 rounded-full text-sm font-semibold transition-colors bg-transparent text-gray-600 hover:bg-gray-200">Team: Reviewers + AI</button>
+            <div class="bg-gray-100 rounded-full p-1 inline-flex" role="tablist">
+              <button data-tab-target="solo" role="tab" aria-selected="true" aria-controls="panel-solo" class="tab-btn px-6 py-2 rounded-full text-sm font-semibold transition-colors bg-violet-600 text-white">Solo: You + Your AI</button>
+              <button data-tab-target="team" role="tab" aria-selected="false" aria-controls="panel-team" class="tab-btn px-6 py-2 rounded-full text-sm font-semibold transition-colors bg-transparent text-gray-600 hover:bg-gray-200">Team: Reviewers + AI</button>
             </div>
           </div>
 
           <!-- Solo panel -->
-          <div id="panel-solo" class="tab-panel">
+          <div id="panel-solo" class="tab-panel" role="tabpanel" aria-labelledby="panel-solo">
             <div class="bg-white rounded-2xl p-8 border border-gray-200 shadow-sm">
               <p class="text-gray-600 text-lg mb-6">Just you and your AI, iterating on a document. Annotations are the shared language — more natural than chat because you're pointing at exact text.</p>
               <ol class="space-y-4 text-gray-700">
@@ -260,7 +260,7 @@ docker compose -f docker-compose.remarq.yml up --build">Copy</button>
           </div>
 
           <!-- Team panel -->
-          <div id="panel-team" class="tab-panel hidden">
+          <div id="panel-team" class="tab-panel hidden" role="tabpanel" aria-labelledby="panel-team">
             <div class="bg-white rounded-2xl p-8 border border-gray-200 shadow-sm">
               <p class="text-gray-600 text-lg mb-6">Multiple reviewers, threaded discussions, one agent to process it all. No accounts needed — just share the link.</p>
               <ol class="space-y-4 text-gray-700">
@@ -296,7 +296,7 @@ docker compose -f docker-compose.remarq.yml up --build">Copy</button>
   </section>
 
   <!-- Why Remarq Kills It -->
-  <section id="why" class="py-24 bg-white">
+  <section id="why" class="py-24 bg-gray-50">
     <div class="max-w-6xl mx-auto px-6">
       <div class="text-center mb-16 fade-in">
         <p class="text-violet-600 font-semibold text-sm uppercase tracking-wider mb-3">Why Remarq</p>
@@ -381,7 +381,7 @@ docker compose -f docker-compose.remarq.yml up --build">Copy</button>
   </section>
 
   <!-- Before / After -->
-  <section id="compare" class="py-24 bg-gray-50">
+  <section id="compare" class="py-24 bg-white">
     <div class="max-w-6xl mx-auto px-6">
       <div class="text-center mb-16 fade-in">
         <h2 class="text-3xl sm:text-4xl font-bold">The Before / After</h2>
@@ -441,7 +441,7 @@ docker compose -f docker-compose.remarq.yml up --build">Copy</button>
   </section>
 
   <!-- Social Proof -->
-  <section id="proof" class="py-24 bg-white">
+  <section id="proof" class="py-24 bg-gray-50">
     <div class="max-w-6xl mx-auto px-6">
       <div class="max-w-3xl mx-auto">
         <div class="text-center mb-12 fade-in">
@@ -580,9 +580,11 @@ docker compose -f docker-compose.remarq.yml up --build">Copy</button>
           document.querySelectorAll('.tab-btn').forEach(function(b) {
             b.classList.remove('bg-violet-600', 'text-white');
             b.classList.add('bg-transparent', 'text-gray-600', 'hover:bg-gray-200');
+            b.setAttribute('aria-selected', 'false');
           });
           this.classList.add('bg-violet-600', 'text-white');
           this.classList.remove('bg-transparent', 'text-gray-600', 'hover:bg-gray-200');
+          this.setAttribute('aria-selected', 'true');
         });
       });
 
