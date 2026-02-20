@@ -99,7 +99,7 @@ Remarq requires a backend server to store comments.
 ```bash
 git clone https://github.com/cass-clearly/remarq.git
 cd remarq
-echo "POSTGRES_PASSWORD=remarq" > .env
+echo "POSTGRES_PASSWORD=your-secure-password-here" > .env
 docker compose -f docker-compose.remarq.yml up --build
 ```
 
