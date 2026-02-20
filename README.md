@@ -40,6 +40,7 @@ That's Remarq. Human judgment in, machine execution out. The feedback cycle is c
 ```bash
 git clone https://github.com/cass-clearly/remarq.git
 cd remarq
+echo "POSTGRES_PASSWORD=remarq" > .env
 docker compose -f docker-compose.remarq.yml up --build
 ```
 
@@ -94,7 +95,7 @@ Configure via `data-` attributes on the script tag:
 
 ### Docker Compose (recommended)
 
-Create a `.env` file:
+Create a `.env` file next to `docker-compose.remarq.yml` (docker compose reads it automatically):
 
 ```
 POSTGRES_PASSWORD=your-secure-password-here
@@ -179,6 +180,7 @@ Your team's feedback shouldn't rot in a Google Docs sidebar. Build the agent loo
 ```bash
 git clone https://github.com/cass-clearly/remarq.git
 cd remarq
+echo "POSTGRES_PASSWORD=remarq" > .env
 docker compose -f docker-compose.remarq.yml up --build
 ```
 
