@@ -230,6 +230,18 @@ Set a default highlight color for all new comments on a page using the `data-def
 
 Accepts any preset name or hex code. Users can still override the color per-comment using the color picker in the sidebar.
 
+### Webhooks
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/webhooks` | List all webhooks |
+| `POST` | `/webhooks` | Register a webhook for comment events |
+| `GET` | `/webhooks/:id` | Retrieve a webhook |
+| `PATCH` | `/webhooks/:id` | Update URL, events, or active status |
+| `DELETE` | `/webhooks/:id` | Delete a webhook |
+
+Events: `comment.created`, `comment.resolved`, `comment.deleted`. Payloads are signed with HMAC-SHA256. Slack and Discord URLs are auto-formatted.
+
 ## Features
 
 - **No accounts** — reviewers just type their name

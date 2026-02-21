@@ -7,6 +7,8 @@ const { normalizeUri } = require("./normalize-uri.js");
 const { sanitize } = require("./sanitize.js");
 const { validateColor } = require("./validate-color.js");
 const { PRESET_NAMES } = require("../shared/color-constants.js");
+const { triggerEvent } = require("./webhooks.js");
+const { registerWebhookRoutes } = require("./webhook-routes.js");
 const path = require("path");
 
 const app = express();
@@ -61,6 +63,17 @@ async function initSchema() {
   await pool.query(`ALTER TABLE comments ADD COLUMN IF NOT EXISTS color TEXT`);
   await pool.query(`ALTER TABLE comments DROP CONSTRAINT IF EXISTS comments_color_check`);
   await pool.query(`ALTER TABLE comments ADD CONSTRAINT comments_color_check CHECK (color IS NULL OR color IN (${PRESET_NAMES.map(n => `'${n}'`).join(", ")}) OR color ~ '^#[0-9a-fA-F]{6}$')`);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS webhooks (
+      id         TEXT PRIMARY KEY,
+      url        TEXT NOT NULL,
+      secret     TEXT NOT NULL,
+      events     TEXT[] NOT NULL DEFAULT '{}',
+      active     BOOLEAN NOT NULL DEFAULT true,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
 }
 
 // ── Response helpers ────────────────────────────────────────────────
@@ -295,7 +308,9 @@ app.post("/comments", asyncHandler(async (req, res) => {
     return rows[0];
   });
 
-  res.status(201).json(formatComment(comment));
+  const formatted = formatComment(comment);
+  triggerEvent(pool, "comment.created", { comment: formatted });
+  res.status(201).json(formatted);
 }));
 
 app.get("/comments/:id", asyncHandler(async (req, res) => {
@@ -345,14 +360,20 @@ app.patch("/comments/:id", asyncHandler(async (req, res) => {
   }
 
   const updated = await pool.query("SELECT * FROM comments WHERE id = $1", [req.params.id]);
-  res.json(formatComment(updated.rows[0]));
+  const formatted = formatComment(updated.rows[0]);
+  if (status === "closed") {
+    triggerEvent(pool, "comment.resolved", { comment: formatted });
+  }
+  res.json(formatted);
 }));
 
 app.delete("/comments/:id", asyncHandler(async (req, res) => {
   await pool.query("DELETE FROM comments WHERE parent = $1", [req.params.id]);
   const { rows } = await pool.query("DELETE FROM comments WHERE id = $1 RETURNING *", [req.params.id]);
   if (rows.length === 0) return res.status(404).json(errorResponse("Comment not found"));
-  res.json(formatComment(rows[0]));
+  const formatted = formatComment(rows[0]);
+  triggerEvent(pool, "comment.deleted", { comment: formatted });
+  res.json(formatted);
 }));
 
 // ── Reaction endpoints ───────────────────────────────────────────────
@@ -406,6 +427,10 @@ app.delete("/comments/:id/reactions/:emoji", asyncHandler(async (req, res) => {
   const reactionsMap = await fetchReactionsForComments([req.params.id]);
   res.json({ comment_id: req.params.id, reactions: reactionsMap.get(req.params.id) || [] });
 }));
+
+// ── Webhook endpoints ───────────────────────────────────────────────
+
+registerWebhookRoutes(app, pool, asyncHandler);
 
 // ── Static files ────────────────────────────────────────────────────
 
