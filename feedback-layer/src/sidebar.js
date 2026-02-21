@@ -8,7 +8,6 @@ import {
 } from "./highlights.js";
 import { openModal } from "./ui.js";
 import { escapeHtml } from "./utils/escape-html.js";
-import { renderMarkdown } from "./utils/markdown.js";
 import { threadComments } from "./utils/thread-comments.js";
 import { truncate } from "./utils/truncate.js";
 import { timeAgo } from "./utils/time-ago.js";
@@ -415,7 +414,7 @@ function buildCard(ann, isReply) {
   }
 
   card.innerHTML = `
-    <div class="fb-cmt-body">${renderMarkdown(ann.body)}</div>
+    <div class="fb-cmt-body">${escapeHtml(ann.body)}</div>
     <div class="fb-cmt-meta">
       <span class="fb-cmt-author">${escapeHtml(ann.author)}</span>
       <span class="fb-cmt-time">${timeAgo(ann.created_at)}</span>
@@ -542,7 +541,7 @@ function showEditForm(ann, card) {
   });
 
   commentEl.querySelector(".fb-edit-cancel").addEventListener("click", () => {
-    commentEl.innerHTML = renderMarkdown(originalText);
+    commentEl.innerHTML = escapeHtml(originalText);
   });
 }
 
