@@ -165,6 +165,18 @@ Status is a thread-level concept — only root comments have status (`"open"` or
 
 For replies, set `parent` to the parent comment's ID. Replies don't need `quote`/`prefix`/`suffix`.
 
+### Webhooks
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/webhooks` | List all webhooks |
+| `POST` | `/webhooks` | Register a webhook for comment events |
+| `GET` | `/webhooks/:id` | Retrieve a webhook |
+| `PATCH` | `/webhooks/:id` | Update URL, events, or active status |
+| `DELETE` | `/webhooks/:id` | Delete a webhook |
+
+Events: `comment.created`, `comment.resolved`, `comment.deleted`. Payloads are signed with HMAC-SHA256. Slack and Discord URLs are auto-formatted.
+
 ## Features
 
 - **No accounts** — reviewers just type their name
