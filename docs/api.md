@@ -713,3 +713,118 @@ All errors follow this format:
 - IDs are opaque strings with prefixes (`doc_`, `cmt_`)
 - HTML in request bodies is stripped for security
 - URIs are normalized automatically (lowercased scheme/host, sorted query params, removed fragments)
+
+---
+
+## Webhooks
+
+Register HTTP endpoints to receive notifications when comments are created, resolved, or deleted.
+
+### Events
+
+| Event | Triggered when |
+|-------|----------------|
+| `comment.created` | A new comment or reply is created |
+| `comment.resolved` | A root comment's status is set to `"closed"` |
+| `comment.deleted` | A comment is deleted |
+
+### Payload format
+
+Standard webhook payloads are delivered as `POST` requests:
+
+```json
+{
+  "event": "comment.created",
+  "created_at": "2025-01-01T00:00:00.000Z",
+  "data": {
+    "comment": { /* comment object */ }
+  }
+}
+```
+
+Payloads are signed with HMAC-SHA256 using the webhook's secret. The signature is sent in the `X-Remarq-Signature` header.
+
+**Verifying signatures:**
+
+```js
+const crypto = require("crypto");
+const expected = crypto.createHmac("sha256", secret).update(rawBody).digest("hex");
+if (signature !== expected) throw new Error("Invalid signature");
+```
+
+### Platform-specific formatting
+
+Slack and Discord webhook URLs are auto-detected and receive platform-native payloads:
+
+- **Slack** (`hooks.slack.com`): Block Kit format with `text` and `blocks`
+- **Discord** (`discord.com/api/webhooks`): Embed format with `title`, `description`, and `fields`
+
+### Delivery
+
+- 10-second timeout per delivery attempt
+- 3 attempts with exponential backoff (1s, 2s, 4s)
+- Fire-and-forget: webhook failures don't affect API responses
+
+### `GET /webhooks`
+
+List all registered webhooks.
+
+**Response:**
+
+```json
+{
+  "object": "list",
+  "data": [
+    {
+      "id": "whk_abc123",
+      "object": "webhook",
+      "url": "https://hooks.slack.com/services/...",
+      "events": ["comment.created", "comment.resolved"],
+      "active": true,
+      "created_at": "2025-01-01T00:00:00.000Z"
+    }
+  ]
+}
+```
+
+> Note: The `secret` field is never returned in API responses.
+
+### `POST /webhooks`
+
+Register a new webhook.
+
+**Request body:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `url` | string | Yes | Endpoint URL |
+| `secret` | string | Yes | HMAC-SHA256 signing secret |
+| `events` | string[] | Yes | Events to subscribe to |
+
+**Response:** `201` with webhook object.
+
+### `GET /webhooks/:id`
+
+Retrieve a single webhook.
+
+**Response:** Webhook object. Returns `404` if not found.
+
+### `PATCH /webhooks/:id`
+
+Update a webhook. All fields are optional.
+
+**Request body:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `url` | string | New endpoint URL |
+| `events` | string[] | New event subscriptions |
+| `active` | boolean | Enable or disable the webhook |
+
+**Response:** Updated webhook object. Returns `404` if not found.
+
+### `DELETE /webhooks/:id`
+
+Delete a webhook.
+
+**Response:** Deleted webhook object. Returns `404` if not found.
