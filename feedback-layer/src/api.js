@@ -8,12 +8,25 @@ export function setBaseUrl(url) {
   _baseUrl = url.replace(/\/+$/, "");
 }
 
+/**
+ * Throws a descriptive error when a fetch response is not OK.
+ * Extracts structured error message from the JSON body when available;
+ * falls back to a generic message with the HTTP status code.
+ */
+async function throwIfNotOk(res, fallbackMessage) {
+  if (res.ok) return;
+  const err = await res
+    .json()
+    .catch(() => ({ error: { message: res.statusText } }));
+  throw new Error(err.error?.message || `${fallbackMessage}: ${res.status}`);
+}
+
 export async function fetchComments(uri, documentId) {
   const query = documentId
     ? `document=${encodeURIComponent(documentId)}`
     : `uri=${encodeURIComponent(uri)}`;
   const res = await fetch(`${_baseUrl}/comments?${query}`);
-  if (!res.ok) throw new Error(`Failed to fetch comments: ${res.status}`);
+  await throwIfNotOk(res, "Failed to fetch comments");
   const json = await res.json();
   return json.data;
 }
@@ -39,10 +52,7 @@ export async function createComment({
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: { message: res.statusText } }));
-    throw new Error(err.error?.message || "Failed to create comment");
-  }
+  await throwIfNotOk(res, "Failed to create comment");
   return res.json();
 }
 
@@ -52,7 +62,7 @@ export async function updateComment(id, { body }) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ body }),
   });
-  if (!res.ok) throw new Error(`Failed to update comment: ${res.status}`);
+  await throwIfNotOk(res, "Failed to update comment");
   return res.json();
 }
 
@@ -62,7 +72,7 @@ export async function updateCommentStatus(id, status) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ status }),
   });
-  if (!res.ok) throw new Error(`Failed to update comment: ${res.status}`);
+  await throwIfNotOk(res, "Failed to update comment status");
   return res.json();
 }
 
@@ -70,5 +80,5 @@ export async function deleteComment(id) {
   const res = await fetch(`${_baseUrl}/comments/${id}`, {
     method: "DELETE",
   });
-  if (!res.ok) throw new Error(`Failed to delete comment: ${res.status}`);
+  await throwIfNotOk(res, "Failed to delete comment");
 }
