@@ -81,12 +81,14 @@ export function createSidebar({ onSubmit, onDelete, onResolve, onReply, onEdit, 
         <select class="fb-author-filter">
           <option value="">All authors</option>
         </select>
+        <button class="fb-clear-filters" title="Clear filters" style="display:none">&times;</button>
       </div>
       <div class="fb-filter-section">
         <label class="fb-filter-toggle">
           <input type="checkbox" class="fb-show-resolved-cb">
           <span>Show closed</span>
         </label>
+        <span class="fb-result-count"></span>
       </div>
       <div class="fb-comment-list"></div>
       <div class="fb-form-section" style="display:none"></div>
@@ -132,8 +134,15 @@ export function createSidebar({ onSubmit, onDelete, onResolve, onReply, onEdit, 
   // Search input (debounced)
   const searchInput = _sidebar.querySelector(".fb-search-input");
   const authorSelect = _sidebar.querySelector(".fb-author-filter");
+  const clearBtn = _sidebar.querySelector(".fb-clear-filters");
+
+  function updateClearButton() {
+    const hasFilters = searchInput.value.trim() || authorSelect.value;
+    clearBtn.style.display = hasFilters ? "" : "none";
+  }
 
   const fireSearch = debounce(() => {
+    updateClearButton();
     if (_onSearch) {
       _onSearch({
         search: searchInput.value.trim(),
@@ -144,6 +153,15 @@ export function createSidebar({ onSubmit, onDelete, onResolve, onReply, onEdit, 
 
   searchInput.addEventListener("input", fireSearch);
   authorSelect.addEventListener("change", fireSearch);
+
+  clearBtn.addEventListener("click", () => {
+    searchInput.value = "";
+    authorSelect.value = "";
+    updateClearButton();
+    if (_onSearch) {
+      _onSearch({ search: "", author: "" });
+    }
+  });
 }
 
 export function openSidebar() {
@@ -238,6 +256,16 @@ export function showCommentForm(quote) {
   _formEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
+function updateResultCount(count) {
+  const el = _sidebar && _sidebar.querySelector(".fb-result-count");
+  if (!el) return;
+  // Only show count when filters are active
+  const searchInput = _sidebar.querySelector(".fb-search-input");
+  const authorSelect = _sidebar.querySelector(".fb-author-filter");
+  const hasFilters = (searchInput && searchInput.value.trim()) || (authorSelect && authorSelect.value);
+  el.textContent = hasFilters ? `${count} result${count !== 1 ? "s" : ""}` : "";
+}
+
 /**
  * Render the full comment list with threaded replies.
  * Only shows comments whose text was successfully found in the document.
@@ -250,6 +278,10 @@ export function renderComments(comments, anchoredIds = new Set(), commentRanges 
   _lastComments = comments;
   _lastAnchoredIds = anchoredIds;  // Store for later use
   _listEl.innerHTML = "";
+
+  // Update result count
+  const topLevelCount = comments.filter((c) => !c.parent).length;
+  updateResultCount(topLevelCount);
 
   const { topLevel, repliesByParent } = threadComments(comments);
 
@@ -741,7 +773,26 @@ function injectStyles() {
       outline: none;
       border-color: #7c3aed;
     }
+    .fb-clear-filters {
+      background: none;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      color: #888;
+      cursor: pointer;
+      font-size: 16px;
+      padding: 0 6px;
+      line-height: 1;
+      flex-shrink: 0;
+      font-family: inherit;
+    }
+    .fb-clear-filters:hover {
+      color: #ef4444;
+      border-color: #ef4444;
+    }
     .fb-filter-section {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       margin-bottom: 12px;
     }
     .fb-filter-toggle {
@@ -754,6 +805,11 @@ function injectStyles() {
     }
     .fb-filter-toggle input {
       cursor: pointer;
+    }
+    .fb-result-count {
+      font-size: 11px;
+      color: #7c3aed;
+      font-weight: 600;
     }
     .fb-thread {
       display: flex;
