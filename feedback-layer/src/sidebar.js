@@ -444,6 +444,15 @@ function showEmojiPicker(container, ann, addBtn) {
   }
 
   container.insertBefore(picker, addBtn.nextSibling);
+
+  // Dismiss on outside click
+  const dismiss = (e) => {
+    if (!picker.contains(e.target) && e.target !== addBtn) {
+      picker.remove();
+      document.removeEventListener("click", dismiss, true);
+    }
+  };
+  setTimeout(() => document.addEventListener("click", dismiss, true), 0);
 }
 
 function showReplyForm(parentId, threadEl, replyBtn) {

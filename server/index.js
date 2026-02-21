@@ -516,6 +516,8 @@ app.delete("/comments/:id/reactions/:emoji", asyncHandler(async (req, res) => {
     return res.status(400).json(errorResponse("emoji not allowed"));
   }
 
+  const cleanAuthor = sanitize(author);
+
   // Verify comment exists and belongs to this tenant
   const checkSql = req.apiKey
     ? "SELECT c.id FROM comments c JOIN documents d ON c.document = d.id WHERE c.id = $1 AND d.api_key = $2"
@@ -526,7 +528,7 @@ app.delete("/comments/:id/reactions/:emoji", asyncHandler(async (req, res) => {
 
   await pool.query(
     "DELETE FROM reactions WHERE comment_id = $1 AND author = $2 AND emoji = $3",
-    [req.params.id, author, emoji]
+    [req.params.id, cleanAuthor, emoji]
   );
 
   const reactionsMap = await fetchReactionsForComments([req.params.id]);

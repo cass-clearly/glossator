@@ -1940,4 +1940,48 @@ describe("Multi-tenant API", async () => {
       assert.ok(json.data[0].body.includes("typo"));
     });
   });
+
+  // ── Reaction isolation ──────────────────────────────────────
+
+  describe("reaction isolation", () => {
+    it("tenant B cannot add a reaction to tenant A's comment", async () => {
+      const cmt = await (await fetch(`${BASE}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeader(KEY_A) },
+        body: JSON.stringify({ uri: "https://example.com/react-iso", quote: "q", body: "b", author: "a" }),
+      })).json();
+
+      const res = await fetch(`${BASE}/comments/${cmt.id}/reactions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeader(KEY_B) },
+        body: JSON.stringify({ emoji: "👍", author: "Evil" }),
+      });
+      assert.equal(res.status, 404);
+    });
+
+    it("tenant B cannot remove a reaction from tenant A's comment", async () => {
+      const cmt = await (await fetch(`${BASE}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeader(KEY_A) },
+        body: JSON.stringify({ uri: "https://example.com/react-iso2", quote: "q", body: "b", author: "a" }),
+      })).json();
+
+      await fetch(`${BASE}/comments/${cmt.id}/reactions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeader(KEY_A) },
+        body: JSON.stringify({ emoji: "👍", author: "Alice" }),
+      });
+
+      const res = await fetch(
+        `${BASE}/comments/${cmt.id}/reactions/${encodeURIComponent("👍")}?author=Alice`,
+        { method: "DELETE", headers: authHeader(KEY_B) }
+      );
+      assert.equal(res.status, 404);
+
+      // Verify reaction still exists for tenant A
+      const check = await fetch(`${BASE}/comments/${cmt.id}`, { headers: authHeader(KEY_A) });
+      const json = await check.json();
+      assert.equal(json.reactions.length, 1);
+    });
+  });
 });
