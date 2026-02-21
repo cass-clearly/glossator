@@ -175,9 +175,10 @@ describe("API", async () => {
   });
 
   beforeEach(async () => {
+    await pool.query("DELETE FROM moderation_log");
+    await pool.query("DELETE FROM comments WHERE parent IS NOT NULL");
     await pool.query("DELETE FROM comments");
     await pool.query("DELETE FROM documents");
-    await pool.query("DELETE FROM moderation_log");
   });
 
   // ── Health check ─────────────────────────────────────────────
