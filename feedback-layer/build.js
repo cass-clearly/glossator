@@ -13,6 +13,7 @@ const buildOptions = {
   minify: !watch,
   sourcemap: watch,
   target: ["es2020"],
+  loader: { ".css": "text" },
 };
 
 if (watch) {

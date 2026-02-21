@@ -12,6 +12,13 @@ import { threadComments } from "./utils/thread-comments.js";
 import { truncate } from "./utils/truncate.js";
 import { timeAgo } from "./utils/time-ago.js";
 import { initToastContainer } from "./toast.js";
+import {
+  initKeyboardShortcuts,
+  setKeyboardEnabled,
+  setKeyboardComments,
+  addKeyboardHelpButton,
+} from "./keyboard.js";
+import keyboardStylesText from "./keyboard-styles.css";
 
 const SIDEBAR_WIDTH = 320;
 const COMMENTER_KEY = "feedback-layer-commenter";
@@ -79,6 +86,7 @@ export function createSidebar({ onSubmit, onDelete, onResolve, onReply, onEdit }
       <div class="fb-comment-list"></div>
       <div class="fb-form-section" style="display:none"></div>
     </div>
+    <div class="remarq-sidebar-footer"></div>
   `;
 
   // Floating tab to reopen sidebar when closed
@@ -116,16 +124,29 @@ export function createSidebar({ onSubmit, onDelete, onResolve, onReply, onEdit }
     _showResolved = resolvedCb.checked;
     renderComments(_lastComments, _lastAnchoredIds);  // Use stored anchoredIds
   });
+
+  // Keyboard shortcuts
+  initKeyboardShortcuts({
+    onNavigate: (commentId) => {
+      setActiveHighlight(commentId);
+      scrollToHighlight(commentId);
+      focusCommentCard(commentId);
+    },
+    onClose: () => closeSidebar(),
+  });
+  addKeyboardHelpButton(_sidebar);
 }
 
 export function openSidebar() {
   _sidebar.classList.remove("fb-sidebar-collapsed");
   document.querySelector(".fb-sidebar-tab").classList.add("fb-sidebar-tab-hidden");
+  setKeyboardEnabled(true);
 }
 
 function closeSidebar() {
   _sidebar.classList.add("fb-sidebar-collapsed");
   document.querySelector(".fb-sidebar-tab").classList.remove("fb-sidebar-tab-hidden");
+  setKeyboardEnabled(false);
 }
 
 /**
@@ -230,6 +251,8 @@ export function renderComments(comments, anchoredIds = new Set(), commentRanges 
   const visibleTopLevel = _showResolved
     ? anchoredTopLevel
     : anchoredTopLevel.filter((a) => a.status !== 'closed');
+
+  setKeyboardComments(visibleTopLevel);
 
   if (sortedTopLevel.length === 0) {
     _listEl.innerHTML = `<div class="fb-empty">No comments yet. Select text to add one.</div>`;
@@ -864,4 +887,8 @@ function injectStyles() {
     }
   `;
   document.head.appendChild(style);
+
+  const keyboardStyle = document.createElement("style");
+  keyboardStyle.textContent = keyboardStylesText;
+  document.head.appendChild(keyboardStyle);
 }

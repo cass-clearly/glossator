@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interactive Widgets — Remarq Compatibility Test</title>
+  <style>
+    body {
+      max-width: 720px;
+      margin: 40px auto;
+      padding: 0 20px;
+      font-family: Georgia, "Times New Roman", serif;
+      line-height: 1.7;
+      color: #333;
+    }
+    h1 { font-size: 2em; margin-bottom: 0.3em; }
+    h2 { font-size: 1.4em; margin-top: 1.8em; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.3em; }
+    h3 { font-size: 1.1em; margin-top: 1.2em; }
+    p { margin: 1em 0; }
+    .meta { color: #666; font-size: 0.9em; font-style: italic; }
+
+    /* ── Accordion ──────────────────────────────── */
+    .accordion-item { border: 1px solid #e5e7eb; border-radius: 6px; margin-bottom: 8px; }
+    .accordion-btn {
+      width: 100%; padding: 12px 16px; background: #f9fafb; border: none;
+      cursor: pointer; font-size: 1em; text-align: left; font-family: inherit;
+      display: flex; justify-content: space-between; align-items: center;
+      border-radius: 6px;
+    }
+    .accordion-btn:hover { background: #f3f4f6; }
+    .accordion-btn .arrow { transition: transform 0.2s; }
+    .accordion-btn[aria-expanded="true"] .arrow { transform: rotate(90deg); }
+    .accordion-panel { padding: 0 16px; max-height: 0; overflow: hidden; transition: max-height 0.3s ease; }
+    .accordion-panel.open { max-height: 500px; padding: 12px 16px; }
+
+    /* ── Tabs ───────────────────────────────────── */
+    .tab-bar { display: flex; border-bottom: 2px solid #e5e7eb; margin-bottom: 0; }
+    .tab-btn {
+      padding: 10px 20px; border: none; background: none; cursor: pointer;
+      font-size: 0.95em; font-family: inherit; color: #6b7280;
+      border-bottom: 2px solid transparent; margin-bottom: -2px;
+    }
+    .tab-btn.active { color: #7c3aed; border-bottom-color: #7c3aed; font-weight: 600; }
+    .tab-panel { display: none; padding: 16px 0; }
+    .tab-panel.active { display: block; }
+
+    /* ── Modal ──────────────────────────────────── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+      z-index: 9999; align-items: center; justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-box {
+      background: white; border-radius: 8px; padding: 24px; max-width: 500px;
+      width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    }
+    .modal-box h3 { margin-top: 0; }
+    .btn {
+      padding: 8px 16px; border: 1px solid #d1d5db; border-radius: 6px;
+      background: white; cursor: pointer; font-family: inherit; font-size: 0.9em;
+    }
+    .btn:hover { background: #f3f4f6; }
+    .btn-primary { background: #7c3aed; color: white; border-color: #7c3aed; }
+    .btn-primary:hover { background: #6d28d9; }
+
+    /* ── Dropdown ───────────────────────────────── */
+    .dropdown { position: relative; display: inline-block; }
+    .dropdown-menu {
+      display: none; position: absolute; top: 100%; left: 0; margin-top: 4px;
+      background: white; border: 1px solid #e5e7eb; border-radius: 6px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1); min-width: 220px; z-index: 100;
+      padding: 8px 0;
+    }
+    .dropdown-menu.open { display: block; }
+    .dropdown-menu p { margin: 0; padding: 8px 16px; }
+
+    /* ── Dynamic content ───────────────────────── */
+    #dynamic-container {
+      border: 2px dashed #d1d5db; border-radius: 6px; padding: 16px;
+      min-height: 60px; margin-top: 8px;
+    }
+    #dynamic-container:empty::before {
+      content: "Content will appear here after clicking the button.";
+      color: #9ca3af; font-style: italic;
+    }
+
+    .status-badge {
+      display: inline-block; padding: 2px 8px; border-radius: 12px;
+      font-size: 0.75em; font-weight: 600; vertical-align: middle;
+    }
+    .badge-green { background: #d1fae5; color: #065f46; }
+    .badge-yellow { background: #fef3c7; color: #92400e; }
+    .badge-red { background: #fee2e2; color: #991b1b; }
+  </style>
+</head>
+<body>
+
+<article>
+  <h1>Interactive Widgets — Remarq Compatibility Test</h1>
+  <p class="meta">Test page for verifying text anchoring with interactive UI patterns.</p>
+
+  <p>This page tests Remarq's annotation anchoring against common interactive
+  patterns. Each section contains annotatable text inside a different widget type.
+  Try creating annotations, then hiding/showing the content and reloading the page.</p>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <h2>1. Accordion <span class="status-badge badge-green">Supported</span></h2>
+  <p>Content inside collapsed accordions stays in the DOM (hidden via CSS).
+  Annotations anchor successfully because the text is always present.</p>
+
+  <div class="accordion-item">
+    <button class="accordion-btn" aria-expanded="true" onclick="toggleAccordion(this)">
+      Section A: Design Principles <span class="arrow">▸</span>
+    </button>
+    <div class="accordion-panel open">
+      <p>Good design is as little design as possible. Less, but better, because it
+      concentrates on the essential aspects, and the products are not burdened with
+      non-essentials. Back to purity, back to simplicity.</p>
+    </div>
+  </div>
+
+  <div class="accordion-item">
+    <button class="accordion-btn" aria-expanded="false" onclick="toggleAccordion(this)">
+      Section B: Typography Guidelines <span class="arrow">▸</span>
+    </button>
+    <div class="accordion-panel">
+      <p>Typography is the craft of endowing human language with a durable visual
+      form. Choose typefaces that complement your content's tone and ensure readable
+      line lengths of 50 to 75 characters per line.</p>
+    </div>
+  </div>
+
+  <div class="accordion-item">
+    <button class="accordion-btn" aria-expanded="false" onclick="toggleAccordion(this)">
+      Section C: Color Theory <span class="arrow">▸</span>
+    </button>
+    <div class="accordion-panel">
+      <p>Color is a power which directly influences the soul. Use a limited palette
+      of 3 to 5 colors for consistency. Ensure sufficient contrast ratios — at least
+      4.5:1 for body text and 3:1 for large text, per WCAG AA guidelines.</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <h2>2. Tab Panels <span class="status-badge badge-green">Supported</span></h2>
+  <p>All tab panels remain in the DOM. Only visibility changes. Annotations persist
+  across tab switches.</p>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab(event, 'tab-overview')">Overview</button>
+    <button class="tab-btn" onclick="switchTab(event, 'tab-features')">Features</button>
+    <button class="tab-btn" onclick="switchTab(event, 'tab-pricing')">Pricing</button>
+  </div>
+
+  <div id="tab-overview" class="tab-panel active">
+    <h3>Product Overview</h3>
+    <p>Remarq is a drop-in annotation layer for any HTML page. It requires a single
+    script tag and a running API server. No accounts, no sign-ups — just paste the
+    tag and start collecting feedback from reviewers.</p>
+  </div>
+
+  <div id="tab-features" class="tab-panel">
+    <h3>Key Features</h3>
+    <p>Text anchoring uses the W3C Web Annotation standard with TextQuoteSelectors,
+    which means annotations survive minor edits to the surrounding content. The
+    sidebar shows threaded replies, comment resolution, and author attribution.</p>
+  </div>
+
+  <div id="tab-pricing" class="tab-panel">
+    <h3>Pricing Information</h3>
+    <p>Remarq is free and open source under the MIT license. You can self-host
+    the server on any platform that runs Node.js. There are no usage limits,
+    no telemetry, and no vendor lock-in.</p>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <h2>3. Modal Dialog <span class="status-badge badge-green">Supported</span></h2>
+  <p>The modal's DOM exists on the page but is hidden. Annotations on modal text
+  anchor normally because the text is always in the DOM.</p>
+
+  <button class="btn btn-primary" onclick="openModal()">Open Terms Modal</button>
+
+  <div class="modal-overlay" id="terms-modal">
+    <div class="modal-box">
+      <h3>Terms of Service</h3>
+      <p>By using this software, you agree that annotations are stored in the
+      configured database and are accessible to anyone with access to the API
+      endpoint. The software is provided as-is, without warranty of any kind.</p>
+      <p>You retain full ownership of all content you annotate. Remarq does not
+      transmit data to any third-party service unless you explicitly configure
+      an AI proxy for the revision feature.</p>
+      <p style="text-align: right; margin-top: 16px;">
+        <button class="btn" onclick="closeModal()">Close</button>
+      </p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <h2>4. Dropdown Menu <span class="status-badge badge-green">Supported</span></h2>
+  <p>Dropdown content is in the DOM, toggled via CSS. Annotations anchor
+  successfully.</p>
+
+  <div class="dropdown">
+    <button class="btn" onclick="toggleDropdown()">Show Details ▾</button>
+    <div class="dropdown-menu" id="details-dropdown">
+      <p>The annotation pipeline works in three stages: first, the user selects
+      text and a TextQuoteSelector is generated. Second, the selector is sent to
+      the API. Third, on page load, selectors are matched back to DOM ranges.</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <h2>5. Dynamically Loaded Content <span class="status-badge badge-yellow">Deferred Anchoring</span></h2>
+  <p>Content injected into the DOM after page load. Annotations on this text fail
+  on initial load, but Remarq's MutationObserver retries anchoring when the content
+  appears.</p>
+
+  <button class="btn btn-primary" onclick="loadDynamicContent()">Load Content</button>
+  <div id="dynamic-container"></div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <h2>6. Content Removed from DOM <span class="status-badge badge-red">Unsupported</span></h2>
+  <p>If an element is completely removed from the DOM (not just hidden), annotations
+  cannot re-anchor. This paragraph is always visible and annotatable, but content
+  deleted via JavaScript is permanently lost to the anchoring system.</p>
+
+  <button class="btn" onclick="removeContent()">Remove paragraph below</button>
+  <p id="removable-content">This paragraph can be removed from the DOM entirely.
+  If you annotate this text and then click the button above, the annotation will
+  become orphaned — it will still appear in the sidebar but without a highlight.</p>
+
+</article>
+
+<script>
+  /* ── Accordion ──────────────────────────────── */
+  function toggleAccordion(btn) {
+    const panel = btn.nextElementSibling;
+    const expanded = btn.getAttribute("aria-expanded") === "true";
+    btn.setAttribute("aria-expanded", !expanded);
+    panel.classList.toggle("open");
+  }
+
+  /* ── Tabs ───────────────────────────────────── */
+  function switchTab(e, tabId) {
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+    e.target.classList.add("active");
+    document.getElementById(tabId).classList.add("active");
+  }
+
+  /* ── Modal ──────────────────────────────────── */
+  function openModal() {
+    document.getElementById("terms-modal").classList.add("open");
+  }
+  function closeModal() {
+    document.getElementById("terms-modal").classList.remove("open");
+  }
+
+  /* ── Dropdown ───────────────────────────────── */
+  function toggleDropdown() {
+    document.getElementById("details-dropdown").classList.toggle("open");
+  }
+  // Close dropdown on outside click
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(".dropdown")) {
+      document.getElementById("details-dropdown")?.classList.remove("open");
+    }
+  });
+
+  /* ── Dynamic content ───────────────────────── */
+  function loadDynamicContent() {
+    const container = document.getElementById("dynamic-container");
+    container.innerHTML = `
+      <p>This content was loaded dynamically after page initialization. The
+      deferred anchoring system uses a MutationObserver to detect when new text
+      nodes appear in the DOM and retries any previously-failed anchor operations.</p>
+      <p>Lazy-loaded content like this is common in single-page applications,
+      infinite scroll feeds, and tab panels that fetch data on demand rather
+      than rendering all content upfront.</p>
+    `;
+  }
+
+  /* ── Remove content ─────────────────────────── */
+  function removeContent() {
+    const el = document.getElementById("removable-content");
+    if (el) el.remove();
+  }
+</script>
+
+<!-- Feedback Layer (update src path as needed for your setup) -->
+<script type="module"
+  src="/feedback-layer.js"
+  data-api-url="http://localhost:3333"
+  data-content-selector="article"
+  data-document-id="interactive-widgets-test">
+</script>
+
+</body>
+</html>
