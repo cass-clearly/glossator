@@ -9,7 +9,9 @@ const { insertWithId } = require("./generate-id.js");
 const { normalizeUri } = require("./normalize-uri.js");
 const { sanitize } = require("./sanitize.js");
 const { createAdminRouter } = require("./routes/admin.js");
+const { createNotificationRouter } = require("./routes/notifications.js");
 const { createTenantMiddleware } = require("./middleware/tenant.js");
+const { notifyOnComment, startDigestScheduler } = require("./notifications/service.js");
 const path = require("path");
 
 const app = express();
@@ -84,6 +86,29 @@ async function initSchema() {
   `);
 
   await pool.query(`ALTER TABLE documents ADD COLUMN IF NOT EXISTS api_key TEXT REFERENCES api_keys(key)`);
+  await pool.query(`ALTER TABLE documents ADD COLUMN IF NOT EXISTS owner_email TEXT`);
+
+  // ── Notification schema additions ─────────────────────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS notification_preferences (
+      id         SERIAL PRIMARY KEY,
+      document   TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+      email      TEXT NOT NULL,
+      mode       TEXT NOT NULL DEFAULT 'instant',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE(document, email)
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS pending_notifications (
+      id         SERIAL PRIMARY KEY,
+      email      TEXT NOT NULL,
+      document   TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+      comment    TEXT NOT NULL REFERENCES comments(id) ON DELETE CASCADE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
 
   // Drop the original single-column UNIQUE on uri so that different tenants
   // can annotate the same URI independently.  The two partial indexes below
@@ -122,10 +147,12 @@ if (process.env.MULTI_TENANT === "true") {
 // ── Response helpers ────────────────────────────────────────────────
 
 function formatDocument(row) {
-  return {
+  const doc = {
     id: row.id, object: "document", uri: row.uri,
     created_at: row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at,
   };
+  if (row.owner_email) doc.owner_email = row.owner_email;
+  return doc;
 }
 
 function formatComment(row) {
@@ -192,11 +219,18 @@ app.get("/documents", asyncHandler(async (req, res) => {
 }));
 
 app.post("/documents", asyncHandler(async (req, res) => {
-  const { uri } = req.body;
+  const { uri, owner_email } = req.body;
   if (!uri) return res.status(400).json(errorResponse("uri is required"));
 
   try {
     const { doc, created } = await findOrCreateDocument(uri, req.apiKey);
+
+    // Set owner_email if provided (on creation or update)
+    if (owner_email !== undefined) {
+      await pool.query("UPDATE documents SET owner_email = $1 WHERE id = $2", [owner_email || null, doc.id]);
+      doc.owner_email = owner_email || null;
+    }
+
     res.status(created ? 201 : 200).json(formatDocument(doc));
   } catch (err) {
     res.status(400).json(errorResponse(err.message));
@@ -211,6 +245,23 @@ app.get("/documents/:id", asyncHandler(async (req, res) => {
   const { rows } = await pool.query(sql, params);
   if (rows.length === 0) return res.status(404).json(errorResponse("Document not found"));
   res.json(formatDocument(rows[0]));
+}));
+
+app.patch("/documents/:id", asyncHandler(async (req, res) => {
+  const sql = req.apiKey
+    ? "SELECT * FROM documents WHERE id = $1 AND api_key = $2"
+    : "SELECT * FROM documents WHERE id = $1 AND api_key IS NULL";
+  const params = req.apiKey ? [req.params.id, req.apiKey] : [req.params.id];
+  const { rows } = await pool.query(sql, params);
+  if (rows.length === 0) return res.status(404).json(errorResponse("Document not found"));
+
+  const { owner_email } = req.body;
+  if (owner_email !== undefined) {
+    await pool.query("UPDATE documents SET owner_email = $1 WHERE id = $2", [owner_email || null, req.params.id]);
+  }
+
+  const updated = await pool.query("SELECT * FROM documents WHERE id = $1", [req.params.id]);
+  res.json(formatDocument(updated.rows[0]));
 }));
 
 app.delete("/documents/:id", asyncHandler(async (req, res) => {
@@ -363,6 +414,9 @@ app.post("/comments", asyncHandler(async (req, res) => {
     return rows[0];
   });
 
+  // Fire-and-forget — don't block the response
+  notifyOnComment(pool, comment, documentId).catch(err => console.error("Notification error:", err));
+
   res.status(201).json(formatComment(comment));
 }));
 
@@ -427,6 +481,10 @@ app.delete("/comments/:id", asyncHandler(async (req, res) => {
   res.json(formatComment(rows[0]));
 }));
 
+// ── Notification endpoints ───────────────────────────────────────────
+
+app.use("/notifications", createNotificationRouter(pool));
+
 // ── Admin dashboard (not tenant-scoped — server operator sees all) ──
 
 app.use("/admin", express.static(path.join(__dirname, "public")));
@@ -449,9 +507,11 @@ async function start(options = {}) {
   const port = options.port !== undefined ? options.port : (process.env.PORT || 3333);
   const host = options.host || "0.0.0.0";
   await initSchema();
+  const digestInterval = startDigestScheduler(pool);
   return new Promise((resolve) => {
     const server = app.listen(port, host, () => {
       console.log(`Remarq server listening on http://localhost:${port}`);
+      server.digestInterval = digestInterval;
       resolve(server);
     });
   });

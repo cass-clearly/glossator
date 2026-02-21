@@ -17,6 +17,7 @@
     "sanitize.js",
     "middleware/",
     "routes/",
+    "notifications/",
     "views/",
     "public/"
   ],
@@ -25,6 +26,7 @@
     "express": "^4.21.0",
     "express-rate-limit": "^8.2.1",
     "express-session": "^1.19.0",
+    "nodemailer": "^8.0.1",
     "pg": "^8.13.0"
   }
 }
