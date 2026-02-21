@@ -27,6 +27,7 @@ import {
 } from "./highlights.js";
 import {
   createSidebar,
+  ensureStyles,
   showCommentForm,
   renderComments,
   focusCommentCard,
@@ -45,6 +46,7 @@ let _pendingSelector = null; // selector awaiting comment submission
 let _tooltip = null;    // the "Annotate" tooltip element
 let _anchoredIds = new Set();  // Track successfully anchored comments
 let _commentRanges = new Map();  // Map comment ID to its range for position sorting
+let _sidebarInitialized = false;  // Track if sidebar has been created
 let _matchedIds = null;  // Set of IDs matching active search, or null if no search
 
 function init() {
@@ -103,18 +105,13 @@ function init() {
       // Set theme attribute on <html> for CSS variable scoping
       document.documentElement.dataset.remarqTheme = config.theme;
 
-      // Sidebar
-      createSidebar({
-        onSubmit: handleCommentSubmit,
-        onDelete: handleDelete,
-        onResolve: handleResolve,
-        onReply: handleReply,
-        onEdit: handleEdit,
-        onSearch: handleSearch,
-      });
+      // Inject styles eagerly so the annotate tooltip renders correctly
+      // before sidebar DOM is created
+      ensureStyles();
 
-      // Highlight click → scroll sidebar to card
+      // Highlight click → lazily init sidebar, then scroll to card
       setHighlightClickHandler((id) => {
+        ensureSidebarInitialized();
         openSidebar();
         focusCommentCard(id);
         setActiveHighlight(id);
@@ -143,13 +140,41 @@ function init() {
   }
 }
 
+/**
+ * Lazy-initialize the sidebar on first interaction.
+ * Defers sidebar DOM creation until user selects text or clicks a highlight.
+ */
+function ensureSidebarInitialized() {
+  if (_sidebarInitialized) return;
+
+  createSidebar({
+    onSubmit: handleCommentSubmit,
+    onDelete: handleDelete,
+    onResolve: handleResolve,
+    onReply: handleReply,
+    onEdit: handleEdit,
+    onSearch: handleSearch,
+  });
+
+  // Re-render comments if they've already been loaded
+  if (_comments.length > 0) {
+    renderComments(_comments, _anchoredIds, _commentRanges, _matchedIds);
+  }
+
+  _sidebarInitialized = true;
+}
+
 async function loadComments() {
   try {
     _comments = await fetchComments(_docUri, _docId);
     const anchored = await anchorAll(_comments);
     _anchoredIds = anchored;
     updateAuthors();
-    renderComments(_comments, _anchoredIds, _commentRanges, _matchedIds);
+    // Only render if sidebar has been initialized
+    // Otherwise, comments will be rendered when sidebar is first created
+    if (_sidebarInitialized) {
+      renderComments(_comments, _anchoredIds, _commentRanges, _matchedIds);
+    }
   } catch (err) {
     console.error("[feedback-layer] Failed to load comments:", err);
     showToast(`Failed to load comments: ${err.message}`, "error");
@@ -247,6 +272,7 @@ function showTooltip(range) {
 
     const selectedRange = sel.getRangeAt(0);
     try {
+      ensureSidebarInitialized();
       _pendingSelector = await selectorFromRange(selectedRange, _root);
       showCommentForm(_pendingSelector.exact);
     } catch (err) {
