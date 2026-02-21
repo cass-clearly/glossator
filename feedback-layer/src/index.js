@@ -59,6 +59,7 @@ function init() {
     documentId: scriptTag?.dataset.documentId || null,
     proxyUrl: scriptTag?.dataset.proxyUrl || null,
     model: scriptTag?.dataset.model || null,
+    theme: scriptTag?.dataset.theme || "auto",
     apiKey: scriptTag?.dataset.apiKey || null,
   };
 
@@ -98,6 +99,9 @@ function init() {
       _root = document.querySelector(config.contentSelector) || document.body;
       _docUri = config.documentUri || window.location.origin + window.location.pathname;
       _docId = config.documentId || null;
+
+      // Set theme attribute on <html> for CSS variable scoping
+      document.documentElement.dataset.remarqTheme = config.theme;
 
       // Sidebar
       createSidebar({
