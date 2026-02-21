@@ -12,6 +12,7 @@
     "build": "node build.js",
     "watch": "node build.js --watch",
     "test": "node --test test/test.mjs",
+    "analyze": "esbuild src/index.js --bundle --format=iife --global-name=FeedbackLayer --minify --target=es2020 --metafile=meta.json --outfile=/tmp/feedback-layer-analysis.js && echo '\nBundle analysis:' && node -p \"const meta=require('./meta.json'); const entries=Object.entries(meta.outputs[Object.keys(meta.outputs)[0]].inputs).map(([k,v])=>[v.bytesInOutput,k]).sort((a,b)=>b[0]-a[0]); entries.slice(0,20).map(([bytes,path])=>bytes.toString().padStart(8)+' '+path).join('\\n')\" && echo '\nTotal gzipped size:' && gzip -c /tmp/feedback-layer-analysis.js | wc -c | awk '{print $1/1024 \" KB\"}'",
     "prepublishOnly": "npm run build"
   },
   "keywords": [

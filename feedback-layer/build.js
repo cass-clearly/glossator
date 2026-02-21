@@ -13,6 +13,7 @@ const buildOptions = {
   minify: !watch,
   sourcemap: watch,
   target: ["es2020"],
+  treeShaking: true, // Explicitly enable tree-shaking
 };
 
 if (watch) {
