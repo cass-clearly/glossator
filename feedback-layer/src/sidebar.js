@@ -28,6 +28,17 @@ let _onEdit = null;
 let _showResolved = false;
 let _lastComments = [];
 let _lastAnchoredIds = new Set();
+let _stylesInjected = false;
+
+/**
+ * Inject CSS styles eagerly (before sidebar DOM is created).
+ * Safe to call multiple times — only injects once.
+ */
+export function ensureStyles() {
+  if (_stylesInjected) return;
+  _stylesInjected = true;
+  injectStyles();
+}
 
 export function getCommenter() {
   return localStorage.getItem(COMMENTER_KEY) || "";
@@ -50,7 +61,7 @@ export function createSidebar({ onSubmit, onDelete, onResolve, onReply, onEdit }
   _onReply = onReply;
   _onEdit = onEdit;
 
-  injectStyles();
+  ensureStyles();
 
   _sidebar = document.createElement("div");
   _sidebar.className = "fb-sidebar fb-sidebar-collapsed";

@@ -26,6 +26,7 @@ import {
 } from "./highlights.js";
 import {
   createSidebar,
+  ensureStyles,
   showCommentForm,
   renderComments,
   focusCommentCard,
@@ -95,7 +96,11 @@ function init() {
       _docUri = config.documentUri || window.location.origin + window.location.pathname;
       _docId = config.documentId || null;
 
-      // Highlight click → scroll sidebar to card
+      // Inject styles eagerly so the annotate tooltip renders correctly
+      // before sidebar DOM is created
+      ensureStyles();
+
+      // Highlight click → lazily init sidebar, then scroll to card
       setHighlightClickHandler((id) => {
         ensureSidebarInitialized();
         openSidebar();
