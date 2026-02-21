@@ -175,6 +175,8 @@ describe("API", async () => {
   });
 
   beforeEach(async () => {
+    await pool.query("DELETE FROM pending_notifications");
+    await pool.query("DELETE FROM notification_preferences");
     await pool.query("DELETE FROM moderation_log");
     await pool.query("DELETE FROM comments WHERE parent IS NOT NULL");
     await pool.query("DELETE FROM comments");
@@ -1325,6 +1327,742 @@ describe("API", async () => {
   });
 });
 
+// ── Notification unit tests ──────────────────────────────────────────
+
+describe("unsubscribe tokens", async () => {
+  const { createUnsubscribeToken, verifyUnsubscribeToken } = await import("./notifications/unsubscribe.js");
+
+  it("creates a base64url token", () => {
+    const token = createUnsubscribeToken("user@example.com", "doc_abc123");
+    assert.ok(token.length > 0);
+    // base64url chars only
+    assert.match(token, /^[A-Za-z0-9_-]+$/);
+  });
+
+  it("produces deterministic tokens for same input", () => {
+    const t1 = createUnsubscribeToken("user@example.com", "doc_abc123");
+    const t2 = createUnsubscribeToken("user@example.com", "doc_abc123");
+    assert.equal(t1, t2);
+  });
+
+  it("produces different tokens for different emails", () => {
+    const t1 = createUnsubscribeToken("a@example.com", "doc_abc123");
+    const t2 = createUnsubscribeToken("b@example.com", "doc_abc123");
+    assert.notEqual(t1, t2);
+  });
+
+  it("produces different tokens for different documents", () => {
+    const t1 = createUnsubscribeToken("user@example.com", "doc_abc");
+    const t2 = createUnsubscribeToken("user@example.com", "doc_xyz");
+    assert.notEqual(t1, t2);
+  });
+
+  it("verifies a valid token", () => {
+    const token = createUnsubscribeToken("user@example.com", "doc_abc123");
+    assert.equal(verifyUnsubscribeToken(token, "user@example.com", "doc_abc123"), true);
+  });
+
+  it("rejects a tampered token", () => {
+    const token = createUnsubscribeToken("user@example.com", "doc_abc123");
+    const tampered = token.slice(0, -1) + (token.endsWith("a") ? "b" : "a");
+    assert.equal(verifyUnsubscribeToken(tampered, "user@example.com", "doc_abc123"), false);
+  });
+
+  it("rejects wrong email", () => {
+    const token = createUnsubscribeToken("user@example.com", "doc_abc123");
+    assert.equal(verifyUnsubscribeToken(token, "other@example.com", "doc_abc123"), false);
+  });
+
+  it("rejects wrong document", () => {
+    const token = createUnsubscribeToken("user@example.com", "doc_abc123");
+    assert.equal(verifyUnsubscribeToken(token, "user@example.com", "doc_other"), false);
+  });
+
+  it("rejects empty token", () => {
+    assert.equal(verifyUnsubscribeToken("", "user@example.com", "doc_abc123"), false);
+  });
+});
+
+describe("email templates", async () => {
+  const { instantNotification, digestNotification, escapeHtml, truncate } = await import("./notifications/templates.js");
+
+  it("escapeHtml escapes special characters", () => {
+    assert.equal(escapeHtml('<script>"&'), "&lt;script&gt;&quot;&amp;");
+  });
+
+  it("escapeHtml handles empty/null", () => {
+    assert.equal(escapeHtml(""), "");
+    assert.equal(escapeHtml(null), "");
+    assert.equal(escapeHtml(undefined), "");
+  });
+
+  it("truncate shortens long strings", () => {
+    assert.equal(truncate("abcdefghij", 5), "abcde...");
+  });
+
+  it("truncate preserves short strings", () => {
+    assert.equal(truncate("hello", 10), "hello");
+  });
+
+  it("truncate handles empty/null", () => {
+    assert.equal(truncate("", 10), "");
+    assert.equal(truncate(null, 10), "");
+  });
+
+  it("instantNotification returns subject and html", () => {
+    const result = instantNotification({
+      documentUri: "https://example.com/page",
+      quote: "some quoted text",
+      commentBody: "This needs fixing",
+      commentAuthor: "Alice",
+      unsubscribeUrl: "https://example.com/unsub",
+    });
+    assert.ok(result.subject.includes("New comment"));
+    assert.ok(result.html.includes("Alice"));
+    assert.ok(result.html.includes("This needs fixing"));
+    assert.ok(result.html.includes("some quoted text"));
+    assert.ok(result.html.includes("https://example.com/unsub"));
+  });
+
+  it("instantNotification HTML-escapes user content", () => {
+    const result = instantNotification({
+      documentUri: "https://example.com/page",
+      quote: "<script>alert(1)</script>",
+      commentBody: '<img onerror="hack()">',
+      commentAuthor: "<b>Evil</b>",
+      unsubscribeUrl: "https://example.com/unsub",
+    });
+    assert.ok(!result.html.includes("<script>"));
+    assert.ok(!result.html.includes("<img"));
+    assert.ok(!result.html.includes("<b>Evil"));
+    assert.ok(result.html.includes("&lt;script&gt;"));
+  });
+
+  it("instantNotification handles missing quote", () => {
+    const result = instantNotification({
+      documentUri: "https://example.com/page",
+      quote: "",
+      commentBody: "hello",
+      commentAuthor: "Bob",
+      unsubscribeUrl: "https://example.com/unsub",
+    });
+    assert.ok(result.html.includes("hello"));
+    // No blockquote when quote is empty
+    assert.ok(!result.html.includes("<blockquote"));
+  });
+
+  it("digestNotification renders multiple items", () => {
+    const result = digestNotification({
+      documentUri: "https://example.com/page",
+      items: [
+        { quote: "q1", commentBody: "body1", commentAuthor: "Alice" },
+        { quote: "q2", commentBody: "body2", commentAuthor: "Bob" },
+      ],
+      unsubscribeUrl: "https://example.com/unsub",
+    });
+    assert.ok(result.subject.includes("2 new comments"));
+    assert.ok(result.html.includes("Alice"));
+    assert.ok(result.html.includes("Bob"));
+    assert.ok(result.html.includes("body1"));
+    assert.ok(result.html.includes("body2"));
+  });
+
+  it("digestNotification singular for 1 item", () => {
+    const result = digestNotification({
+      documentUri: "https://example.com/page",
+      items: [{ quote: "q", commentBody: "body", commentAuthor: "Alice" }],
+      unsubscribeUrl: "https://example.com/unsub",
+    });
+    assert.ok(result.subject.includes("1 new comment"));
+    assert.ok(!result.subject.includes("comments"));
+  });
+
+  it("digestNotification HTML-escapes user content", () => {
+    const result = digestNotification({
+      documentUri: "https://example.com/page",
+      items: [{ quote: "<script>", commentBody: "<b>bad</b>", commentAuthor: "<img>" }],
+      unsubscribeUrl: "https://example.com/unsub",
+    });
+    assert.ok(!result.html.includes("<script>"));
+    assert.ok(!result.html.includes("<b>bad"));
+    assert.ok(result.html.includes("&lt;script&gt;"));
+  });
+});
+
+describe("email transport", async () => {
+  const { sendEmail, _resetTransporter, _setTransporter } = await import("./notifications/email.js");
+
+  beforeEach(() => {
+    _resetTransporter();
+  });
+
+  it("sendEmail returns null when SMTP_HOST is not set", async () => {
+    delete process.env.SMTP_HOST;
+    const result = await sendEmail("user@example.com", "test", "<p>hi</p>");
+    assert.equal(result, null);
+  });
+
+  it("sendEmail calls transporter.sendMail when set", async () => {
+    const sent = [];
+    _setTransporter({
+      sendMail: async (opts) => { sent.push(opts); return { messageId: "test-123" }; },
+    });
+    const result = await sendEmail("user@example.com", "Test Subject", "<p>body</p>");
+    assert.equal(sent.length, 1);
+    assert.equal(sent[0].to, "user@example.com");
+    assert.equal(sent[0].subject, "Test Subject");
+    assert.ok(result.messageId);
+  });
+});
+
+describe("notification service", async () => {
+  const { notifyOnComment, runDigest, buildUnsubscribeUrl } = await import("./notifications/service.js");
+  const { _setTransporter, _resetTransporter } = await import("./notifications/email.js");
+
+  let pool;
+
+  before(async () => {
+    ({ pool } = await import("./index.js"));
+  });
+
+  beforeEach(async () => {
+    _resetTransporter();
+    await pool.query("DELETE FROM pending_notifications");
+    await pool.query("DELETE FROM notification_preferences");
+    await pool.query("DELETE FROM comments WHERE parent IS NOT NULL");
+    await pool.query("DELETE FROM comments");
+    await pool.query("DELETE FROM documents");
+  });
+
+  it("buildUnsubscribeUrl includes token, email, and document", () => {
+    const url = buildUnsubscribeUrl("user@example.com", "doc_123");
+    assert.ok(url.includes("token="));
+    assert.ok(url.includes("email="));
+    assert.ok(url.includes("document=doc_123"));
+  });
+
+  it("notifyOnComment sends to owner for top-level comment", async () => {
+    const sent = [];
+    _setTransporter({
+      sendMail: async (opts) => { sent.push(opts); },
+    });
+
+    // Create a document with owner_email
+    await pool.query("INSERT INTO documents (id, uri, owner_email) VALUES ('doc_notify1', 'https://example.com/n1', 'owner@example.com')");
+    // Create a comment
+    await pool.query("INSERT INTO comments (id, document, quote, body, author, status) VALUES ('cmt_notify1', 'doc_notify1', 'quote', 'hello', 'someone', 'open')");
+
+    const comment = { id: "cmt_notify1", quote: "quote", body: "hello", author: "someone", parent: null };
+    await notifyOnComment(pool, comment, "doc_notify1");
+
+    assert.equal(sent.length, 1);
+    assert.equal(sent[0].to, "owner@example.com");
+  });
+
+  it("notifyOnComment skips when author is owner", async () => {
+    const sent = [];
+    _setTransporter({
+      sendMail: async (opts) => { sent.push(opts); },
+    });
+
+    await pool.query("INSERT INTO documents (id, uri, owner_email) VALUES ('doc_notify2', 'https://example.com/n2', 'owner@example.com')");
+    await pool.query("INSERT INTO comments (id, document, quote, body, author, status) VALUES ('cmt_notify2', 'doc_notify2', 'quote', 'hello', 'owner@example.com', 'open')");
+
+    const comment = { id: "cmt_notify2", quote: "quote", body: "hello", author: "owner@example.com", parent: null };
+    await notifyOnComment(pool, comment, "doc_notify2");
+
+    assert.equal(sent.length, 0);
+  });
+
+  it("notifyOnComment skips when no owner_email", async () => {
+    const sent = [];
+    _setTransporter({
+      sendMail: async (opts) => { sent.push(opts); },
+    });
+
+    await pool.query("INSERT INTO documents (id, uri) VALUES ('doc_notify3', 'https://example.com/n3')");
+    await pool.query("INSERT INTO comments (id, document, quote, body, author, status) VALUES ('cmt_notify3', 'doc_notify3', 'quote', 'hello', 'someone', 'open')");
+
+    const comment = { id: "cmt_notify3", quote: "quote", body: "hello", author: "someone", parent: null };
+    await notifyOnComment(pool, comment, "doc_notify3");
+
+    assert.equal(sent.length, 0);
+  });
+
+  it("notifyOnComment enqueues for digest mode", async () => {
+    const sent = [];
+    _setTransporter({
+      sendMail: async (opts) => { sent.push(opts); },
+    });
+
+    await pool.query("INSERT INTO documents (id, uri, owner_email) VALUES ('doc_notify4', 'https://example.com/n4', 'owner@example.com')");
+    await pool.query("INSERT INTO notification_preferences (document, email, mode) VALUES ('doc_notify4', 'owner@example.com', 'digest')");
+    await pool.query("INSERT INTO comments (id, document, quote, body, author, status) VALUES ('cmt_notify4', 'doc_notify4', 'quote', 'hello', 'someone', 'open')");
+
+    const comment = { id: "cmt_notify4", quote: "quote", body: "hello", author: "someone", parent: null };
+    await notifyOnComment(pool, comment, "doc_notify4");
+
+    // No instant email sent
+    assert.equal(sent.length, 0);
+    // But pending notification exists
+    const { rows } = await pool.query("SELECT * FROM pending_notifications WHERE email = 'owner@example.com'");
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].comment, "cmt_notify4");
+  });
+
+  it("notifyOnComment respects none mode", async () => {
+    const sent = [];
+    _setTransporter({
+      sendMail: async (opts) => { sent.push(opts); },
+    });
+
+    await pool.query("INSERT INTO documents (id, uri, owner_email) VALUES ('doc_notify5', 'https://example.com/n5', 'owner@example.com')");
+    await pool.query("INSERT INTO notification_preferences (document, email, mode) VALUES ('doc_notify5', 'owner@example.com', 'none')");
+    await pool.query("INSERT INTO comments (id, document, quote, body, author, status) VALUES ('cmt_notify5', 'doc_notify5', 'quote', 'hello', 'someone', 'open')");
+
+    const comment = { id: "cmt_notify5", quote: "quote", body: "hello", author: "someone", parent: null };
+    await notifyOnComment(pool, comment, "doc_notify5");
+
+    assert.equal(sent.length, 0);
+    const { rows } = await pool.query("SELECT * FROM pending_notifications");
+    assert.equal(rows.length, 0);
+  });
+
+  it("notifyOnComment notifies subscribers on reply", async () => {
+    const sent = [];
+    _setTransporter({
+      sendMail: async (opts) => { sent.push(opts); },
+    });
+
+    await pool.query("INSERT INTO documents (id, uri) VALUES ('doc_notify6', 'https://example.com/n6')");
+    // Parent comment
+    await pool.query("INSERT INTO comments (id, document, quote, body, author, status) VALUES ('cmt_parent6', 'doc_notify6', 'quote', 'original', 'alice@test.com', 'open')");
+    // Subscribe alice to this document
+    await pool.query("INSERT INTO notification_preferences (document, email, mode) VALUES ('doc_notify6', 'alice@test.com', 'instant')");
+    // Reply by someone else
+    await pool.query("INSERT INTO comments (id, document, quote, body, author, parent) VALUES ('cmt_reply6', 'doc_notify6', '', 'reply text', 'bob', 'cmt_parent6')");
+
+    const comment = { id: "cmt_reply6", quote: "", body: "reply text", author: "bob", parent: "cmt_parent6" };
+    await notifyOnComment(pool, comment, "doc_notify6");
+
+    assert.equal(sent.length, 1);
+    assert.equal(sent[0].to, "alice@test.com");
+  });
+
+  it("runDigest sends batched emails and deletes pending rows", async () => {
+    const sent = [];
+    _setTransporter({
+      sendMail: async (opts) => { sent.push(opts); },
+    });
+
+    await pool.query("INSERT INTO documents (id, uri) VALUES ('doc_digest1', 'https://example.com/d1')");
+    await pool.query("INSERT INTO comments (id, document, quote, body, author, status) VALUES ('cmt_d1', 'doc_digest1', 'q1', 'body1', 'alice', 'open')");
+    await pool.query("INSERT INTO comments (id, document, quote, body, author, status) VALUES ('cmt_d2', 'doc_digest1', 'q2', 'body2', 'bob', 'open')");
+    await pool.query("INSERT INTO pending_notifications (email, document, comment) VALUES ('digest@test.com', 'doc_digest1', 'cmt_d1')");
+    await pool.query("INSERT INTO pending_notifications (email, document, comment) VALUES ('digest@test.com', 'doc_digest1', 'cmt_d2')");
+
+    await runDigest(pool);
+
+    // One digest email with both items
+    assert.equal(sent.length, 1);
+    assert.equal(sent[0].to, "digest@test.com");
+    assert.ok(sent[0].html.includes("body1"));
+    assert.ok(sent[0].html.includes("body2"));
+
+    // Pending notifications should be deleted
+    const { rows } = await pool.query("SELECT * FROM pending_notifications");
+    assert.equal(rows.length, 0);
+  });
+
+  it("runDigest handles empty queue gracefully", async () => {
+    const sent = [];
+    _setTransporter({
+      sendMail: async (opts) => { sent.push(opts); },
+    });
+
+    await runDigest(pool);
+    assert.equal(sent.length, 0);
+  });
+});
+
+// ── Notification API integration tests ──────────────────────────────
+
+describe("Notification API", async () => {
+  let app, pool, initSchema, server, BASE;
+  const { _setTransporter, _resetTransporter } = await import("./notifications/email.js");
+
+  before(async () => {
+    ({ app, pool, initSchema } = await import("./index.js"));
+    await initSchema();
+
+    await new Promise((resolve) => {
+      server = app.listen(0, "127.0.0.1", () => {
+        const port = server.address().port;
+        BASE = `http://127.0.0.1:${port}`;
+        resolve();
+      });
+    });
+  });
+
+  after(async () => {
+    server.close();
+  });
+
+  beforeEach(async () => {
+    _resetTransporter();
+    await pool.query("DELETE FROM pending_notifications");
+    await pool.query("DELETE FROM notification_preferences");
+    await pool.query("DELETE FROM moderation_log");
+    await pool.query("DELETE FROM comments WHERE parent IS NOT NULL");
+    await pool.query("DELETE FROM comments");
+    await pool.query("DELETE FROM documents");
+  });
+
+  // ── Subscribe ──────────────────────────────────────────────
+
+  describe("POST /notifications/subscribe", () => {
+    it("creates a subscription with instant mode by default", async () => {
+      const docRes = await fetch(`${BASE}/documents`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uri: "https://example.com/sub-test" }),
+      });
+      const doc = await docRes.json();
+
+      const res = await fetch(`${BASE}/notifications/subscribe`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: "test@example.com", document: doc.id }),
+      });
+      const json = await res.json();
+      assert.equal(res.status, 201);
+      assert.equal(json.object, "notification_preference");
+      assert.equal(json.email, "test@example.com");
+      assert.equal(json.mode, "instant");
+    });
+
+    it("creates a subscription with digest mode", async () => {
+      const docRes = await fetch(`${BASE}/documents`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uri: "https://example.com/sub-digest" }),
+      });
+      const doc = await docRes.json();
+
+      const res = await fetch(`${BASE}/notifications/subscribe`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: "test@example.com", document: doc.id, mode: "digest" }),
+      });
+      const json = await res.json();
+      assert.equal(res.status, 201);
+      assert.equal(json.mode, "digest");
+    });
+
+    it("returns 400 when email is missing", async () => {
+      const res = await fetch(`${BASE}/notifications/subscribe`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ document: "doc_123" }),
+      });
+      assert.equal(res.status, 400);
+    });
+
+    it("returns 400 when document is missing", async () => {
+      const res = await fetch(`${BASE}/notifications/subscribe`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: "test@example.com" }),
+      });
+      assert.equal(res.status, 400);
+    });
+
+    it("returns 400 for invalid mode", async () => {
+      const res = await fetch(`${BASE}/notifications/subscribe`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: "test@example.com", document: "doc_123", mode: "none" }),
+      });
+      assert.equal(res.status, 400);
+    });
+  });
+
+  // ── Preferences ────────────────────────────────────────────
+
+  describe("PATCH /notifications/preferences", () => {
+    it("updates preference mode", async () => {
+      const docRes = await fetch(`${BASE}/documents`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uri: "https://example.com/pref-test" }),
+      });
+      const doc = await docRes.json();
+
+      // Subscribe first
+      await fetch(`${BASE}/notifications/subscribe`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: "test@example.com", document: doc.id }),
+      });
+
+      // Update to digest
+      const res = await fetch(`${BASE}/notifications/preferences`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: "test@example.com", document: doc.id, mode: "digest" }),
+      });
+      const json = await res.json();
+      assert.equal(res.status, 200);
+      assert.equal(json.mode, "digest");
+    });
+
+    it("upserts preference if not exists", async () => {
+      const docRes = await fetch(`${BASE}/documents`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uri: "https://example.com/pref-upsert" }),
+      });
+      const doc = await docRes.json();
+
+      const res = await fetch(`${BASE}/notifications/preferences`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: "new@example.com", document: doc.id, mode: "none" }),
+      });
+      assert.equal(res.status, 200);
+      const json = await res.json();
+      assert.equal(json.mode, "none");
+    });
+
+    it("returns 400 for invalid mode", async () => {
+      const res = await fetch(`${BASE}/notifications/preferences`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: "test@example.com", document: "doc_123", mode: "invalid" }),
+      });
+      assert.equal(res.status, 400);
+    });
+
+    it("returns 400 when fields are missing", async () => {
+      const res = await fetch(`${BASE}/notifications/preferences`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: "test@example.com" }),
+      });
+      assert.equal(res.status, 400);
+    });
+  });
+
+  // ── Unsubscribe ────────────────────────────────────────────
+
+  describe("GET /notifications/unsubscribe", () => {
+    it("unsubscribes with valid token", async () => {
+      const { createUnsubscribeToken } = await import("./notifications/unsubscribe.js");
+
+      const docRes = await fetch(`${BASE}/documents`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uri: "https://example.com/unsub-test" }),
+      });
+      const doc = await docRes.json();
+
+      // Subscribe first
+      await fetch(`${BASE}/notifications/subscribe`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: "unsub@example.com", document: doc.id }),
+      });
+
+      const token = createUnsubscribeToken("unsub@example.com", doc.id);
+      const res = await fetch(
+        `${BASE}/notifications/unsubscribe?token=${encodeURIComponent(token)}&email=${encodeURIComponent("unsub@example.com")}&document=${encodeURIComponent(doc.id)}`
+      );
+      assert.equal(res.status, 200);
+      const html = await res.text();
+      assert.ok(html.includes("Unsubscribed"));
+
+      // Verify preference is now 'none'
+      const { rows } = await pool.query(
+        "SELECT mode FROM notification_preferences WHERE document = $1 AND email = $2",
+        [doc.id, "unsub@example.com"]
+      );
+      assert.equal(rows[0].mode, "none");
+    });
+
+    it("returns 403 for invalid token", async () => {
+      const res = await fetch(
+        `${BASE}/notifications/unsubscribe?token=invalid&email=test@example.com&document=doc_123`
+      );
+      assert.equal(res.status, 403);
+    });
+
+    it("returns 400 for missing params", async () => {
+      const res = await fetch(`${BASE}/notifications/unsubscribe?token=abc`);
+      assert.equal(res.status, 400);
+    });
+  });
+
+  // ── Document owner_email ───────────────────────────────────
+
+  describe("Document owner_email", () => {
+    it("POST /documents sets owner_email", async () => {
+      const res = await fetch(`${BASE}/documents`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uri: "https://example.com/owner-test", owner_email: "owner@test.com" }),
+      });
+      const json = await res.json();
+      assert.equal(res.status, 201);
+      assert.equal(json.owner_email, "owner@test.com");
+    });
+
+    it("PATCH /documents/:id updates owner_email", async () => {
+      const docRes = await fetch(`${BASE}/documents`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uri: "https://example.com/owner-patch" }),
+      });
+      const doc = await docRes.json();
+
+      const res = await fetch(`${BASE}/documents/${doc.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ owner_email: "new-owner@test.com" }),
+      });
+      const json = await res.json();
+      assert.equal(res.status, 200);
+      assert.equal(json.owner_email, "new-owner@test.com");
+    });
+
+    it("PATCH /documents/:id clears owner_email", async () => {
+      const docRes = await fetch(`${BASE}/documents`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uri: "https://example.com/owner-clear", owner_email: "owner@test.com" }),
+      });
+      const doc = await docRes.json();
+
+      const res = await fetch(`${BASE}/documents/${doc.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ owner_email: "" }),
+      });
+      const json = await res.json();
+      assert.equal(res.status, 200);
+      assert.ok(!json.owner_email);
+    });
+
+    it("PATCH /documents/:id returns 404 for missing document", async () => {
+      const res = await fetch(`${BASE}/documents/doc_nonexistent`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ owner_email: "owner@test.com" }),
+      });
+      assert.equal(res.status, 404);
+    });
+  });
+
+  // ── End-to-end notification flow ───────────────────────────
+
+  describe("Subscribe + comment notification flow", () => {
+    it("subscriber receives instant notification on new comment", async () => {
+      const sent = [];
+      _setTransporter({
+        sendMail: async (opts) => { sent.push(opts); },
+      });
+
+      // Create document with owner
+      const docRes = await fetch(`${BASE}/documents`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uri: "https://example.com/flow-test", owner_email: "owner@flow.com" }),
+      });
+      const doc = await docRes.json();
+
+      // Post a comment (not by owner)
+      await fetch(`${BASE}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ document: doc.id, quote: "some text", body: "looks good!", author: "reviewer" }),
+      });
+
+      // Wait a tick for fire-and-forget notification
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      assert.equal(sent.length, 1);
+      assert.equal(sent[0].to, "owner@flow.com");
+      assert.ok(sent[0].subject.includes("New comment"));
+    });
+
+    it("subscriber with digest mode gets pending notification", async () => {
+      const sent = [];
+      _setTransporter({
+        sendMail: async (opts) => { sent.push(opts); },
+      });
+
+      const docRes = await fetch(`${BASE}/documents`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uri: "https://example.com/flow-digest", owner_email: "digest-owner@flow.com" }),
+      });
+      const doc = await docRes.json();
+
+      // Set owner to digest mode
+      await fetch(`${BASE}/notifications/preferences`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: "digest-owner@flow.com", document: doc.id, mode: "digest" }),
+      });
+
+      // Post a comment
+      await fetch(`${BASE}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ document: doc.id, quote: "text", body: "feedback here", author: "reviewer" }),
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // No instant email
+      assert.equal(sent.length, 0);
+      // Pending notification exists
+      const { rows } = await pool.query("SELECT * FROM pending_notifications WHERE email = 'digest-owner@flow.com'");
+      assert.equal(rows.length, 1);
+    });
+
+    it("unsubscribed user does not receive notifications", async () => {
+      const sent = [];
+      _setTransporter({
+        sendMail: async (opts) => { sent.push(opts); },
+      });
+
+      const docRes = await fetch(`${BASE}/documents`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uri: "https://example.com/flow-unsub", owner_email: "unsub-owner@flow.com" }),
+      });
+      const doc = await docRes.json();
+
+      // Unsubscribe the owner
+      await fetch(`${BASE}/notifications/preferences`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: "unsub-owner@flow.com", document: doc.id, mode: "none" }),
+      });
+
+      // Post a comment
+      await fetch(`${BASE}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ document: doc.id, quote: "text", body: "hello", author: "reviewer" }),
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      assert.equal(sent.length, 0);
+    });
+  });
+});
+
 // ── Multi-tenant tests ──────────────────────────────────────────────
 
 describe("Multi-tenant API", async () => {
@@ -1357,6 +2095,8 @@ describe("Multi-tenant API", async () => {
   after(async () => {
     server.close();
     delete process.env.MULTI_TENANT;
+    await pool.query("DELETE FROM pending_notifications");
+    await pool.query("DELETE FROM notification_preferences");
     await pool.query("DELETE FROM moderation_log");
     await pool.query("DELETE FROM comments WHERE parent IS NOT NULL");
     await pool.query("DELETE FROM comments");
@@ -1366,6 +2106,8 @@ describe("Multi-tenant API", async () => {
   });
 
   beforeEach(async () => {
+    await pool.query("DELETE FROM pending_notifications");
+    await pool.query("DELETE FROM notification_preferences");
     await pool.query("DELETE FROM moderation_log");
     await pool.query("DELETE FROM comments WHERE parent IS NOT NULL");
     await pool.query("DELETE FROM comments");
