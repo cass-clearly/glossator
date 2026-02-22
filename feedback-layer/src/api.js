@@ -98,6 +98,16 @@ export async function deleteComment(id) {
   await throwIfNotOk(res, "Failed to delete comment");
 }
 
+export async function reorderComments(order) {
+  const res = await fetch(`${_baseUrl}/comments/reorder`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ order: order.map((e) => ({ id: e.id, sort_order: e.sortOrder })) }),
+  });
+  await throwIfNotOk(res, "Failed to reorder comments");
+  return res.json();
+}
+
 export async function addReaction(commentId, emoji, author) {
   const res = await fetch(`${_baseUrl}/comments/${commentId}/reactions`, {
     method: "POST",

@@ -15,7 +15,7 @@
  * dev → staging → production).
  */
 
-import { setBaseUrl, setApiKey, fetchComments, createComment, updateComment, deleteComment, updateCommentStatus, addReaction, removeReaction } from "./api.js";
+import { setBaseUrl, setApiKey, fetchComments, createComment, updateComment, deleteComment, updateCommentStatus, addReaction, removeReaction, reorderComments } from "./api.js";
 import { selectorFromRange, rangeFromSelector } from "./anchoring.js";
 import {
   highlightRange,
@@ -33,6 +33,8 @@ import {
   openSidebar,
   getCommenter,
   setAuthors,
+  setSortMode,
+  getSortMode,
 } from "./sidebar.js";
 import { initAuthorUI } from "./ui.js";
 import { showToast } from "./toast.js";
@@ -46,6 +48,7 @@ let _tooltip = null;    // the "Annotate" tooltip element
 let _anchoredIds = new Set();  // Track successfully anchored comments
 let _commentRanges = new Map();  // Map comment ID to its range for position sorting
 let _matchedIds = null;  // Set of IDs matching active search, or null if no search
+const SORT_MODE_KEY = "remarq-sort-mode-";
 
 function init() {
   const scriptTag =
@@ -112,7 +115,15 @@ function init() {
         onEdit: handleEdit,
         onSearch: handleSearch,
         onReaction: handleReaction,
+        onReorder: handleReorder,
       });
+
+      // Restore sort mode from localStorage
+      const docKey = _docId || _docUri;
+      const savedSortMode = localStorage.getItem(SORT_MODE_KEY + docKey);
+      if (savedSortMode === "custom") {
+        setSortMode("custom");
+      }
 
       // Highlight click → scroll sidebar to card
       setHighlightClickHandler((id) => {
@@ -419,6 +430,33 @@ async function handleReaction(commentId, emoji) {
   } catch (err) {
     console.error("[feedback-layer] Failed to toggle reaction:", err);
     showToast(`Failed to update reaction: ${err.message}`, "error");
+  }
+}
+
+async function handleReorder(updates) {
+  const docKey = _docId || _docUri;
+
+  // null means sort mode toggle was clicked — just save preference and re-render
+  if (updates === null) {
+    localStorage.setItem(SORT_MODE_KEY + docKey, getSortMode());
+    renderComments(_comments, _anchoredIds, _commentRanges, _matchedIds);
+    return;
+  }
+
+  // Optimistic UI update
+  for (const u of updates) {
+    const idx = _comments.findIndex((c) => c.id === u.id);
+    if (idx !== -1) _comments[idx] = { ..._comments[idx], sort_order: u.sortOrder };
+  }
+  renderComments(_comments, _anchoredIds, _commentRanges, _matchedIds);
+
+  try {
+    await reorderComments(updates);
+  } catch (err) {
+    console.error("[feedback-layer] Failed to reorder comments:", err);
+    showToast(`Failed to reorder: ${err.message}`, "error");
+    // Reload to revert
+    loadComments();
   }
 }
 
