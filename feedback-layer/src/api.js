@@ -31,12 +31,13 @@ async function throwIfNotOk(res, fallbackMessage) {
   throw new Error(err.error?.message || `${fallbackMessage}: ${res.status}`);
 }
 
-export async function fetchComments(uri, documentId, { search, author } = {}) {
+export async function fetchComments(uri, documentId, { search, author, viewer } = {}) {
   const parts = [];
   if (documentId) parts.push(`document=${encodeURIComponent(documentId)}`);
   else if (uri) parts.push(`uri=${encodeURIComponent(uri)}`);
   if (search) parts.push(`search=${encodeURIComponent(search)}`);
   if (author) parts.push(`author=${encodeURIComponent(author)}`);
+  if (viewer) parts.push(`viewer=${encodeURIComponent(viewer)}`);
   const res = await fetch(`${_baseUrl}/comments?${parts.join('&')}`, {
     headers: authHeaders(),
   });
@@ -54,8 +55,10 @@ export async function createComment({
   body,
   author,
   parent,
+  visibility,
 }) {
   const payload = { quote, prefix, suffix, body, author, parent };
+  if (visibility) payload.visibility = visibility;
   if (document) {
     payload.document = document;
   } else {
@@ -70,11 +73,14 @@ export async function createComment({
   return res.json();
 }
 
-export async function updateComment(id, { body }) {
+export async function updateComment(id, fields) {
+  const payload = {};
+  if (fields.body !== undefined) payload.body = fields.body;
+  if (fields.visibility !== undefined) payload.visibility = fields.visibility;
   const res = await fetch(`${_baseUrl}/comments/${id}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json", ...authHeaders() },
-    body: JSON.stringify({ body }),
+    body: JSON.stringify(payload),
   });
   await throwIfNotOk(res, "Failed to update comment");
   return res.json();
