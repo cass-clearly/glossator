@@ -2,9 +2,8 @@
  * Server-side color validation for highlight colors.
  */
 
-const PRESET_NAMES = new Set([
-  "yellow", "red", "green", "blue", "purple", "pink", "orange", "teal",
-]);
+const VALID_COLORS = ["yellow", "red", "green", "blue"];
+const PRESET_NAMES = new Set(VALID_COLORS);
 
 const HEX_RE = /^#[0-9a-fA-F]{6}$/;
 
@@ -20,4 +19,4 @@ function validateColor(value) {
   return null;
 }
 
-module.exports = { validateColor };
+module.exports = { validateColor, VALID_COLORS };

@@ -5,7 +5,7 @@ const { Pool } = require("pg");
 const { insertWithId } = require("./generate-id.js");
 const { normalizeUri } = require("./normalize-uri.js");
 const { sanitize } = require("./sanitize.js");
-const { validateColor } = require("./validate-color.js");
+const { validateColor, VALID_COLORS } = require("./validate-color.js");
 const path = require("path");
 
 const app = express();
@@ -218,7 +218,7 @@ app.post("/comments", asyncHandler(async (req, res) => {
   if (color !== undefined && color !== null) {
     validatedColor = validateColor(color);
     if (!validatedColor) {
-      return res.status(400).json(errorResponse("color must be a valid hex code (e.g. #ff6b6b) or preset name (yellow, red, green, blue, purple, pink, orange, teal)"));
+      return res.status(400).json(errorResponse(`color must be a valid hex code (e.g. #ff6b6b) or preset name (${VALID_COLORS.join(", ")})`));
     }
   }
 
@@ -282,7 +282,7 @@ app.patch("/comments/:id", asyncHandler(async (req, res) => {
     } else {
       const validatedColor = validateColor(color);
       if (!validatedColor) {
-        return res.status(400).json(errorResponse("color must be a valid hex code (e.g. #ff6b6b) or preset name (yellow, red, green, blue, purple, pink, orange, teal)"));
+        return res.status(400).json(errorResponse(`color must be a valid hex code (e.g. #ff6b6b) or preset name (${VALID_COLORS.join(", ")})`));
       }
       await pool.query("UPDATE comments SET color = $1 WHERE id = $2", [validatedColor, req.params.id]);
     }

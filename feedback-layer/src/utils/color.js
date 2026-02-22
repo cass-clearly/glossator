@@ -7,13 +7,9 @@ export const COLOR_PRESETS = {
   red:     "#ff6b6b",
   green:   "#51cf66",
   blue:    "#339af0",
-  purple:  "#9775fa",
-  pink:    "#f06595",
-  orange:  "#ff922b",
-  teal:    "#20c997",
 };
 
-export const DEFAULT_COLOR = "#ffd400";
+export const DEFAULT_COLOR = COLOR_PRESETS['yellow'];
 
 const HEX_RE = /^#[0-9a-fA-F]{6}$/;
 
