@@ -32,9 +32,7 @@ import {
   focusCommentCard,
   openSidebar,
   getCommenter,
-  setAuthors,
 } from "./sidebar.js";
-import { initAuthorUI } from "./ui.js";
 import { showToast } from "./toast.js";
 import { resolveColor, DEFAULT_COLOR } from "./utils/color.js";
 import { injectPrintHideStyles } from "./utils/print-hide.js";
@@ -135,9 +133,6 @@ function init() {
 
       // Load existing comments
       loadComments();
-
-      // AI revision UI
-      initAuthorUI(config, () => _comments);
     } catch (err) {
       console.error("[feedback-layer] Boot failed:", err);
     }
@@ -164,8 +159,7 @@ async function loadComments() {
 }
 
 function updateAuthors() {
-  const authors = [...new Set(_comments.map(c => c.author))];
-  setAuthors(authors);
+  // Author dropdown removed — unified search filters by both text and author
 }
 
 async function anchorAll(comments) {
@@ -276,8 +270,8 @@ function removeTooltip() {
   }
 }
 
-async function handleSearch(search, author) {
-  if (!search && !author) {
+async function handleSearch(search) {
+  if (!search) {
     _matchedIds = null;
     renderComments(_comments, _anchoredIds, _commentRanges, null);
     setDimmedHighlights(new Set());
@@ -285,7 +279,7 @@ async function handleSearch(search, author) {
   }
 
   try {
-    const filtered = await fetchComments(_docUri, _docId, { search, author });
+    const filtered = await fetchComments(_docUri, _docId, { search });
     _matchedIds = new Set(filtered.map(c => c.id));
     renderComments(_comments, _anchoredIds, _commentRanges, _matchedIds);
 
