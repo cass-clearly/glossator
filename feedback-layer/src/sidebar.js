@@ -14,6 +14,7 @@ import { timeAgo } from "./utils/time-ago.js";
 import { initToastContainer } from "./toast.js";
 import { wrapIndex } from "./utils/keyboard-nav.js";
 import { COLOR_PRESETS, DEFAULT_COLOR, resolveColor } from "./utils/color.js";
+import { debounce } from "./utils/debounce.js";
 
 const SIDEBAR_WIDTH = 320;
 const COMMENTER_KEY = "feedback-layer-commenter";
@@ -30,9 +31,11 @@ let _onEdit = null;
 let _onReaction = null;
 let _onColorChange = null;
 let _defaultColor = null;
+let _onSearch = null;
 let _showResolved = false;
 let _lastComments = [];
 let _lastAnchoredIds = new Set();
+let _lastMatchedIds = null;
 let _activeThreadIndex = -1;
 let _keydownHandler = null;
 let _stylesInjected = false;
@@ -62,7 +65,7 @@ export function getCommenter() {
  * @param {Function} opts.onEdit - Called with (commentId, comment) when edit saved
  * @param {Function} opts.onReaction - Called with (commentId, emoji) when reaction toggled
  */
-export function createSidebar({ onSubmit, onDelete, onResolve, onReply, onEdit, onReaction, onColorChange, defaultColor }) {
+export function createSidebar({ onSubmit, onDelete, onResolve, onReply, onEdit, onReaction, onColorChange, defaultColor, onSearch }) {
   _onSubmit = onSubmit;
   _onDelete = onDelete;
   _onResolve = onResolve;
@@ -71,6 +74,7 @@ export function createSidebar({ onSubmit, onDelete, onResolve, onReply, onEdit, 
   _onReaction = onReaction;
   _onColorChange = onColorChange;
   _defaultColor = defaultColor || null;
+  _onSearch = onSearch;
 
   ensureStyles();
 
@@ -98,6 +102,10 @@ export function createSidebar({ onSubmit, onDelete, onResolve, onReply, onEdit, 
                value="${escapeHtml(getCommenter())}">
       </div>
       <div class="fb-filter-section">
+        <input type="text" class="fb-search-input" placeholder="Search comments...">
+        <select class="fb-author-filter">
+          <option value="">All authors</option>
+        </select>
         <label class="fb-filter-toggle">
           <input type="checkbox" class="fb-show-resolved-cb">
           <span>Show closed</span>
@@ -146,11 +154,22 @@ export function createSidebar({ onSubmit, onDelete, onResolve, onReply, onEdit, 
   const resolvedCb = _sidebar.querySelector(".fb-show-resolved-cb");
   resolvedCb.addEventListener("change", () => {
     _showResolved = resolvedCb.checked;
-    renderComments(_lastComments, _lastAnchoredIds);  // Use stored anchoredIds
+    renderComments(_lastComments, _lastAnchoredIds, new Map(), _lastMatchedIds);
   });
 
   // Global keyboard shortcut: "s" to toggle sidebar
   document.addEventListener("keydown", _handleGlobalKeydown);
+
+  // Search and author filter
+  const searchInput = _sidebar.querySelector(".fb-search-input");
+  const authorSelect = _sidebar.querySelector(".fb-author-filter");
+
+  const fireSearch = () => {
+    if (_onSearch) _onSearch(searchInput.value.trim(), authorSelect.value);
+  };
+
+  searchInput.addEventListener("input", debounce(fireSearch, 300));
+  authorSelect.addEventListener("change", fireSearch);
 }
 
 export function openSidebar() {
@@ -407,17 +426,35 @@ export function showCommentForm(quote) {
 }
 
 /**
+ * Populate the author filter dropdown with unique author names.
+ */
+export function setAuthors(authors) {
+  const select = _sidebar.querySelector(".fb-author-filter");
+  const current = select.value;
+  select.innerHTML = '<option value="">All authors</option>';
+  for (const name of authors.sort()) {
+    const opt = document.createElement("option");
+    opt.value = name;
+    opt.textContent = name;
+    select.appendChild(opt);
+  }
+  if (authors.includes(current)) select.value = current;
+}
+
+/**
  * Render the full comment list with threaded replies.
  * Anchored comments appear first (sorted by document position), orphaned comments at the bottom.
  *
  * @param {Array} comments - All comments
  * @param {Set} anchoredIds - Set of comment IDs that successfully anchored to text
  * @param {Map} commentRanges - Map of comment ID to Range for position sorting
+ * @param {Set|null} matchedIds - Set of comment IDs matching active search, or null if no search
  */
-export function renderComments(comments, anchoredIds = new Set(), commentRanges = new Map()) {
+export function renderComments(comments, anchoredIds = new Set(), commentRanges = new Map(), matchedIds = null) {
   _lastComments = comments;
   _lastAnchoredIds = anchoredIds;
   _activeThreadIndex = -1;
+  _lastMatchedIds = matchedIds;
   _listEl.innerHTML = "";
 
   const { topLevel, repliesByParent } = threadComments(comments);
@@ -467,10 +504,14 @@ export function renderComments(comments, anchoredIds = new Set(), commentRanges 
     thread.setAttribute("tabindex", "0");
     thread.dataset.commentId = ann.id;
 
-    thread.appendChild(buildCard(ann, false, isOrphaned));
-
-    // Render replies
+    // Dim thread if search is active and neither root nor any reply matches
     const replies = repliesByParent.get(ann.id) || [];
+    if (matchedIds !== null) {
+      const threadMatches = matchedIds.has(ann.id) || replies.some(r => matchedIds.has(r.id));
+      if (!threadMatches) thread.classList.add("fb-thread-dimmed");
+    }
+
+    thread.appendChild(buildCard(ann, false, isOrphaned));
     for (const reply of replies) {
       thread.appendChild(buildCard(reply, true));
     }
@@ -1260,6 +1301,42 @@ function injectStyles() {
     }
     .fb-filter-section {
       margin-bottom: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .fb-search-input {
+      width: 100%;
+      padding: 6px 10px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 13px;
+      box-sizing: border-box;
+      font-family: inherit;
+    }
+    .fb-search-input:focus {
+      outline: none;
+      border-color: #7c3aed;
+      box-shadow: 0 0 0 2px rgba(124,58,237,0.15);
+    }
+    .fb-author-filter {
+      width: 100%;
+      padding: 6px 10px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 13px;
+      box-sizing: border-box;
+      font-family: inherit;
+      background: #fff;
+      cursor: pointer;
+    }
+    .fb-author-filter:focus {
+      outline: none;
+      border-color: #7c3aed;
+      box-shadow: 0 0 0 2px rgba(124,58,237,0.15);
+    }
+    .fb-thread-dimmed {
+      opacity: 0.35;
     }
     .fb-filter-toggle {
       display: flex;
