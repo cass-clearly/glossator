@@ -378,6 +378,8 @@ app.delete("/comments/:id", asyncHandler(async (req, res) => {
 
 // ── Reaction endpoints ───────────────────────────────────────────────
 
+const ALLOWED_EMOJIS = new Set(["👍", "❤️", "👀", "🎉", "🤔", "😂", "➕"]);
+
 app.post("/comments/:id/reactions", asyncHandler(async (req, res) => {
   const { emoji, author } = req.body;
   if (!emoji || !author) {
@@ -385,6 +387,9 @@ app.post("/comments/:id/reactions", asyncHandler(async (req, res) => {
   }
   if (typeof emoji !== "string" || emoji.length === 0 || emoji.length > 32) {
     return res.status(400).json(errorResponse("invalid emoji"));
+  }
+  if (!ALLOWED_EMOJIS.has(emoji)) {
+    return res.status(400).json(errorResponse(`emoji '${emoji}' is not allowed`));
   }
 
   const cleanAuthor = sanitize(author);
