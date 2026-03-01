@@ -362,13 +362,22 @@ ws.onmessage = (event) => {
 
 ## Features
 
-- **No accounts** — reviewers just type their name
-- **Text anchoring** — annotations are anchored to specific text passages using TextQuoteSelectors (via Apache Annotator), so highlights survive minor edits
-- **Threaded replies** — discuss any annotation
-- **Resolve/unresolve** — mark feedback as addressed
-- **Keyboard shortcuts** — full keyboard navigation for the sidebar
-- **One script tag** — drop-in integration for any HTML page
-- **Agent-ready API** — structured feedback your AI can consume and act on
+- **Real-time collaboration** — WebSocket updates show new comments from other reviewers instantly, no page refresh needed. See feedback arrive live during review sessions.
+- **Webhook notifications** — Get notified in Slack, Discord, or email the moment feedback arrives. Wire Remarq into any workflow with signed HTTP callbacks.
+- **No accounts** — reviewers just type their name and start annotating. Zero friction.
+- **Text anchoring** — comments stick to the right text even when surrounding content changes. Uses W3C TextQuoteSelectors (Apache Annotator) so highlights survive document edits.
+- **Threaded replies** — focused discussions on specific passages without losing context.
+- **Customizable highlight colors** — color-code feedback by reviewer, priority, or type. Scan a page and instantly see what needs attention.
+- **Dark mode** — comfortable reviewing at any time of day. Auto-detects OS preference or force via `data-theme`.
+- **Keyboard shortcuts** — power through reviews without touching your mouse. Full accessibility support (`s` to toggle sidebar, `j`/`k` to navigate, `Enter` to reply).
+- **Emoji reactions** — quick thumbs-up or 🤔 without cluttering the thread. Gauge consensus at a glance.
+- **Toast notifications** — non-blocking confirmations that don't interrupt your flow. No more jarring alert() dialogs.
+- **Orphaned comments stay visible** — when document text changes, orphaned comments surface at the bottom so nothing gets lost.
+- **OpenAPI spec** — agents discover the entire API from a single URL (`GET /openapi.json`). Zero ramp-up time.
+- **CLI tool** — scriptable management of documents, comments, and reactions from the terminal. No UI needed for automation. CLI commands auto-generate from the spec.
+- **Security hardening** — protected against clickjacking, MIME sniffing, and common web attacks out of the box (helmet.js).
+- **One script tag** — drop-in integration for any HTML page. Not trapped in a proprietary editor.
+- **Agent-ready API** — structured feedback your AI can consume and act on. Every comment anchored to exact text, threaded, with status tracking.
 
 ## Documentation
 

@@ -4,6 +4,8 @@
 
 Remarq turns human feedback into structured API data that AI agents can consume and act on. No accounts required. One script tag integration. Works on any HTML page — blogs, docs, marketing sites, contracts. Not trapped in a proprietary editor.
 
+Real-time collaboration via WebSocket. Webhook notifications for Slack/Discord/email. Customizable highlight colors. Dark mode. Emoji reactions. Keyboard shortcuts. OpenAPI spec for agent discovery. CLI tool for scriptable management. Security hardening with helmet.js. Orphaned comments stay visible when document text changes.
+
 ## Installation
 
 ### Script Tag (client-side)
@@ -54,6 +56,7 @@ DATABASE_URL=postgres://user:pass@localhost:5432/remarq node server/index.js
 | `data-content-selector` | `body` | CSS selector for the annotatable content area |
 | `data-document-uri` | current page URL | Override the URI used to store/fetch annotations |
 | `data-theme` | `"auto"` | Color theme: `"auto"` (follows OS), `"dark"`, or `"light"` |
+| `data-default-color` | `null` (yellow) | Default highlight color for new comments. Accepts preset name or 6-digit hex code |
 
 ### Environment Variables
 
@@ -363,6 +366,100 @@ Delete a comment and all its replies.
 **Response (200):** Returns the deleted comment object. Returns `404` if not found.
 
 Deleting a comment cascades to all replies.
+
+---
+
+### Reactions
+
+Comments support emoji reactions (👍, ❤️, 👀, 🎉, 🤔, 😂, ➕). The `reactions` field in comment objects is an object mapping emoji to arrays of author names:
+
+```json
+{
+  "id": "cmt_abc123",
+  "reactions": {
+    "👍": ["Alice", "Bob"],
+    "❤️": ["Charlie"]
+  }
+}
+```
+
+#### POST /comments/:id/reactions
+
+Add a reaction. Request body: `{ "emoji": "👍", "author": "Alice" }`. Returns 201 with the reaction object. Allowed emojis: 👍, ❤️, 😂, 🤔, 😕, 🎉, ➕. Returns 400 for disallowed emoji. Idempotent — adding the same reaction twice is a no-op.
+
+#### DELETE /comments/:id/reactions/:emoji
+
+Remove a reaction. Query parameter: `author` (required). Returns 200 with the deleted reaction. Returns 404 if not found.
+
+Reactions are also included in the `reactions` field of comment objects returned by `GET /comments`.
+
+---
+
+### Webhooks
+
+Register HTTP endpoints to receive notifications when comments are created, resolved, or deleted.
+
+#### Events
+
+| Event              | Triggered when                               |
+| ------------------ | -------------------------------------------- |
+| `comment.created`  | A new comment or reply is created            |
+| `comment.resolved` | A root comment's status is set to `"closed"` |
+| `comment.deleted`  | A comment is deleted                         |
+
+#### Payload format
+
+```json
+{
+  "event": "comment.created",
+  "created_at": "2025-01-01T00:00:00.000Z",
+  "data": {
+    "comment": { /* comment object */ }
+  }
+}
+```
+
+Payloads are signed with HMAC-SHA256 using the webhook's secret. The signature is sent in the `X-Remarq-Signature` header.
+
+**Verifying signatures:**
+
+```js
+const crypto = require("crypto");
+const expected = crypto.createHmac("sha256", secret).update(rawBody).digest("hex");
+if (signature !== expected) throw new Error("Invalid signature");
+```
+
+#### GET /webhooks
+
+List all registered webhooks. The `secret` field is never returned in responses.
+
+#### POST /webhooks
+
+Register a new webhook.
+
+**Request body:**
+
+```json
+{
+  "url": "https://example.com/hook",
+  "secret": "your-signing-secret",
+  "events": ["comment.created", "comment.resolved"]
+}
+```
+
+Returns `201` with webhook object. Returns `409` if a webhook with the same URL already exists.
+
+#### PATCH /webhooks/:id
+
+Update a webhook. All fields optional: `url`, `events`, `active`.
+
+Returns `404` if not found. Returns `409` if the new URL is already used by another webhook.
+
+#### DELETE /webhooks/:id
+
+Delete a webhook.
+
+Returns `200` with deleted webhook object. Returns `404` if not found.
 
 ---
 
