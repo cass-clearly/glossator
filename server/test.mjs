@@ -1,6 +1,7 @@
 import { describe, it, before, after, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
+import { WebSocket } from "ws";
 
 // ── Utility unit tests ──────────────────────────────────────────────
 
@@ -240,19 +241,14 @@ describe("webhooks", async () => {
 // ── Integration tests ───────────────────────────────────────────────
 
 describe("API", async () => {
-  let app, pool, initSchema, server, BASE;
+  let pool, server, BASE;
 
   before(async () => {
-    ({ app, pool, initSchema } = await import("./index.js"));
-    await initSchema();
-
-    await new Promise((resolve) => {
-      server = app.listen(0, "127.0.0.1", () => {
-        const port = server.address().port;
-        BASE = `http://127.0.0.1:${port}`;
-        resolve();
-      });
-    });
+    const mod = await import("./index.js");
+    pool = mod.pool;
+    server = await mod.start({ port: 0, host: "127.0.0.1" });
+    const port = server.address().port;
+    BASE = `http://127.0.0.1:${port}`;
   });
 
   after(async () => {
@@ -2132,6 +2128,228 @@ describe("API", async () => {
       } finally {
         receiver.close();
       }
+    });
+  });
+
+  // ── WebSocket ──────────────────────────────────────────────────
+
+  describe("WebSocket", () => {
+    function connectAndSubscribe(documentId) {
+      const port = server.address().port;
+      const wsUrl = `ws://127.0.0.1:${port}/ws`;
+      return new Promise((resolve, reject) => {
+        const ws = new WebSocket(wsUrl);
+        const events = [];
+        ws.on("open", () => {
+          ws.send(JSON.stringify({ type: "subscribe", documentId }));
+        });
+        ws.on("message", (data) => {
+          const msg = JSON.parse(data.toString());
+
+          // Wait for subscription confirmation
+          if (msg.type === "subscribed" && msg.documentId === documentId) {
+            resolve({ ws, events });
+            return;
+          }
+
+          // Collect other events
+          events.push(msg);
+        });
+        ws.on("error", reject);
+      });
+    }
+
+    function waitForEvents(events, count, timeoutMs = 5000) {
+      return new Promise((resolve, reject) => {
+        const start = Date.now();
+        const check = () => {
+          if (events.length >= count) return resolve();
+          if (Date.now() - start > timeoutMs) {
+            return reject(new Error(`Timed out waiting for ${count} events, got ${events.length}`));
+          }
+          setTimeout(check, 20);
+        };
+        check();
+      });
+    }
+
+    async function createDocAndSubscribe(uriSuffix) {
+      const docRes = await fetch(`${BASE}/documents`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uri: `https://example.com/${uriSuffix}` }),
+      });
+      const doc = await docRes.json();
+      const { ws, events } = await connectAndSubscribe(doc.id);
+      return { doc, ws, events };
+    }
+
+    it("connects and subscribes", async () => {
+      const { ws } = await createDocAndSubscribe("ws-test");
+      ws.close();
+    });
+
+    it("broadcasts comment:created on new comment", async () => {
+      const { doc, ws, events } = await createDocAndSubscribe("ws-create");
+
+      await fetch(`${BASE}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ document: doc.id, quote: "q", body: "hello ws", author: "a" }),
+      });
+
+      await waitForEvents(events, 1);
+      assert.equal(events[0].type, "comment:created");
+      assert.equal(events[0].comment.body, "hello ws");
+      assert.equal(events[0].comment.document, doc.id);
+
+      ws.close();
+    });
+
+    it("broadcasts comment:deleted on comment delete", async () => {
+      const { doc, ws, events } = await createDocAndSubscribe("ws-delete");
+
+      const cmtRes = await fetch(`${BASE}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ document: doc.id, quote: "q", body: "to delete", author: "a" }),
+      });
+      const cmt = await cmtRes.json();
+
+      await waitForEvents(events, 1);
+
+      await fetch(`${BASE}/comments/${cmt.id}`, { method: "DELETE" });
+
+      await waitForEvents(events, 2);
+      assert.equal(events[1].type, "comment:deleted");
+      assert.equal(events[1].comment.id, cmt.id);
+
+      ws.close();
+    });
+
+    it("does not send events to unsubscribed clients", async () => {
+      const { ws, events } = await createDocAndSubscribe("ws-unsub-1");
+
+      const doc2Res = await fetch(`${BASE}/documents`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uri: "https://example.com/ws-unsub-2" }),
+      });
+      const doc2 = await doc2Res.json();
+
+      await fetch(`${BASE}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ document: doc2.id, quote: "q", body: "other doc", author: "a" }),
+      });
+
+      await new Promise((r) => setTimeout(r, 200));
+      assert.equal(events.length, 0);
+
+      ws.close();
+    });
+
+    it("broadcasts comment:updated on PATCH body", async () => {
+      const { doc, ws, events } = await createDocAndSubscribe("ws-update-body");
+
+      const cmtRes = await fetch(`${BASE}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ document: doc.id, quote: "q", body: "original", author: "a" }),
+      });
+      const cmt = await cmtRes.json();
+
+      await waitForEvents(events, 1);
+
+      await fetch(`${BASE}/comments/${cmt.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body: "updated" }),
+      });
+
+      await waitForEvents(events, 2);
+      assert.equal(events[1].type, "comment:updated");
+      assert.equal(events[1].comment.id, cmt.id);
+      assert.equal(events[1].comment.body, "updated");
+
+      ws.close();
+    });
+
+    it("broadcasts comment:updated on PATCH status", async () => {
+      const { doc, ws, events } = await createDocAndSubscribe("ws-update-status");
+
+      const cmtRes = await fetch(`${BASE}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ document: doc.id, quote: "q", body: "test", author: "a" }),
+      });
+      const cmt = await cmtRes.json();
+
+      await waitForEvents(events, 1);
+
+      await fetch(`${BASE}/comments/${cmt.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "closed" }),
+      });
+
+      await waitForEvents(events, 2);
+      assert.equal(events[1].type, "comment:updated");
+      assert.equal(events[1].comment.id, cmt.id);
+      assert.equal(events[1].comment.status, "closed");
+
+      ws.close();
+    });
+
+    it("returns error for non-existent document subscription", async () => {
+      const port = server.address().port;
+      const wsUrl = `ws://127.0.0.1:${port}/ws`;
+      const ws = new WebSocket(wsUrl);
+
+      const msg = await new Promise((resolve, reject) => {
+        ws.on("open", () => {
+          ws.send(JSON.stringify({ type: "subscribe", documentId: "doc_nonexistent" }));
+        });
+        ws.on("message", (data) => {
+          resolve(JSON.parse(data.toString()));
+        });
+        ws.on("error", reject);
+      });
+
+      assert.equal(msg.type, "error");
+      assert.equal(msg.message, "Document not found");
+      assert.equal(msg.documentId, "doc_nonexistent");
+
+      ws.close();
+    });
+
+    it("ignores malformed WebSocket messages", async () => {
+      const docRes = await fetch(`${BASE}/documents`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uri: "https://example.com/ws-malformed" }),
+      });
+      const doc = await docRes.json();
+
+      const port = server.address().port;
+      const wsUrl = `ws://127.0.0.1:${port}/ws`;
+      const ws = new WebSocket(wsUrl);
+
+      await new Promise((resolve) => {
+        ws.on("open", () => {
+          ws.send("not valid json");
+          ws.send(JSON.stringify({ type: "subscribe", documentId: doc.id }));
+        });
+        ws.on("message", (data) => {
+          const msg = JSON.parse(data.toString());
+          if (msg.type === "subscribed") resolve();
+        });
+      });
+
+      // Connection should still be alive after malformed message
+      assert.equal(ws.readyState, 1); // WebSocket.OPEN
+
+      ws.close();
     });
   });
 });

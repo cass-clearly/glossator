@@ -110,6 +110,7 @@ module.exports = [
         localStorage: "readonly",
         requestAnimationFrame: "readonly",
         navigator: "readonly",
+        WebSocket: "readonly",
       },
     },
     rules: {

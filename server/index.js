@@ -1,8 +1,10 @@
 #!/usr/bin/env node
+const http = require("http");
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 const { Pool } = require("pg");
+const { WebSocketServer } = require("ws");
 const { insertWithId } = require("./generate-id.js");
 const { normalizeUri } = require("./normalize-uri.js");
 const { sanitize } = require("./sanitize.js");
@@ -383,6 +385,7 @@ app.post(
     const formatted = formatComment(comment);
     triggerEvent(pool, "comment.created", { comment: formatted });
     res.status(201).json(formatted);
+    broadcast(documentId, { type: "comment:created", comment: formatted });
   }),
 );
 
@@ -449,6 +452,7 @@ app.patch(
       triggerEvent(pool, "comment.resolved", { comment: formatted });
     }
     res.json(formatted);
+    broadcast(formatted.document, { type: "comment:updated", comment: formatted });
   }),
 );
 
@@ -461,6 +465,7 @@ app.delete(
     const formatted = formatComment(rows[0]);
     triggerEvent(pool, "comment.deleted", { comment: formatted });
     res.json(formatted);
+    broadcast(formatted.document, { type: "comment:deleted", comment: formatted });
   }),
 );
 
@@ -541,14 +546,135 @@ app.use((err, _req, res, _next) => {
   res.status(500).json({ error: { message: "Internal server error" } });
 });
 
+// ── WebSocket ───────────────────────────────────────────────────────
+
+// documentId → Set<WebSocket>
+const subscriptions = new Map();
+
+function broadcast(documentId, event) {
+  const clients = subscriptions.get(documentId);
+  if (!clients) return;
+  const message = JSON.stringify(event);
+  for (const ws of clients) {
+    if (ws.readyState === 1) {
+      // WebSocket.OPEN
+      try {
+        ws.send(message);
+      } catch (err) {
+        console.error("[ws] Failed to send to client:", err);
+        ws.close();
+      }
+    }
+  }
+}
+
+const SUBSCRIBE_TIMEOUT_MS = 30000; // Close connections that never subscribe
+
+function handleWsConnection(ws) {
+  const subscribedDocs = new Set();
+
+  // Close the connection if the client never subscribes
+  const subscribeTimer = setTimeout(() => {
+    if (subscribedDocs.size === 0) {
+      ws.close(4001, "No subscription received");
+    }
+  }, SUBSCRIBE_TIMEOUT_MS);
+  subscribeTimer.unref(); // Don't block process exit
+
+  ws.on("message", (data) => {
+    let msg;
+    try {
+      msg = JSON.parse(data);
+    } catch {
+      return;
+    }
+
+    if (msg.type === "subscribe" && msg.documentId) {
+      // Validate document exists before subscribing
+      pool
+        .query("SELECT id FROM documents WHERE id = $1", [msg.documentId])
+        .then(({ rows }) => {
+          if (ws.readyState !== 1) return; // Connection closed during query
+
+          if (rows.length === 0) {
+            ws.send(
+              JSON.stringify({
+                type: "error",
+                message: "Document not found",
+                documentId: msg.documentId,
+              }),
+            );
+            return;
+          }
+
+          subscribedDocs.add(msg.documentId);
+          if (!subscriptions.has(msg.documentId)) {
+            subscriptions.set(msg.documentId, new Set());
+          }
+          subscriptions.get(msg.documentId).add(ws);
+
+          try {
+            ws.send(JSON.stringify({ type: "subscribed", documentId: msg.documentId }));
+          } catch (err) {
+            console.error("[ws] Failed to send subscription ack:", err);
+            ws.close();
+          }
+        })
+        .catch(() => {
+          if (ws.readyState === 1) {
+            ws.send(JSON.stringify({ type: "error", message: "Subscription failed" }));
+          }
+        });
+    }
+  });
+
+  ws.on("error", (err) => {
+    console.error("[ws] WebSocket error:", err);
+  });
+
+  ws.on("close", () => {
+    clearTimeout(subscribeTimer);
+    for (const docId of subscribedDocs) {
+      const clients = subscriptions.get(docId);
+      if (clients) {
+        clients.delete(ws);
+        if (clients.size === 0) subscriptions.delete(docId);
+      }
+    }
+  });
+}
+
 // ── Start server ────────────────────────────────────────────────────
 
 async function start(options = {}) {
   const port = options.port !== undefined ? options.port : process.env.PORT || 3333;
   const host = options.host || "0.0.0.0";
   await initSchema();
+
+  const server = http.createServer(app);
+  const wss = new WebSocketServer({ noServer: true });
+
+  server.on("upgrade", (req, socket, head) => {
+    const { pathname } = new URL(req.url, `http://${req.headers.host}`);
+    if (pathname === "/ws") {
+      wss.handleUpgrade(req, socket, head, (ws) => {
+        handleWsConnection(ws);
+      });
+    } else {
+      socket.destroy();
+    }
+  });
+
+  // Graceful shutdown: terminate all WebSocket clients before stopping
+  server.on("close", () => {
+    for (const ws of wss.clients) {
+      ws.terminate();
+    }
+    wss.close();
+  });
+
   return new Promise((resolve) => {
-    const server = app.listen(port, host, () => {
+    server.listen(port, host, () => {
       console.log(`Remarq server listening on http://localhost:${port}`);
       resolve(server);
     });

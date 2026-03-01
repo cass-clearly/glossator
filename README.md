@@ -258,6 +258,108 @@ Set a default highlight color for all new comments on a page using the `data-def
 
 Accepts any preset name or hex code. Users can still override the color per-comment using the color picker in the sidebar.
 
+## WebSocket Real-Time Updates
+
+Remarq supports real-time comment synchronization via WebSocket. When a user creates, updates, or deletes a comment, all connected clients viewing the same document receive the event immediately.
+
+### Connection
+
+**Endpoint:** `ws://<host>/ws` or `wss://<host>/ws`
+
+The feedback layer script connects automatically when `data-api-url` is set. The server derives the WebSocket URL from the HTTP API base URL (http → ws, https → wss).
+
+### Subscribe Message
+
+After connecting, send a subscribe message with the document ID:
+
+```json
+{
+  "type": "subscribe",
+  "documentId": "doc_abc123"
+}
+```
+
+The server responds with a confirmation:
+
+```json
+{
+  "type": "subscribed",
+  "documentId": "doc_abc123"
+}
+```
+
+**Wait for this confirmation before assuming the subscription is active.** Events sent before the subscription is confirmed will not be delivered.
+
+### Event Types
+
+The server broadcasts these events to all subscribed clients:
+
+| Event             | Payload             | Description                                    |
+| ----------------- | ------------------- | ---------------------------------------------- |
+| `comment:created` | `{ type, comment }` | A comment was created                          |
+| `comment:updated` | `{ type, comment }` | A comment's body, status, or color was changed |
+| `comment:deleted` | `{ type, comment }` | A comment was deleted                          |
+
+All payloads include the full comment object matching the REST API format (with `id`, `document`, `body`, `author`, `status`, `reactions`, etc.).
+
+### Reconnection Behavior
+
+The client automatically reconnects on connection loss with exponential backoff (1s initial, up to 30s max). Re-subscription happens automatically on reconnect. Events that occurred during the disconnect are not replayed — clients should refresh the page to reconcile state after a prolonged disconnection.
+
+### Limitations
+
+- **No event replay.** WebSocket delivers events in real-time only. Missed events (e.g. during a disconnection) are not queued or replayed. The REST API is the source of truth.
+- **Best-effort delivery.** Broadcast failures to individual clients are silent — the REST API still returns success. Real-time updates are supplementary, not guaranteed.
+- **Reactions are not broadcast.** Reaction changes (👍, ❤️, etc.) update optimistically on the client and don't trigger real-time sync. This keeps the event stream focused on meaningful content changes.
+- **No presence tracking.** The server doesn't broadcast who's currently viewing a document.
+- **Document-scoped only.** Clients must know the document ID to subscribe. Cross-document subscriptions are not supported.
+- **Single-instance only.** Subscriptions are held in-memory. Multiple server instances require an external pub/sub layer (e.g. Redis) to share events.
+
+### Error Handling
+
+The server validates the document ID on subscription. If the document does not exist, the server responds with an error instead of a subscription confirmation:
+
+```json
+{ "type": "error", "message": "Document not found", "documentId": "doc_invalid" }
+```
+
+Clients that connect but never send a subscribe message are closed after 30 seconds.
+
+### Example
+
+```javascript
+const ws = new WebSocket("ws://localhost:3333/ws");
+let subscribed = false;
+
+ws.onopen = () => {
+  ws.send(JSON.stringify({ type: "subscribe", documentId: "doc_abc123" }));
+};
+
+ws.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+
+  // Wait for subscription confirmation
+  if (data.type === "subscribed") {
+    console.log("Subscribed to", data.documentId);
+    subscribed = true;
+    return;
+  }
+
+  // Handle errors
+  if (data.type === "error") {
+    console.error("Subscription error:", data.message);
+    return;
+  }
+
+  // Only process events after subscription confirmed
+  if (!subscribed) return;
+
+  // Process comment events
+  const { type, comment } = data;
+  console.log(`Received ${type}:`, comment);
+};
+```
+
 ## Features
 
 - **No accounts** — reviewers just type their name
