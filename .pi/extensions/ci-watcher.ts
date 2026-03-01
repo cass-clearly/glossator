@@ -28,28 +28,20 @@ export default function (pi: ExtensionAPI) {
     if (!output) return;
 
     // Detect git push (including force push)
-    const isPush =
-      /\[new branch\]|[a-f0-9]+\.\.[a-f0-9]+/.test(output) &&
-      /->/.test(output);
+    const isPush = /\[new branch\]|[a-f0-9]+\.\.[a-f0-9]+/.test(output) && /->/.test(output);
 
     if (!isPush || polling) return;
 
     polling = true;
     if (ctx.hasUI) {
       const theme = ctx.ui.theme;
-      ctx.ui.setStatus(
-        "ci-watcher",
-        theme.fg("accent", "●") + theme.fg("dim", " CI running...")
-      );
+      ctx.ui.setStatus("ci-watcher", theme.fg("accent", "●") + theme.fg("dim", " CI running..."));
     }
 
     pollChecks(pi, ctx);
   });
 
-  async function pollChecks(
-    pi: ExtensionAPI,
-    ctx: import("@mariozechner/pi-coding-agent").ExtensionContext
-  ) {
+  async function pollChecks(pi: ExtensionAPI, ctx: import("@mariozechner/pi-coding-agent").ExtensionContext) {
     const POLL_INTERVAL = 15_000;
     const MAX_POLLS = 40; // 10 minutes max
 
@@ -57,12 +49,7 @@ export default function (pi: ExtensionAPI) {
       await sleep(POLL_INTERVAL);
 
       try {
-        const result = await pi.exec("gh", [
-          "pr",
-          "checks",
-          "--json",
-          "name,state,conclusion",
-        ]);
+        const result = await pi.exec("gh", ["pr", "checks", "--json", "name,state,conclusion"]);
 
         if (result.code !== 0) {
           // No PR on this branch, or gh error — stop polling
@@ -74,14 +61,9 @@ export default function (pi: ExtensionAPI) {
         if (!checks.length) continue;
 
         const pending = checks.filter(
-          (c: any) =>
-            c.state === "PENDING" ||
-            c.state === "QUEUED" ||
-            c.state === "IN_PROGRESS"
+          (c: any) => c.state === "PENDING" || c.state === "QUEUED" || c.state === "IN_PROGRESS",
         );
-        const failed = checks.filter(
-          (c: any) => c.state === "COMPLETED" && c.conclusion === "FAILURE"
-        );
+        const failed = checks.filter((c: any) => c.state === "COMPLETED" && c.conclusion === "FAILURE");
 
         if (pending.length > 0) {
           // Still running
@@ -89,8 +71,7 @@ export default function (pi: ExtensionAPI) {
             const theme = ctx.ui.theme;
             ctx.ui.setStatus(
               "ci-watcher",
-              theme.fg("accent", "●") +
-                theme.fg("dim", ` CI: ${pending.length} pending...`)
+              theme.fg("accent", "●") + theme.fg("dim", ` CI: ${pending.length} pending...`),
             );
           }
           continue;
@@ -102,10 +83,7 @@ export default function (pi: ExtensionAPI) {
         } else {
           if (ctx.hasUI) {
             const theme = ctx.ui.theme;
-            ctx.ui.setStatus(
-              "ci-watcher",
-              theme.fg("success", "✓") + theme.fg("dim", " CI passed")
-            );
+            ctx.ui.setStatus("ci-watcher", theme.fg("success", "✓") + theme.fg("dim", " CI passed"));
             setTimeout(() => ctx.ui.setStatus("ci-watcher", undefined), 10_000);
           }
         }
@@ -124,14 +102,13 @@ export default function (pi: ExtensionAPI) {
   async function handleFailure(
     pi: ExtensionAPI,
     ctx: import("@mariozechner/pi-coding-agent").ExtensionContext,
-    failed: any[]
+    failed: any[],
   ) {
     if (ctx.hasUI) {
       const theme = ctx.ui.theme;
       ctx.ui.setStatus(
         "ci-watcher",
-        theme.fg("error", "✗") +
-          theme.fg("dim", ` CI failed: ${failed.map((f: any) => f.name).join(", ")}`)
+        theme.fg("error", "✗") + theme.fg("dim", ` CI failed: ${failed.map((f: any) => f.name).join(", ")}`),
       );
     }
 
@@ -154,12 +131,7 @@ export default function (pi: ExtensionAPI) {
       if (runsResult.code === 0) {
         const runs = JSON.parse(runsResult.stdout);
         if (runs.length > 0) {
-          const logResult = await pi.exec("gh", [
-            "run",
-            "view",
-            String(runs[0].databaseId),
-            "--log-failed",
-          ]);
+          const logResult = await pi.exec("gh", ["run", "view", String(runs[0].databaseId), "--log-failed"]);
           if (logResult.code === 0) {
             // Truncate to last 80 lines to keep context reasonable
             const lines = logResult.stdout.split("\n");
@@ -180,9 +152,7 @@ export default function (pi: ExtensionAPI) {
     pi.sendUserMessage(message, { deliverAs: "followUp" });
   }
 
-  function cleanup(
-    ctx: import("@mariozechner/pi-coding-agent").ExtensionContext
-  ) {
+  function cleanup(ctx: import("@mariozechner/pi-coding-agent").ExtensionContext) {
     polling = false;
   }
 
