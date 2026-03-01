@@ -1,4 +1,4 @@
-import { describe, it, before, after, beforeEach, mock } from "node:test";
+import { describe, it, before, after, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 
