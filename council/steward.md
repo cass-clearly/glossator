@@ -13,7 +13,7 @@
 - **Response consistency** — do all endpoints follow the same patterns? Same error format? Same pagination style? Same naming conventions?
 - **API surface design** — are we sticking to our Stripe-like, resource-based API design? is the happy path obvious? Does the endpoint do what its name suggests? Can a developer use it correctly after reading the README once?
 - **Breaking changes** — if something must break, is there a deprecation path? Are consumers warned before removal?
-- **Documentation accuracy** — does the README match reality? Are new endpoints documented? Are examples correct and copy-pasteable?
+- **Documentation accuracy** — does the README match reality? Are new endpoints documented? Are examples correct and copy-pasteable? Is the OpenAPI spec up to date after these changes? Does the CLI still work?
 
 ### Production Readiness
 - **Logging** — are log messages structured and useful? Do they include enough context to diagnose issues without reading source code? Are log levels appropriate (don't log expected conditions as errors)?
