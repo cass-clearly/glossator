@@ -63,12 +63,12 @@ The goal is the best global outcome, not for any one member to be right.
 
 Each member has a detailed persona file in `council/`. Read the full file before spawning each reviewer.
 
-| Role                | File                         | Principles                  | Focus                                              |
-| ------------------- | ---------------------------- | --------------------------- | -------------------------------------------------- |
-| 🔍 The Minimalist   | `council/minimalist.md`      | 1, 2, 4, 9, 14              | Scope, simplicity, delete-first                    |
-| 🔨 The Craftsperson | `council/craftsperson.md`    | 3, 5, 6, 12                 | TDD, refactoring, code quality                     |
-| 🛡️ The Steward      | `council/steward.md`         | 8, 9, 13, 15                | API stability, production readiness, failure modes |
-| 🏛️ The Architect    | `council/architect.md`       | 7, 10, 11 + all on deadlock | Coherence, shipping, tiebreaker                    |
+| Role                  | File                        | Principles                  | Focus                                                      |
+| --------------------- | --------------------------- | --------------------------- | ---------------------------------------------------------- |
+| 🔍 The Minimalist     | `council/minimalist.md`     | 1, 2, 4, 9, 14              | Scope, simplicity, delete-first                            |
+| 🔨 The Craftsperson   | `council/craftsperson.md`   | 3, 5, 6, 12                 | TDD, refactoring, code quality                             |
+| 🛡️ The Steward        | `council/steward.md`        | 8, 9, 13, 15                | API stability, production readiness, failure modes         |
+| 🏛️ The Architect      | `council/architect.md`      | 7, 10, 11 + all on deadlock | Coherence, shipping, tiebreaker                            |
 | 📣 The Marketing Guru | `council/marketing-guru.md` | 2, 7, 9, 15                 | Public-facing content: README, docs, marketing, changelogs |
 
 > **📣 The Marketing Guru** is a conditional reviewer — only spawned when a PR touches public-facing files (`README.md`, `docs/`, `site/`, changelogs, release notes, API documentation). On pure-code PRs, skip this reviewer entirely.
