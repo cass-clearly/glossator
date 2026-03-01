@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 const express = require("express");
 const cors = require("cors");
+const helmet = require("helmet");
 const { Pool } = require("pg");
 const { insertWithId } = require("./generate-id.js");
 const { normalizeUri } = require("./normalize-uri.js");
@@ -13,6 +14,11 @@ const openApiSpec = require("./openapi.js");
 
 const app = express();
 app.use(cors());
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: false,
+}));
 app.use(express.json());
 
 const DATABASE_URL = process.env.DATABASE_URL || "postgresql://postgres@localhost/postgres";
