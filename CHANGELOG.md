@@ -1,5 +1,22 @@
 # Changelog
 
+## v2.2.0 (2026-03-01)
+
+### Features
+
+- WebSocket support for real-time comment updates (#178)
+- Council review system with 5 reviewer personas (#204, #210, #211)
+- CI workflow with GitHub Actions (#209)
+
+### Fixes
+
+- Inject print-hide CSS for iOS Safari (#193)
+- Preserve scroll position when opening comment box (#195)
+
+### Docs
+
+- Marketing refresh with benefit-focused copy (#213)
+
 ## v2.1.0 (2026-03-01)
 
 ### Features
