@@ -1,5 +1,21 @@
 # Changelog
 
+## v2.1.0 (2026-03-01)
+
+### Features
+
+- WebSocket support for real-time comment updates (#178)
+- Webhook notifications for Slack, Discord, and email (#136)
+- Security headers with helmet.js (#197)
+- OpenAPI spec and spec-driven CLI (`@csalvato/remarq-cli`) (#201, #203)
+
+### Chores / Internal
+
+- CI workflow with lint, format check, build, and test coverage (#209)
+- ESLint + Prettier for consistent code quality (#209)
+- Engineering principles and council review system (#204)
+- Council review skill + new-work prompt template for pi automation (#207)
+
 ## v2.0.1 (2026-02-24)
 
 ### Fixes
