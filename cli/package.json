@@ -1,0 +1,21 @@
+{
+  "name": "@csalvato/remarq-cli",
+  "version": "1.0.0",
+  "license": "AGPL-3.0",
+  "description": "CLI for the Remarq document annotation API",
+  "engines": {
+    "node": ">=18"
+  },
+  "bin": {
+    "remarq": "./bin/remarq.js"
+  },
+  "scripts": {
+    "test": "c8 --check-coverage --lines 80 node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "yargs": "^17.7.2"
+  },
+  "devDependencies": {
+    "c8": "^10.1.3"
+  }
+}
