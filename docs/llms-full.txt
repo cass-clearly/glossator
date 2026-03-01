@@ -385,7 +385,7 @@ Comments support emoji reactions (👍, ❤️, 👀, 🎉, 🤔, 😂, ➕). Th
 
 #### POST /comments/:id/reactions
 
-Add a reaction. Request body: `{ "emoji": "👍", "author": "Alice" }`. Returns 201 with the reaction object. Allowed emojis: 👍, ❤️, 👀, 🎉, 🤔, 😂, ➕. Returns 400 for disallowed emoji. Idempotent — adding the same reaction twice is a no-op.
+Add a reaction. Request body: `{ "emoji": "👍", "author": "Alice" }`. Returns 201 with the updated reactions list for the comment. Allowed emojis: 👍, ❤️, 👀, 🎉, 🤔, 😂, ➕. Returns 400 for disallowed emoji. Idempotent — adding the same reaction twice is a no-op.
 
 #### DELETE /comments/:id/reactions/:emoji
 
