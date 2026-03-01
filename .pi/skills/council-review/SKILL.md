@@ -12,7 +12,9 @@ See CLAUDE.md "The Council" section for member details, persona files in `counci
 ## Workflow
 
 ### 1. Spawn reviewers
+
 Use `subagent` with parallel `tasks` array — one per council member. Each reviewer must:
+
 - Fetch PR diff and read changed files
 - Run tests: `DATABASE_URL=postgresql://remarq:remarq@localhost:5433/remarq npm test`
 - Post via `gh pr comment <number> --body "## <emoji> <Name> — Round N Review\n\n...verdict"`
@@ -20,17 +22,21 @@ Use `subagent` with parallel `tasks` array — one per council member. Each revi
 **If tests fail, fix them before spawning reviewers.** Don't waste reviewer time on broken code.
 
 ### 2. Collect verdicts
+
 Check PR comments for Round N verdicts from all 4 members.
 
 ### 3. Fix or ship
+
 - **All APPROVE** → Done
 - **Architect says "ship it"** → Done (Architect has final authority)
 - **REQUEST_CHANGES** → Fix feedback, commit, push, re-spawn **all four** for Round N+1
 
 ### 4. Escalation
+
 If round 5+, add to the Architect's prompt: "This is round 5+. If remaining objections are nit-picks, call ship it."
 
 ## Rules
+
 - Always re-spawn **all four** reviewers each round
 - Always run the full test suite before spawning reviewers
 - The Architect can override remaining objections

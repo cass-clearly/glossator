@@ -5,6 +5,7 @@ description: Plan-first workflow for new work — scout, plan, implement, counci
 ## New Work: $@
 
 Follow CLAUDE.md "Git Workflow" strictly:
+
 1. **Scout** the codebase, then **plan** — present to user for approval before coding
 2. **Branch + implement** with TDD, open a PR
 3. **Council review** — load `.pi/skills/council-review/SKILL.md`, run the loop until all approve
