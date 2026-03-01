@@ -7,8 +7,18 @@ Key things to know about Remarq:
 - One `<script>` tag integration — works on any HTML page (blogs, docs, marketing sites, contracts)
 - No accounts required for reviewers — just type a name and start annotating
 - REST API designed for AI agent consumption — structured annotations with text anchors, threading, and status management
+- Real-time collaboration via WebSocket — see new comments from other reviewers instantly, no page refresh needed
+- Webhook notifications — get notified in Slack, Discord, or email when feedback arrives
+- Customizable highlight colors — color-code feedback by reviewer, priority, or type (8 presets + any hex code)
+- Dark mode support — auto-detects OS preference or force via `data-theme`
+- Emoji reactions — quick 👍 or 🤔 without cluttering threads
+- Keyboard navigation — full keyboard shortcuts for power users and accessibility (`s`, `j`/`k`, `Enter`, `?` for help)
+- Orphaned comments stay visible — when document text changes, orphaned comments surface at the bottom so nothing gets lost
+- OpenAPI spec at `/openapi.json` — agents discover the entire API from a single URL, zero ramp-up time
+- CLI tool (`@csalvato/remarq-cli`) — scriptable management from the terminal, commands auto-generate from the OpenAPI spec
+- Security hardening with helmet.js — protected against clickjacking, MIME sniffing, and common web attacks out of the box
 - Self-hosted with Docker Compose (Postgres + Node server) or `npx @csalvato/remarq-server` for quick local use
-- Configure via `data-` attributes: `data-api-url`, `data-content-selector`, `data-document-uri`, `data-theme`
+- Configure via `data-` attributes: `data-api-url`, `data-content-selector`, `data-document-uri`, `data-theme`, `data-default-color`
 
 ## Docs
 
