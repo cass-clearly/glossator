@@ -2,6 +2,9 @@ name: Tests
 
 on:
   push:
+  # pull_request ensures CI runs on PRs from forks, where the fork's
+  # push event doesn't trigger workflows in this repo.
+  pull_request:
 
 jobs:
   test:
