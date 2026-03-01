@@ -4,6 +4,21 @@ const VALID_EVENTS = ["comment.created", "comment.resolved", "comment.deleted"];
 
 function errorResponse(msg) { return { error: { message: msg } }; }
 
+/**
+ * Validate a webhook URL. Returns an error message string if invalid, or null if valid.
+ */
+function validateUrl(url) {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return "url must use http or https";
+    }
+  } catch {
+    return "url must be a valid HTTP or HTTPS URL";
+  }
+  return null;
+}
+
 function formatWebhook(row) {
   return {
     id: row.id,
@@ -25,14 +40,8 @@ function registerWebhookRoutes(app, pool, asyncHandler) {
     const { url, secret, events } = req.body;
 
     if (!url) return res.status(400).json(errorResponse("url is required"));
-    try {
-      const parsed = new URL(url);
-      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-        return res.status(400).json(errorResponse("url must use http or https"));
-      }
-    } catch {
-      return res.status(400).json(errorResponse("url must be a valid HTTP or HTTPS URL"));
-    }
+    const urlError = validateUrl(url);
+    if (urlError) return res.status(400).json(errorResponse(urlError));
     if (!secret) return res.status(400).json(errorResponse("secret is required"));
     if (!Array.isArray(events) || events.length === 0) {
       return res.status(400).json(errorResponse("events must be a non-empty array"));
@@ -65,6 +74,11 @@ function registerWebhookRoutes(app, pool, asyncHandler) {
     if (rows.length === 0) return res.status(404).json(errorResponse("Webhook not found"));
 
     const { url, events, active, secret } = req.body;
+
+    if (url !== undefined) {
+      const urlError = validateUrl(url);
+      if (urlError) return res.status(400).json(errorResponse(urlError));
+    }
 
     if (events !== undefined) {
       if (!Array.isArray(events) || events.length === 0) {
@@ -110,4 +124,4 @@ function registerWebhookRoutes(app, pool, asyncHandler) {
   }));
 }
 
-module.exports = { registerWebhookRoutes, formatWebhook, VALID_EVENTS };
+module.exports = { registerWebhookRoutes, formatWebhook, validateUrl, VALID_EVENTS };

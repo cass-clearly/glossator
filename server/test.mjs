@@ -221,7 +221,6 @@ describe("webhooks", async () => {
     }
   });
 
-
 });
 
 // ── Integration tests ───────────────────────────────────────────────
@@ -1426,8 +1425,6 @@ describe("API", async () => {
     });
   });
 
-
-
   // ── Webhooks CRUD ─────────────────────────────────────────────
 
   describe("POST /webhooks", () => {
@@ -1486,6 +1483,28 @@ describe("API", async () => {
       assert.equal(res.status, 400);
       const json = await res.json();
       assert.ok(json.error.message.includes("invalid.event"));
+    });
+
+    it("returns 400 for non-http URL", async () => {
+      const res = await fetch(`${BASE}/webhooks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: "ftp://example.com/hook", secret: "s", events: ["comment.created"] }),
+      });
+      assert.equal(res.status, 400);
+      const json = await res.json();
+      assert.ok(json.error.message.includes("http or https"));
+    });
+
+    it("returns 400 for garbage URL string", async () => {
+      const res = await fetch(`${BASE}/webhooks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: "not-a-url", secret: "s", events: ["comment.created"] }),
+      });
+      assert.equal(res.status, 400);
+      const json = await res.json();
+      assert.ok(json.error.message.includes("valid HTTP or HTTPS URL"));
     });
   });
 
@@ -1594,6 +1613,40 @@ describe("API", async () => {
         body: JSON.stringify({ events: ["bad.event"] }),
       });
       assert.equal(res.status, 400);
+    });
+
+    it("returns 400 for non-http URL on update", async () => {
+      const create = await (await fetch(`${BASE}/webhooks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: "https://example.com/hook", secret: "s", events: ["comment.created"] }),
+      })).json();
+
+      const res = await fetch(`${BASE}/webhooks/${create.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: "ftp://example.com/hook" }),
+      });
+      assert.equal(res.status, 400);
+      const json = await res.json();
+      assert.ok(json.error.message.includes("http or https"));
+    });
+
+    it("returns 400 for garbage URL string on update", async () => {
+      const create = await (await fetch(`${BASE}/webhooks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: "https://example.com/hook", secret: "s", events: ["comment.created"] }),
+      })).json();
+
+      const res = await fetch(`${BASE}/webhooks/${create.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: "not-a-url-at-all" }),
+      });
+      assert.equal(res.status, 400);
+      const json = await res.json();
+      assert.ok(json.error.message.includes("valid HTTP or HTTPS URL"));
     });
 
     it("returns 404 for missing webhook", async () => {

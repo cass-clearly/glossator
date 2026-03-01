@@ -752,13 +752,6 @@ const expected = crypto.createHmac("sha256", secret).update(rawBody).digest("hex
 if (signature !== expected) throw new Error("Invalid signature");
 ```
 
-### Platform-specific formatting
-
-Slack and Discord webhook URLs are auto-detected and receive platform-native payloads:
-
-- **Slack** (`hooks.slack.com`): Block Kit format with `text` and `blocks`
-- **Discord** (`discord.com/api/webhooks`): Embed format with `title`, `description`, and `fields`
-
 ### Delivery
 
 - 10-second timeout per delivery attempt
@@ -778,7 +771,7 @@ List all registered webhooks.
     {
       "id": "whk_abc123",
       "object": "webhook",
-      "url": "https://hooks.slack.com/services/...",
+      "url": "https://example.com/hook",
       "events": ["comment.created", "comment.resolved"],
       "active": true,
       "created_at": "2025-01-01T00:00:00.000Z"
