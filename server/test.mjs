@@ -1506,6 +1506,23 @@ describe("API", async () => {
       const json = await res.json();
       assert.ok(json.error.message.includes("valid HTTP or HTTPS URL"));
     });
+
+    it("returns 409 when creating a webhook with a duplicate URL", async () => {
+      await fetch(`${BASE}/webhooks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: "https://example.com/hook", secret: "s1", events: ["comment.created"] }),
+      });
+
+      const res = await fetch(`${BASE}/webhooks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: "https://example.com/hook", secret: "s2", events: ["comment.resolved"] }),
+      });
+      assert.equal(res.status, 409);
+      const json = await res.json();
+      assert.ok(json.error.message.includes("already exists"));
+    });
   });
 
   describe("GET /webhooks", () => {
@@ -1656,6 +1673,46 @@ describe("API", async () => {
         body: JSON.stringify({ url: "https://example.com/new" }),
       });
       assert.equal(res.status, 404);
+    });
+
+    it("returns 409 when updating URL to one already used by another webhook", async () => {
+      await fetch(`${BASE}/webhooks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: "https://example.com/hook-a", secret: "s", events: ["comment.created"] }),
+      });
+
+      const second = await (await fetch(`${BASE}/webhooks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: "https://example.com/hook-b", secret: "s", events: ["comment.created"] }),
+      })).json();
+
+      const res = await fetch(`${BASE}/webhooks/${second.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: "https://example.com/hook-a" }),
+      });
+      assert.equal(res.status, 409);
+      const json = await res.json();
+      assert.ok(json.error.message.includes("already exists"));
+    });
+
+    it("allows updating a webhook to its own URL", async () => {
+      const create = await (await fetch(`${BASE}/webhooks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: "https://example.com/hook-self", secret: "s", events: ["comment.created"] }),
+      })).json();
+
+      const res = await fetch(`${BASE}/webhooks/${create.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: "https://example.com/hook-self" }),
+      });
+      assert.equal(res.status, 200);
+      const json = await res.json();
+      assert.equal(json.url, "https://example.com/hook-self");
     });
   });
 

@@ -52,6 +52,11 @@ function registerWebhookRoutes(app, pool, asyncHandler) {
       return res.status(400).json(errorResponse(`Invalid events: ${invalid.join(", ")}. Valid events: ${VALID_EVENTS.join(", ")}`));
     }
 
+    const { rows: existing } = await pool.query("SELECT id FROM webhooks WHERE url = $1", [url]);
+    if (existing.length > 0) {
+      return res.status(409).json(errorResponse("A webhook with this URL already exists"));
+    }
+
     const webhook = await insertWithId("whk", async (id) => {
       const { rows } = await pool.query(
         "INSERT INTO webhooks (id, url, secret, events) VALUES ($1, $2, $3, $4) RETURNING *",
@@ -78,6 +83,11 @@ function registerWebhookRoutes(app, pool, asyncHandler) {
     if (url !== undefined) {
       const urlError = validateUrl(url);
       if (urlError) return res.status(400).json(errorResponse(urlError));
+
+      const { rows: existing } = await pool.query("SELECT id FROM webhooks WHERE url = $1 AND id != $2", [url, req.params.id]);
+      if (existing.length > 0) {
+        return res.status(409).json(errorResponse("A webhook with this URL already exists"));
+      }
     }
 
     if (events !== undefined) {

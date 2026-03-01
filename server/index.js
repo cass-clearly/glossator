@@ -69,13 +69,20 @@ async function initSchema() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS webhooks (
       id         TEXT PRIMARY KEY,
-      url        TEXT NOT NULL,
+      url        TEXT NOT NULL UNIQUE,
       secret     TEXT NOT NULL,
       events     TEXT[] NOT NULL DEFAULT '{}',
       active     BOOLEAN NOT NULL DEFAULT true,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
+  // Add unique constraint on url if not already present (idempotent)
+  try {
+    await pool.query(`ALTER TABLE webhooks ADD CONSTRAINT webhooks_url_key UNIQUE (url)`);
+  } catch (e) {
+    // 42P07 = relation already exists (constraint already added), 23505 = duplicate key (existing data violates)
+    if (e.code !== '42P07' && e.code !== '23505') throw e;
+  }
 }
 
 // ── Response helpers ────────────────────────────────────────────────
