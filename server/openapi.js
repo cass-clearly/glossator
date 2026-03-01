@@ -30,11 +30,6 @@ const { ALLOWED_REACTION_EMOJIS } = require("../shared/emoji-constants.js");
  *   fixedBody    {Object}       body fields hardcoded for this command (e.g. {status:"closed"})
  */
 
-const COLOR_ENUM = [
-  "yellow", "red", "green", "blue", "purple", "pink", "orange", "teal",
-  "or a #rrggbb hex code",
-];
-
 const documentSchema = {
   type: "object",
   properties: {
@@ -185,16 +180,11 @@ const spec = {
         tags: ["documents"],
         "x-cli": {
           group: "documents",
-          command: "create",
+          command: "create <uri>",
           describe: "Create a document for a URI",
-          options: {
-            uri: {
-              type: "string",
-              demandOption: true,
-              describe: "Document URI",
-              from: "body",
-            },
-          },
+          positional: [
+            { name: "uri", describe: "Document URI", from: "body", field: "uri" },
+          ],
         },
         requestBody: {
           required: true,
