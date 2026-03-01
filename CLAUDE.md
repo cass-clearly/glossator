@@ -63,12 +63,15 @@ The goal is the best global outcome, not for any one member to be right.
 
 Each member has a detailed persona file in `council/`. Read the full file before spawning each reviewer.
 
-| Role                | File                      | Principles                  | Focus                                              |
-| ------------------- | ------------------------- | --------------------------- | -------------------------------------------------- |
-| 🔍 The Minimalist   | `council/minimalist.md`   | 1, 2, 4, 9, 14              | Scope, simplicity, delete-first                    |
-| 🔨 The Craftsperson | `council/craftsperson.md` | 3, 5, 6, 12                 | TDD, refactoring, code quality                     |
-| 🛡️ The Steward      | `council/steward.md`      | 8, 9, 13, 15                | API stability, production readiness, failure modes |
-| 🏛️ The Architect    | `council/architect.md`    | 7, 10, 11 + all on deadlock | Coherence, shipping, tiebreaker                    |
+| Role                  | File                        | Principles                  | Focus                                                      |
+| --------------------- | --------------------------- | --------------------------- | ---------------------------------------------------------- |
+| 🔍 The Minimalist     | `council/minimalist.md`     | 1, 2, 4, 9, 14              | Scope, simplicity, delete-first                            |
+| 🔨 The Craftsperson   | `council/craftsperson.md`   | 3, 5, 6, 12                 | TDD, refactoring, code quality                             |
+| 🛡️ The Steward        | `council/steward.md`        | 8, 9, 13, 15                | API stability, production readiness, failure modes         |
+| 🏛️ The Architect      | `council/architect.md`      | 7, 10, 11 + all on deadlock | Coherence, shipping, tiebreaker                            |
+| 📣 The Marketing Guru | `council/marketing-guru.md` | 2, 7, 9, 15                 | Public-facing content: README, docs, marketing, changelogs |
+
+> **📣 The Marketing Guru** is a conditional reviewer — only spawned when a PR touches public-facing files (`README.md`, `docs/`, `site/`, changelogs, release notes, API documentation). On pure-code PRs, skip this reviewer entirely.
 
 ### How to Spawn Council Members
 
@@ -89,12 +92,12 @@ You must:
 
 ### Council Process
 
-1. **Spawn all four** council members in parallel against the plan or PR
+1. **Spawn the core four** council members in parallel against the plan or PR. **If the PR touches public-facing files** (`README.md`, `docs/`, `site/`, changelogs, release notes), also spawn **The Marketing Guru** as a fifth reviewer.
 2. **Collect feedback** — each posts a comment with approve or request-changes
-3. **If any request changes:** address the feedback, push, re-spawn all four
-4. **Repeat until all four approve** in the same round
+3. **If any request changes:** address the feedback, push, re-spawn all reviewers
+4. **Repeat until all spawned reviewers approve** in the same round
 5. **The Architect decides** when reviewers contradict each other
-6. **Ship** when all four approve — no further human review required unless explicitly flagged
+6. **Ship** when all spawned reviewers approve — no further human review required unless explicitly flagged
 
 ### Pi Integration
 
@@ -129,7 +132,7 @@ Before writing any code, write a brief plan:
 - What are the API changes (if any)?
 - What's the test strategy?
 
-Spawn all four Council members against the plan. Address feedback. Do not start implementation until the Council approves the plan.
+Spawn all Council members against the plan (core four + Marketing Guru if the plan involves public-facing content). Address feedback. Do not start implementation until the Council approves the plan.
 
 ### 3. Implement with TDD
 
@@ -169,7 +172,7 @@ CI runs automatically on push: lint → format check → build → tests with co
 
 ### 7. Council Review (only after CI green)
 
-Spawn all four Council members against the PR. Each posts a review. Address all requested changes. Re-spawn all four. CI must pass again before the next review round. Repeat until all four approve.
+Spawn all applicable Council members against the PR (core four + Marketing Guru if public-facing files changed). Each posts a review. Address all requested changes. Re-spawn all reviewers. CI must pass again before the next review round. Repeat until all approve.
 
 The Council approves. Human review is not required unless the Council explicitly flags it.
 
