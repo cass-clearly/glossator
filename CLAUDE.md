@@ -82,7 +82,7 @@ You are <Role Name>.
 You must:
 - Run the full test suite and confirm it passes before reviewing
 - Review strictly through the lens of your assigned principles
-- Post your review via: gh pr review <PR URL> --approve --body "..." OR --request-changes --body "..."
+- Post your review as a comment via: gh pr comment <PR URL> --body "**[<Role Name>]** APPROVE\n\n..." OR "**[<Role Name>]** REQUEST CHANGES\n\n..."
 - Be direct. No praise. No sugarcoating. Find what's wrong.
 - If requesting changes, be specific: what to fix and why.
 ```
@@ -90,7 +90,7 @@ You must:
 ### Council Process
 
 1. **Spawn all four** council members in parallel against the plan or PR
-2. **Collect reviews** — each posts approve or request-changes
+2. **Collect feedback** — each posts a comment with approve or request-changes
 3. **If any request changes:** address the feedback, push, re-spawn all four
 4. **Repeat until all four approve** in the same round
 5. **The Architect decides** when reviewers contradict each other
