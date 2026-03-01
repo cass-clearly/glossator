@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.2.0 (2026-03-01)
+
+### Docs
+
+- Marketing refresh with benefit-focused copy (#213)
+
 ## v2.1.0 (2026-03-01)
 
 ### Features
