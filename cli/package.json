@@ -1,6 +1,6 @@
 {
   "name": "@csalvato/remarq-cli",
-  "version": "1.0.0",
+  "version": "2.1.0",
   "license": "AGPL-3.0",
   "description": "CLI for the Remarq document annotation API",
   "engines": {

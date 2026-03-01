@@ -5,6 +5,17 @@ All notable changes to Remarq will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-03-01
+
+### Added
+
+- WebSocket client for real-time comment updates (#178)
+- Webhook notification support (Slack, Discord, email) (#136)
+
+### Changed
+
+- Security headers applied via helmet.js (#197)
+
 ## [1.1.0] - 2026-02-15
 
 ### Added
