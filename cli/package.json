@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "license": "AGPL-3.0",
   "description": "CLI for the Remarq document annotation API",
+  "engines": {
+    "node": ">=18"
+  },
   "bin": {
     "remarq": "./bin/remarq.js"
   },

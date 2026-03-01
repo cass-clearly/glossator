@@ -30,6 +30,7 @@ class RemarqClient {
         options.headers["Content-Length"] = Buffer.byteLength(payload);
       }
 
+      options.timeout = 30000;
       const req = transport.request(options, (res) => {
         let data = "";
         res.on("data", (chunk) => (data += chunk));
@@ -55,6 +56,9 @@ class RemarqClient {
         });
       });
 
+      req.on("timeout", () => {
+        req.destroy(new Error("Request timed out"));
+      });
       req.on("error", reject);
       if (payload) req.write(payload);
       req.end();
