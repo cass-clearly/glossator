@@ -1,5 +1,103 @@
 # Remarq — Claude Code Instructions
 
+## Engineering Principles
+
+These principles govern all decisions in this codebase — planning, implementation, and review. They are not suggestions.
+
+**1. Delete first, then simplify, then accelerate, then automate.**
+Before writing a line of code: can this requirement be deleted? Can it be solved with less? If you're not surprised by how little you needed, you wrote too much.
+
+**2. Question the requirement before touching code.**
+The most dangerous requirements are the ones no one questions. Who asked for this, why, and what's the actual goal? The wrong problem solved perfectly is still failure.
+
+**3. Make it work. Make it right. In that order.**
+Red-green-refactor. Write the failing test first, make it pass by any means, then refactor. No clever code on the first pass. Never skip the refactor step.
+
+**4. Simple design beats clever design.**
+Priority order: (1) passes tests, (2) reveals intent, (3) no duplication, (4) minimal elements. When in doubt, delete the abstraction.
+
+**5. Tests are a thinking tool, not a deliverable.**
+Write tests to discover the design, not to prove it. Coverage is a lagging indicator. A test suite that doesn't make you more confident changing the code isn't working.
+
+**6. Refactoring is not optional.**
+Before adding a feature: make the change easy, then make the easy change. Code that can't be changed safely is a liability. "We'll clean it up later" is a lie.
+
+**7. Always be shipping.**
+An imperfect thing shipped beats a perfect thing in review. "Enough" is a legitimate engineering decision. Cut scope before cutting quality.
+
+**8. API stability is a feature.**
+Once an endpoint is public, breaking it has real cost to consumers. Prefer additive changes. Mark things deprecated before removing them. API consumers shouldn't need to read changelogs to stay unbroken.
+
+**9. The right thing should be the easy thing.**
+Design so the happy path is obvious and the wrong path takes effort. If you need caveats to explain how to use an endpoint correctly, the design is wrong.
+
+**10. Truth-seeking over face-saving.**
+Code review is not a social event. Candor is required; praise is not. The goal is truth, not comfort. Come with reasoning; change your position when you see better reasoning.
+
+**11. Getting to right beats being right.**
+The goal is the best global outcome — not for any reviewer to win. Contradictory feedback is a signal to dig deeper, not pick a side. The deciding voice finds the truth that resolves the contradiction.
+
+**12. Do it right the first time.**
+Shortcuts that aren't named become permanent. If you're cutting a corner, name it, comment it, file it. Quick hacks that ship without acknowledgment become the next system's foundation.
+
+**13. No estimates — timeboxes instead.**
+Estimates are harmful. Scope to what can be done well in the time available. If a feature can't be done well, cut or defer it.
+
+**14. Just-in-time over just-in-case.**
+Don't build for the future requirement that hasn't arrived. Patterns should emerge from working code, not be imposed upfront. Premature abstraction is YAGNI with extra steps.
+
+**15. Slow is smooth. Smooth is fast.**
+Controlled execution beats full throttle. The pressure to ship fast is often what creates the slowdown. Understand the problem fully before writing a line.
+
+---
+
+## The Council
+
+All significant work goes through the Council — first at planning, then at code review. The Council reviews each round until all members approve. No human review is needed unless the Council flags it explicitly.
+
+**No member sugarcoats. Praise is not necessary. Candor is required.**
+
+The goal is the best global outcome, not for any one member to be right.
+
+### Council Members
+
+Each member has a detailed persona file in `council/`. Read the full file before spawning each reviewer.
+
+| Role | File | Principles | Focus |
+|------|------|------------|-------|
+| 🔍 The Minimalist | `council/minimalist.md` | 1, 2, 4, 9, 14 | Scope, simplicity, delete-first |
+| 🔨 The Craftsperson | `council/craftsperson.md` | 3, 5, 6, 12 | TDD, refactoring, code quality |
+| 🛡️ The Steward | `council/steward.md` | 8, 9, 13, 15 | API stability, production readiness, failure modes |
+| 🏛️ The Architect | `council/architect.md` | 7, 10, 11 + all on deadlock | Coherence, shipping, tiebreaker |
+
+### How to Spawn Council Members
+
+For each council member, spawn a fresh agent with this template:
+
+```
+Read council/<member>.md and CLAUDE.md (Engineering Principles section).
+You are <Role Name>.
+<Review type: "Review this plan:" | "Review PR:"> <URL or plan text>
+
+You must:
+- Run the full test suite and confirm it passes before reviewing
+- Review strictly through the lens of your assigned principles
+- Post your review as a comment via: gh pr comment <PR URL> --body "**[<Role Name>]** APPROVE\n\n..." OR "**[<Role Name>]** REQUEST CHANGES\n\n..."
+- Be direct. No praise. No sugarcoating. Find what's wrong.
+- If requesting changes, be specific: what to fix and why.
+```
+
+### Council Process
+
+1. **Spawn all four** council members in parallel against the plan or PR
+2. **Collect feedback** — each posts a comment with approve or request-changes
+3. **If any request changes:** address the feedback, push, re-spawn all four
+4. **Repeat until all four approve** in the same round
+5. **The Architect decides** when reviewers contradict each other
+6. **Ship** when all four approve — no further human review required unless explicitly flagged
+
+---
+
 ## Git Workflow (Required for All Meaningful Work)
 
 Every meaningful change must follow this process. No exceptions.
@@ -11,13 +109,31 @@ git checkout main && git pull
 git checkout -b feature/<short-description>
 ```
 
-### 2. Implement + Commit
-Make changes, commit with clear messages. Push the branch:
+### 2. Plan First (Council Review Round 1)
+Before writing any code, write a brief plan:
+- What problem does this solve?
+- What's the simplest design?
+- What are the API changes (if any)?
+- What's the test strategy?
+
+Spawn all four Council members against the plan. Address feedback. Do not start implementation until the Council approves the plan.
+
+### 3. Implement with TDD
+Follow red-green-refactor strictly:
+1. Write a failing test for the next small unit of behavior
+2. Write the minimum code to make it pass
+3. Refactor — clean the code without changing behavior
+4. Repeat
+
+Never write implementation code without a failing test first. Never skip the refactor step.
+
+### 4. Commit + Push
+Commit with clear messages. Push the branch:
 ```
 git push -u origin feature/<short-description>
 ```
 
-### 3. Open a PR
+### 5. Open a PR
 ```
 gh pr create --title "<concise title>" --body "<what changed and why>"
 ```
@@ -27,27 +143,17 @@ PR description must use the template in `.github/pull_request_template.md`. Fill
 - Include an endpoint table in the PR description (in the "New/Changed Endpoints" section)
 - Update the README API reference (`README.md` → API Reference section) with the new endpoints, matching the existing table format
 
-### 4. Spawn a Review Agent
-After opening the PR, spawn a fresh **general-purpose** agent with this prompt:
+### 6. Council Review (Round 2+)
+Spawn all four Council members against the PR. Each posts a review. Address all requested changes. Re-spawn all four. Repeat until all four approve.
 
-> You are a staff+ level engineer conducting a code review. Optimize for truth, not kindness.
-> Review PR: <PR URL>
->
-> You must:
-> - Run the full test suite and confirm it passes before approving
-> - Call out overengineering (unnecessary abstraction, premature generalization, excess complexity)
-> - Call out underengineering (missing error handling at system boundaries, unsafe assumptions, skipped validation)
-> - Flag any bugs, security issues, or API contract violations
-> - Verify the PR description accurately describes the changes
-> - Post your review via: `gh pr review <PR URL> --approve --body "..."` OR `gh pr review <PR URL> --request-changes --body "..."`
+The Council approves. Human review is not required unless the Council explicitly flags it.
 
-### 5. Address Feedback
-If the review agent requests changes, fix them on the same branch, push, and re-spawn the review agent.
-
-### 6. Merge (only after approval)
+### 7. Merge (only after all four approve)
 ```
 gh pr merge --squash --delete-branch
 ```
+
+---
 
 ## Testing & Coverage
 
