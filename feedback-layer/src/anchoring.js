@@ -6,10 +6,7 @@
  * - Re-anchor selectors to DOM ranges (createTextQuoteSelectorMatcher)
  */
 
-import {
-  describeTextQuote,
-  createTextQuoteSelectorMatcher,
-} from "@apache-annotator/dom";
+import { describeTextQuote, createTextQuoteSelectorMatcher } from "@apache-annotator/dom";
 
 /**
  * Create a TextQuoteSelector from the current browser Selection.

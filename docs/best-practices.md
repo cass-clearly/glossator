@@ -50,11 +50,11 @@ The `.env` file is read automatically by Docker Compose. Use a strong, random pa
 
 ### Environment variables
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `DATABASE_URL` | `postgresql://postgres@localhost/postgres` | PostgreSQL connection string |
-| `PORT` | `3333` | Port the server listens on |
-| `POSTGRES_PASSWORD` | *(required in Docker)* | Password for the bundled Postgres container |
+| Variable            | Default                                    | Description                                 |
+| ------------------- | ------------------------------------------ | ------------------------------------------- |
+| `DATABASE_URL`      | `postgresql://postgres@localhost/postgres` | PostgreSQL connection string                |
+| `PORT`              | `3333`                                     | Port the server listens on                  |
+| `POSTGRES_PASSWORD` | _(required in Docker)_                     | Password for the bundled Postgres container |
 
 ### Reverse proxy (HTTPS)
 
@@ -107,6 +107,7 @@ The `data-content-selector` attribute determines which part of the page is annot
 ### Recommended patterns
 
 **Blog posts and articles:**
+
 ```html
 <script
   src="https://remarq.example.com/feedback-layer.js"
@@ -116,6 +117,7 @@ The `data-content-selector` attribute determines which part of the page is annot
 ```
 
 **Documentation sites** (e.g., Docusaurus, MkDocs, custom):
+
 ```html
 <!-- Target the main content area, not the sidebar or nav -->
 <script
@@ -126,6 +128,7 @@ The `data-content-selector` attribute determines which part of the page is annot
 ```
 
 **Specific div by ID:**
+
 ```html
 <script
   src="https://remarq.example.com/feedback-layer.js"
@@ -148,8 +151,8 @@ Always scope the selector to just the content you want reviewed.
 Before deploying, open your browser's dev tools console and verify the selector matches the right element:
 
 ```js
-document.querySelector("article")        // Should return your content element
-document.querySelector(".docs-content")  // Should NOT return null
+document.querySelector("article"); // Should return your content element
+document.querySelector(".docs-content"); // Should NOT return null
 ```
 
 If it returns `null`, Remarq falls back to `document.body`.
@@ -310,7 +313,8 @@ FEEDBACK on "In conclusion, the data suggests...":
 ```
 
 This format works well because:
-- The **quote** anchors the feedback to exact text, so the AI knows *where* to make changes
+
+- The **quote** anchors the feedback to exact text, so the AI knows _where_ to make changes
 - **Threaded replies** provide additional context and consensus
 - **Author names** let the AI attribute feedback (useful when reviewers have different roles)
 
@@ -367,12 +371,12 @@ Since Remarq doesn't require accounts, author names are freeform. Establish conv
 
 Remarq has two distinct actions on a comment thread:
 
-| Action | When to use |
-|--------|-------------|
-| **Reply** | Continue the discussion. Ask for clarification, push back, or add context. The thread stays open. |
-| **Resolve** | The feedback has been addressed. The agent (or author) marks the root comment as `closed`. |
+| Action      | When to use                                                                                       |
+| ----------- | ------------------------------------------------------------------------------------------------- |
+| **Reply**   | Continue the discussion. Ask for clarification, push back, or add context. The thread stays open. |
+| **Resolve** | The feedback has been addressed. The agent (or author) marks the root comment as `closed`.        |
 
-**Convention:** Only the person who *addressed* the feedback should resolve the comment. If the agent revised the document, the agent resolves. If a human manually fixed the issue, the human resolves.
+**Convention:** Only the person who _addressed_ the feedback should resolve the comment. If the agent revised the document, the agent resolves. If a human manually fixed the issue, the human resolves.
 
 ### Team workflow: the review loop
 
@@ -401,7 +405,7 @@ Sarah: "This section is too technical"
   Mike: "That works"
 ```
 
-Your agent's prompt should instruct it to look for *consensus in the thread* before acting. If there's no resolution, the agent can leave a reply asking for clarification instead of making a unilateral change.
+Your agent's prompt should instruct it to look for _consensus in the thread_ before acting. If there's no resolution, the agent can leave a reply asking for clarification instead of making a unilateral change.
 
 Example prompt instruction:
 
@@ -496,6 +500,7 @@ If you prefer human-readable URIs and control your namespace, path-based version
 ```
 
 **Alternative: Date-based versioning**
+
 ```html
 <script ... data-document-uri="/docs/proposal/2026-02-21"></script>
 ```

@@ -9,7 +9,6 @@ import { DEFAULT_COLOR, hexToRgba, resolveColor } from "./utils/color.js";
 
 const HIGHLIGHT_CLASS = "fb-highlight";
 const ACTIVE_CLASS = "fb-highlight-active";
-const RESOLVED_CLASS = "fb-highlight-resolved";
 
 // Track per-comment colors for active highlight toggling
 const _commentColors = new Map();
@@ -35,10 +34,7 @@ export function highlightRange(range, commentId, color) {
   const marks = [];
 
   // If the range is within a single text node, simple wrap
-  if (
-    range.startContainer === range.endContainer &&
-    range.startContainer.nodeType === Node.TEXT_NODE
-  ) {
+  if (range.startContainer === range.endContainer && range.startContainer.nodeType === Node.TEXT_NODE) {
     const mark = wrapTextRange(range, commentId, hex);
     marks.push(mark);
   } else {
@@ -81,16 +77,16 @@ function wrapTextRange(range, commentId, hex) {
 
   while (current) {
     // If we're in a foreignObject, we're in HTML context - safe to use marks
-    if (current.tagName === 'foreignObject') {
+    if (current.tagName === "foreignObject") {
       inSVGText = false;
       break;
     }
     // If we're in SVG text, we need SVG rect highlighting
-    if (current.tagName === 'text' && current instanceof SVGElement) {
+    if (current.tagName === "text" && current instanceof SVGElement) {
       inSVGText = true;
     }
     // Track the SVG root for creating rect overlays
-    if (current.tagName === 'svg') {
+    if (current.tagName === "svg") {
       svgRoot = current;
     }
     current = current.parentElement;
@@ -115,7 +111,7 @@ function wrapTextRange(range, commentId, hex) {
   try {
     range.surroundContents(mark);
   } catch (e) {
-    console.warn('[feedback-layer] Failed to create highlight:', e);
+    console.warn("[feedback-layer] Failed to create highlight:", e);
     return null;
   }
 
@@ -134,7 +130,7 @@ function createSVGHighlight(range, commentId, svgRoot, hex) {
     const svgNS = "http://www.w3.org/2000/svg";
     const ctm = svgRoot.getScreenCTM();
     if (!ctm) {
-      console.warn('[feedback-layer] Could not get SVG transformation matrix');
+      console.warn("[feedback-layer] Could not get SVG transformation matrix");
       return null;
     }
 
@@ -147,7 +143,7 @@ function createSVGHighlight(range, commentId, svgRoot, hex) {
     let insertCurrent = insertNode;
     let textParentGroup = null;
     while (insertCurrent && insertCurrent !== svgRoot) {
-      if (insertCurrent.tagName === 'text') {
+      if (insertCurrent.tagName === "text") {
         textParentGroup = insertCurrent.parentElement;
         break;
       }
@@ -213,11 +209,11 @@ function createSVGHighlight(range, commentId, svgRoot, hex) {
     const textElements = new Set();
     let current = node;
     while (current && current !== svgRoot) {
-      if (current.tagName === 'text' && current instanceof SVGElement) {
+      if (current.tagName === "text" && current instanceof SVGElement) {
         textElements.add(current);
         // Also check for tspan children
-        const tspans = current.querySelectorAll('tspan');
-        tspans.forEach(tspan => textElements.add(tspan));
+        const tspans = current.querySelectorAll("tspan");
+        tspans.forEach((tspan) => textElements.add(tspan));
       }
       current = current.parentElement;
     }
@@ -229,14 +225,14 @@ function createSVGHighlight(range, commentId, svgRoot, hex) {
       if (_onHighlightClick) _onHighlightClick(commentId);
     };
 
-    textElements.forEach(textEl => {
+    textElements.forEach((textEl) => {
       textEl.style.cursor = "pointer";
       textEl.addEventListener("click", clickHandler);
       textEl.dataset.fbCommentId = commentId;
     });
     return group;
   } catch (e) {
-    console.warn('[feedback-layer] Failed to create SVG highlight:', e);
+    console.warn("[feedback-layer] Failed to create SVG highlight:", e);
     return null;
   }
 }
@@ -246,14 +242,12 @@ function createSVGHighlight(range, commentId, svgRoot, hex) {
  */
 export function removeHighlights(commentId) {
   _commentColors.delete(commentId);
-  const marks = document.querySelectorAll(
-    `.${HIGHLIGHT_CLASS}[data-comment-id="${commentId}"]`
-  );
+  const marks = document.querySelectorAll(`.${HIGHLIGHT_CLASS}[data-comment-id="${commentId}"]`);
   marks.forEach((mark) => {
     const parent = mark.parentNode;
 
     // SVG highlights (g elements) are overlays - just remove them
-    if (mark.tagName === 'g' || mark instanceof SVGElement) {
+    if (mark.tagName === "g" || mark instanceof SVGElement) {
       parent.removeChild(mark);
     } else {
       // HTML marks need unwrapping to preserve content
@@ -282,7 +276,7 @@ export function removeAllHighlights() {
     const parent = mark.parentNode;
 
     // SVG highlights (g elements) are overlays - just remove them
-    if (mark.tagName === 'g' || mark instanceof SVGElement) {
+    if (mark.tagName === "g" || mark instanceof SVGElement) {
       parent.removeChild(mark);
     } else {
       // HTML marks need unwrapping to preserve content
@@ -311,11 +305,11 @@ export function setActiveHighlight(commentId) {
     }
 
     // Handle SVG highlights (update fill on rect children)
-    if (el.tagName === 'g' || el instanceof SVGElement) {
-      const rects = el.querySelectorAll('rect');
-      rects.forEach(rect => {
-        rect.setAttribute('fill', hex);
-        rect.setAttribute('fill-opacity', isActive ? '0.55' : '0.35');
+    if (el.tagName === "g" || el instanceof SVGElement) {
+      const rects = el.querySelectorAll("rect");
+      rects.forEach((rect) => {
+        rect.setAttribute("fill", hex);
+        rect.setAttribute("fill-opacity", isActive ? "0.55" : "0.35");
       });
     } else {
       // Handle HTML highlights
@@ -328,9 +322,7 @@ export function setActiveHighlight(commentId) {
  * Scroll the first highlight for a comment into view.
  */
 export function scrollToHighlight(commentId) {
-  const mark = document.querySelector(
-    `.${HIGHLIGHT_CLASS}[data-comment-id="${commentId}"]`
-  );
+  const mark = document.querySelector(`.${HIGHLIGHT_CLASS}[data-comment-id="${commentId}"]`);
   if (mark) mark.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
@@ -350,23 +342,19 @@ export function setHighlightResolved(commentId, resolved) {
  */
 function getTextNodesInRange(range) {
   const nodes = [];
-  const walker = document.createTreeWalker(
-    range.commonAncestorContainer,
-    NodeFilter.SHOW_TEXT,
-    {
-      acceptNode(node) {
-        const nodeRange = document.createRange();
-        nodeRange.selectNodeContents(node);
-        if (
-          range.compareBoundaryPoints(Range.END_TO_START, nodeRange) < 0 &&
-          range.compareBoundaryPoints(Range.START_TO_END, nodeRange) > 0
-        ) {
-          return NodeFilter.FILTER_ACCEPT;
-        }
-        return NodeFilter.FILTER_REJECT;
-      },
-    }
-  );
+  const walker = document.createTreeWalker(range.commonAncestorContainer, NodeFilter.SHOW_TEXT, {
+    acceptNode(node) {
+      const nodeRange = document.createRange();
+      nodeRange.selectNodeContents(node);
+      if (
+        range.compareBoundaryPoints(Range.END_TO_START, nodeRange) < 0 &&
+        range.compareBoundaryPoints(Range.START_TO_END, nodeRange) > 0
+      ) {
+        return NodeFilter.FILTER_ACCEPT;
+      }
+      return NodeFilter.FILTER_REJECT;
+    },
+  });
   while (walker.nextNode()) nodes.push(walker.currentNode);
   return nodes;
 }

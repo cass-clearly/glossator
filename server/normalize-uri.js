@@ -11,16 +11,24 @@
  */
 
 const TRACKING_PARAMS = new Set([
-  'fbclid', 'gclid', 'gbraid', 'wbraid', 'dclid', 'msclkid',
-  'mc_eid', 'mc_cid',
-  '_ga', '_gl',
-  'igshid',
-  'ref', 'referrer',
+  "fbclid",
+  "gclid",
+  "gbraid",
+  "wbraid",
+  "dclid",
+  "msclkid",
+  "mc_eid",
+  "mc_cid",
+  "_ga",
+  "_gl",
+  "igshid",
+  "ref",
+  "referrer",
 ]);
 
 function isTrackingParam(key) {
   const lower = key.toLowerCase();
-  return lower.startsWith('utm_') || TRACKING_PARAMS.has(lower);
+  return lower.startsWith("utm_") || TRACKING_PARAMS.has(lower);
 }
 
 /**
@@ -36,10 +44,10 @@ function normalizeUri(uri) {
   }
 
   // 2. Upgrade to https
-  url.protocol = 'https:';
+  url.protocol = "https:";
 
   // 5. Remove fragment
-  url.hash = '';
+  url.hash = "";
 
   // 4. Strip tracking params
   const toDelete = [];
@@ -58,14 +66,14 @@ function normalizeUri(uri) {
 
   // 3. Remove trailing slash from non-root paths
   // url.pathname may have trailing slash; strip it unless it's "/"
-  if (url.pathname !== '/' && url.pathname.endsWith('/')) {
+  if (url.pathname !== "/" && url.pathname.endsWith("/")) {
     // Replace just the pathname portion
     const withoutSlash = url.pathname.slice(0, -1);
     result = result.replace(url.origin + url.pathname, url.origin + withoutSlash);
   }
 
   // Remove trailing "?" when no query params remain
-  result = result.replace(/\?$/, '');
+  result = result.replace(/\?$/, "");
 
   return result;
 }

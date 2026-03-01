@@ -15,7 +15,16 @@
  * dev → staging → production).
  */
 
-import { setBaseUrl, fetchComments, createComment, updateComment, deleteComment, updateCommentStatus, addReaction, removeReaction } from "./api.js";
+import {
+  setBaseUrl,
+  fetchComments,
+  createComment,
+  updateComment,
+  deleteComment,
+  updateCommentStatus,
+  addReaction,
+  removeReaction,
+} from "./api.js";
 import { selectorFromRange, rangeFromSelector } from "./anchoring.js";
 import {
   highlightRange,
@@ -34,23 +43,21 @@ import {
 } from "./sidebar.js";
 import { initAuthorUI } from "./ui.js";
 import { showToast } from "./toast.js";
-import { resolveColor, DEFAULT_COLOR } from "./utils/color.js";
+import { resolveColor } from "./utils/color.js";
 import { injectPrintHideStyles } from "./utils/print-hide.js";
 
-let _root = null;      // content root element
-let _docUri = null;     // canonical URI for this document
-let _docId = null;      // stable document ID (from data-document-id)
+let _root = null; // content root element
+let _docUri = null; // canonical URI for this document
+let _docId = null; // stable document ID (from data-document-id)
 let _defaultColor = null; // default highlight color (from data-default-color)
-let _comments = [];     // current comment list
+let _comments = []; // current comment list
 let _pendingSelector = null; // selector awaiting comment submission
-let _tooltip = null;    // the "Annotate" tooltip element
-let _anchoredIds = new Set();  // Track successfully anchored comments
-let _commentRanges = new Map();  // Map comment ID to its range for position sorting
+let _tooltip = null; // the "Annotate" tooltip element
+let _anchoredIds = new Set(); // Track successfully anchored comments
+const _commentRanges = new Map(); // Map comment ID to its range for position sorting
 
 function init() {
-  const scriptTag =
-    document.currentScript ||
-    document.querySelector('script[src*="feedback-layer"]');
+  const scriptTag = document.currentScript || document.querySelector('script[src*="feedback-layer"]');
 
   const config = {
     apiUrl: scriptTag?.dataset.apiUrl || "",
@@ -71,24 +78,24 @@ function init() {
    */
   async function waitForMermaid() {
     // Check if Mermaid is present on the page
-    if (typeof window.mermaid === 'undefined') {
+    if (typeof window.mermaid === "undefined") {
       return; // No Mermaid, continue immediately
     }
 
     // Check if there are any Mermaid diagrams to render
-    const mermaidElements = document.querySelectorAll('.mermaid');
+    const mermaidElements = document.querySelectorAll(".mermaid");
     if (mermaidElements.length === 0) {
       return; // No diagrams, continue immediately
     }
 
-    console.log('[feedback-layer] Waiting for Mermaid to finish rendering...');
+    console.log("[feedback-layer] Waiting for Mermaid to finish rendering...");
 
     // Wait for Mermaid to render all diagrams
     try {
       await window.mermaid.run();
-      console.log('[feedback-layer] Mermaid rendering complete');
+      console.log("[feedback-layer] Mermaid rendering complete");
     } catch (err) {
-      console.warn('[feedback-layer] Error waiting for Mermaid:', err);
+      console.warn("[feedback-layer] Error waiting for Mermaid:", err);
       // Continue anyway - don't block the feedback layer
     }
   }
@@ -170,16 +177,13 @@ async function anchorAll(comments) {
     if (ann.parent) continue;
 
     try {
-      const range = await rangeFromSelector(
-        { exact: ann.quote, prefix: ann.prefix, suffix: ann.suffix },
-        _root
-      );
+      const range = await rangeFromSelector({ exact: ann.quote, prefix: ann.prefix, suffix: ann.suffix }, _root);
 
-      if (range && ann.status !== 'closed') {
+      if (range && ann.status !== "closed") {
         highlightRange(range, ann.id, ann.color);
         anchored.add(ann.id);
         _commentRanges.set(ann.id, range);
-      } else if (range && ann.status === 'closed') {
+      } else if (range && ann.status === "closed") {
         // Track as anchored even if closed (for reopen functionality)
         anchored.add(ann.id);
         _commentRanges.set(ann.id, range);
@@ -230,10 +234,10 @@ function showTooltip(range) {
   const rect = range.getBoundingClientRect();
   _tooltip = document.createElement("button");
   _tooltip.className = "fb-annotate-tooltip";
-  _tooltip.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="12" y1="8" x2="12" y2="14"/><line x1="9" y1="11" x2="15" y2="11"/></svg>Comment';
+  _tooltip.innerHTML =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="12" y1="8" x2="12" y2="14"/><line x1="9" y1="11" x2="15" y2="11"/></svg>Comment';
   _tooltip.style.top = window.scrollY + rect.bottom + 8 + "px";
-  _tooltip.style.left =
-    window.scrollX + rect.left + rect.width / 2 - 40 + "px";
+  _tooltip.style.left = window.scrollX + rect.left + rect.width / 2 - 40 + "px";
 
   const handleTooltipActivate = async (e) => {
     e.preventDefault();
@@ -286,10 +290,7 @@ async function handleCommentSubmit({ comment, commenter, color }) {
     _comments.push(ann);
 
     // Anchor and highlight the new comment
-    const range = await rangeFromSelector(
-      { exact: ann.quote, prefix: ann.prefix, suffix: ann.suffix },
-      _root
-    );
+    const range = await rangeFromSelector({ exact: ann.quote, prefix: ann.prefix, suffix: ann.suffix }, _root);
     if (range) {
       highlightRange(range, ann.id, ann.color);
       _anchoredIds.add(ann.id);
@@ -319,10 +320,7 @@ async function handleResolve(commentId, resolved) {
     } else {
       // Re-anchor the highlight when reopening
       const ann = updated;
-      const range = await rangeFromSelector(
-        { exact: ann.quote, prefix: ann.prefix, suffix: ann.suffix },
-        _root
-      );
+      const range = await rangeFromSelector({ exact: ann.quote, prefix: ann.prefix, suffix: ann.suffix }, _root);
       if (range) {
         highlightRange(range, ann.id, ann.color);
         _anchoredIds.add(ann.id);
@@ -369,10 +367,7 @@ async function handleEdit(commentId, comment, color) {
       removeHighlights(commentId);
       const ann = updated;
       if (ann.status !== "closed") {
-        const range = await rangeFromSelector(
-          { exact: ann.quote, prefix: ann.prefix, suffix: ann.suffix },
-          _root
-        );
+        const range = await rangeFromSelector({ exact: ann.quote, prefix: ann.prefix, suffix: ann.suffix }, _root);
         if (range) {
           highlightRange(range, ann.id, ann.color);
           _anchoredIds.add(ann.id);
@@ -398,10 +393,7 @@ async function handleColorChange(commentId, color) {
     removeHighlights(commentId);
     const ann = updated;
     if (ann.status !== "closed") {
-      const range = await rangeFromSelector(
-        { exact: ann.quote, prefix: ann.prefix, suffix: ann.suffix },
-        _root
-      );
+      const range = await rangeFromSelector({ exact: ann.quote, prefix: ann.prefix, suffix: ann.suffix }, _root);
       if (range) {
         highlightRange(range, ann.id, ann.color);
         _anchoredIds.add(ann.id);
@@ -447,9 +439,7 @@ async function handleDelete(commentId) {
     await deleteComment(commentId);
     removeHighlights(commentId);
     _anchoredIds.delete(commentId);
-    _comments = _comments.filter(
-      (a) => a.id !== commentId && a.parent !== commentId
-    );
+    _comments = _comments.filter((a) => a.id !== commentId && a.parent !== commentId);
     renderComments(_comments, _anchoredIds, _commentRanges);
   } catch (err) {
     console.error("[feedback-layer] Failed to delete comment:", err);

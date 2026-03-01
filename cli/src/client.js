@@ -11,7 +11,7 @@ class RemarqClient {
       const url = new URL(path, this.baseUrl);
       if (query) {
         for (const [k, v] of Object.entries(query)) {
-          if (v != null) url.searchParams.set(k, v);
+          if (v !== null && v !== undefined) url.searchParams.set(k, v);
         }
       }
 
@@ -43,9 +43,7 @@ class RemarqClient {
           }
 
           if (res.statusCode >= 400) {
-            const err = new Error(
-              parsed?.error?.message || `HTTP ${res.statusCode}`
-            );
+            const err = new Error(parsed?.error?.message || `HTTP ${res.statusCode}`);
             err.status = res.statusCode;
             err.response = parsed;
             reject(err);

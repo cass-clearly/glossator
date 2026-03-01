@@ -12,7 +12,7 @@ Remarq is a lightweight document annotation tool for the agent era. Drop a singl
 
 ## The Problem
 
-You know the drill. Someone leaves a comment on your Google Doc: *"this is confusing."* Great. Now you get to:
+You know the drill. Someone leaves a comment on your Google Doc: _"this is confusing."_ Great. Now you get to:
 
 1. Read all 47 comments
 2. Interpret what each reviewer actually meant
@@ -74,26 +74,26 @@ This is the superpower. Every other annotation tool treats comments as a human-t
 
 ## Why Remarq
 
-| | Google Docs | Remarq |
-|---|---|---|
+|                       | Google Docs                                                 | Remarq                                           |
+| --------------------- | ----------------------------------------------------------- | ------------------------------------------------ |
 | **Feedback workflow** | Manual. Read → interpret → edit → resolve. Repeat 47 times. | Automated. Agent reads API → revises → resolves. |
-| **Accounts required** | Google account for every reviewer | None. Type a name, start annotating. |
-| **Works on** | Google Docs only | Any HTML page |
-| **Data ownership** | Google's servers | Your server |
-| **Integration** | Copy-paste into ChatGPT | `GET /comments?status=open` |
-| **Built for** | 2006 | The agent era |
+| **Accounts required** | Google account for every reviewer                           | None. Type a name, start annotating.             |
+| **Works on**          | Google Docs only                                            | Any HTML page                                    |
+| **Data ownership**    | Google's servers                                            | Your server                                      |
+| **Integration**       | Copy-paste into ChatGPT                                     | `GET /comments?status=open`                      |
+| **Built for**         | 2006                                                        | The agent era                                    |
 
 ## Configuration
 
 Configure via `data-` attributes on the script tag:
 
-| Attribute | Default | Description |
-|-----------|---------|-------------|
-| `data-api-url` | `""` (same origin) | URL of the Remarq backend |
-| `data-content-selector` | `body` | CSS selector for the annotatable content area |
-| `data-document-uri` | current page URL | Override the URI used to store/fetch annotations |
-| `data-theme` | `"auto"` | Color theme: `"auto"` (follows OS), `"dark"`, or `"light"` |
-| `data-default-color` | `null` (yellow) | Default highlight color for new comments. Accepts a preset name (`red`, `blue`, etc.) or a 6-digit hex code (`#ff6b6b`). |
+| Attribute               | Default            | Description                                                                                                              |
+| ----------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| `data-api-url`          | `""` (same origin) | URL of the Remarq backend                                                                                                |
+| `data-content-selector` | `body`             | CSS selector for the annotatable content area                                                                            |
+| `data-document-uri`     | current page URL   | Override the URI used to store/fetch annotations                                                                         |
+| `data-theme`            | `"auto"`           | Color theme: `"auto"` (follows OS), `"dark"`, or `"light"`                                                               |
+| `data-default-color`    | `null` (yellow)    | Default highlight color for new comments. Accepts a preset name (`red`, `blue`, etc.) or a 6-digit hex code (`#ff6b6b`). |
 
 ## Production
 
@@ -144,36 +144,36 @@ Stripe-inspired resource pattern. All responses include an `object` field. **Ful
 
 ### Documents
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/documents` | List all documents |
-| `POST` | `/documents` | Create or find a document by URI |
-| `GET` | `/documents/:id` | Retrieve a document |
+| Method   | Endpoint         | Description                        |
+| -------- | ---------------- | ---------------------------------- |
+| `GET`    | `/documents`     | List all documents                 |
+| `POST`   | `/documents`     | Create or find a document by URI   |
+| `GET`    | `/documents/:id` | Retrieve a document                |
 | `DELETE` | `/documents/:id` | Delete a document and its comments |
 
 ### Comments
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/comments` | List all comments |
-| `GET` | `/comments?document=<id>` | List comments by document ID |
-| `GET` | `/comments?uri=<url>` | List comments by document URI |
-| `GET` | `/comments?status=open` | **The money endpoint.** Get all unresolved feedback. |
-| `GET` | `/comments?expand=document` | Hydrate document objects inline |
-| `POST` | `/comments` | Create a comment (set `parent` to reply to an existing comment) |
-| `GET` | `/comments/:id` | Retrieve a comment |
-| `PATCH` | `/comments/:id` | Update body, status, or color |
-| `DELETE` | `/comments/:id` | Delete a comment and its replies |
+| Method   | Endpoint                    | Description                                                     |
+| -------- | --------------------------- | --------------------------------------------------------------- |
+| `GET`    | `/comments`                 | List all comments                                               |
+| `GET`    | `/comments?document=<id>`   | List comments by document ID                                    |
+| `GET`    | `/comments?uri=<url>`       | List comments by document URI                                   |
+| `GET`    | `/comments?status=open`     | **The money endpoint.** Get all unresolved feedback.            |
+| `GET`    | `/comments?expand=document` | Hydrate document objects inline                                 |
+| `POST`   | `/comments`                 | Create a comment (set `parent` to reply to an existing comment) |
+| `GET`    | `/comments/:id`             | Retrieve a comment                                              |
+| `PATCH`  | `/comments/:id`             | Update body, status, or color                                   |
+| `DELETE` | `/comments/:id`             | Delete a comment and its replies                                |
 
 ### Webhooks
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/webhooks` | List all webhooks |
-| `POST` | `/webhooks` | Register a webhook (requires `url`, `secret`, `events[]`) |
-| `GET` | `/webhooks/:id` | Retrieve a webhook |
-| `PATCH` | `/webhooks/:id` | Update a webhook (`url`, `events`, `active`) |
-| `DELETE` | `/webhooks/:id` | Delete a webhook |
+| Method   | Endpoint        | Description                                               |
+| -------- | --------------- | --------------------------------------------------------- |
+| `GET`    | `/webhooks`     | List all webhooks                                         |
+| `POST`   | `/webhooks`     | Register a webhook (requires `url`, `secret`, `events[]`) |
+| `GET`    | `/webhooks/:id` | Retrieve a webhook                                        |
+| `PATCH`  | `/webhooks/:id` | Update a webhook (`url`, `events`, `active`)              |
+| `DELETE` | `/webhooks/:id` | Delete a webhook                                          |
 
 Events: `comment.created`, `comment.resolved`, `comment.deleted`. Payloads are signed with HMAC-SHA256 using the webhook's secret.
 
@@ -202,16 +202,16 @@ Comments support customizable highlight colors. Set `color` on `POST /comments` 
 
 #### Preset names
 
-| Name | Hex | Preview |
-|------|-----|---------|
+| Name     | Hex       | Preview                 |
+| -------- | --------- | ----------------------- |
 | `yellow` | `#ffd400` | Default highlight color |
-| `red` | `#ff6b6b` | |
-| `green` | `#51cf66` | |
-| `blue` | `#339af0` | |
-| `purple` | `#9775fa` | |
-| `pink` | `#f06595` | |
-| `orange` | `#ff922b` | |
-| `teal` | `#20c997` | |
+| `red`    | `#ff6b6b` |                         |
+| `green`  | `#51cf66` |                         |
+| `blue`   | `#339af0` |                         |
+| `purple` | `#9775fa` |                         |
+| `pink`   | `#f06595` |                         |
+| `orange` | `#ff922b` |                         |
+| `teal`   | `#20c997` |                         |
 
 You can also pass any 6-digit hex code directly (e.g. `"#ff6b6b"`). The database enforces a CHECK constraint — values must be a preset name, a valid `#rrggbb` hex code, or `null`.
 
@@ -276,15 +276,15 @@ Accepts any preset name or hex code. Users can still override the color per-comm
 
 The following keyboard shortcuts are available (they are disabled when focus is in an input field, textarea, or contenteditable element):
 
-| Key | Action |
-|-----|--------|
-| `s` | Toggle sidebar open/closed |
-| `Esc` | Close the sidebar |
-| `j` | Move to next comment thread |
-| `k` | Move to previous comment thread |
-| `Enter` | Reply to the focused comment thread |
+| Key                        | Action                                                  |
+| -------------------------- | ------------------------------------------------------- |
+| `s`                        | Toggle sidebar open/closed                              |
+| `Esc`                      | Close the sidebar                                       |
+| `j`                        | Move to next comment thread                             |
+| `k`                        | Move to previous comment thread                         |
+| `Enter`                    | Reply to the focused comment thread                     |
 | `Cmd+Enter` / `Ctrl+Enter` | Submit a comment or reply (when typing in a text field) |
-| `?` | Toggle keyboard shortcuts help |
+| `?`                        | Toggle keyboard shortcuts help                          |
 
 Press the `⌨` button in the sidebar header to see shortcuts at any time.
 

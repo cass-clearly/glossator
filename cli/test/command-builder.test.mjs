@@ -2,13 +2,8 @@ import { describe, it, before, after } from "node:test";
 import assert from "node:assert/strict";
 import http from "node:http";
 
-const {
-  toCamelCase,
-  resolvePath,
-  buildSingleCommand,
-  buildGroupCommand,
-  buildCommands,
-} = await import("../src/command-builder.js");
+const { toCamelCase, resolvePath, buildSingleCommand, buildGroupCommand, buildCommands } =
+  await import("../src/command-builder.js");
 
 // ── Unit tests ────────────────────────────────────────────────────────
 
@@ -72,9 +67,9 @@ describe("buildSingleCommand handler", async () => {
       req.on("end", () => {
         const url = new URL(req.url, `http://${req.headers.host}`);
         lastRequest.method = req.method;
-        lastRequest.path   = url.pathname;
-        lastRequest.query  = Object.fromEntries(url.searchParams);
-        lastRequest.body   = body ? JSON.parse(body) : null;
+        lastRequest.path = url.pathname;
+        lastRequest.query = Object.fromEntries(url.searchParams);
+        lastRequest.body = body ? JSON.parse(body) : null;
 
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(
@@ -83,7 +78,7 @@ describe("buildSingleCommand handler", async () => {
             id: "doc_test",
             uri: "https://example.com",
             created_at: "2024-01-01T00:00:00.000Z",
-          })
+          }),
         );
       });
     });
@@ -92,7 +87,7 @@ describe("buildSingleCommand handler", async () => {
       server.listen(0, "127.0.0.1", () => {
         BASE = `http://127.0.0.1:${server.address().port}`;
         resolve();
-      })
+      }),
     );
   });
 
@@ -174,7 +169,7 @@ describe("buildSingleCommand handler", async () => {
         command: "list",
         describe: "List comments",
         options: {
-          status:   { type: "string", from: "query" },
+          status: { type: "string", from: "query" },
           document: { type: "string", from: "query" },
         },
       },
@@ -239,12 +234,10 @@ describe("buildSingleCommand handler", async () => {
       cliDef: {
         command: "reply <parent-id>",
         describe: "Reply to a comment",
-        positional: [
-          { name: "parent-id", from: "body", field: "parent" },
-        ],
+        positional: [{ name: "parent-id", from: "body", field: "parent" }],
         options: {
           author: { type: "string", demandOption: true, from: "body" },
-          body:   { type: "string", demandOption: true, from: "body" },
+          body: { type: "string", demandOption: true, from: "body" },
         },
       },
     });
@@ -279,7 +272,12 @@ describe("buildCommands", () => {
     };
 
     const registered = [];
-    const fakeYargs = { command(cmd) { registered.push(cmd); return fakeYargs; } };
+    const fakeYargs = {
+      command(cmd) {
+        registered.push(cmd);
+        return fakeYargs;
+      },
+    };
 
     buildCommands(fakeYargs, spec);
     assert.equal(registered.length, 1);
@@ -290,14 +288,19 @@ describe("buildCommands", () => {
     const spec = {
       paths: {
         "/documents": {
-          get:  { "x-cli": { group: "documents", command: "list" } },
+          get: { "x-cli": { group: "documents", command: "list" } },
           post: { "x-cli": { group: "documents", command: "create" } },
         },
       },
     };
 
     const registered = [];
-    const fakeYargs = { command(cmd) { registered.push(cmd); return fakeYargs; } };
+    const fakeYargs = {
+      command(cmd) {
+        registered.push(cmd);
+        return fakeYargs;
+      },
+    };
 
     buildCommands(fakeYargs, spec);
     assert.equal(registered.length, 1);
@@ -319,7 +322,12 @@ describe("buildCommands", () => {
     };
 
     const registered = [];
-    const fakeYargs = { command(cmd) { registered.push(cmd); return fakeYargs; } };
+    const fakeYargs = {
+      command(cmd) {
+        registered.push(cmd);
+        return fakeYargs;
+      },
+    };
 
     buildCommands(fakeYargs, spec);
     // Both go into the same "comments" group
@@ -329,8 +337,13 @@ describe("buildCommands", () => {
     // Verify the group builder registers two subcommands
     const subCmds = [];
     const fakeInner = {
-      command(cmd) { subCmds.push(cmd); return fakeInner; },
-      demandCommand() { return fakeInner; },
+      command(cmd) {
+        subCmds.push(cmd);
+        return fakeInner;
+      },
+      demandCommand() {
+        return fakeInner;
+      },
     };
     registered[0].builder(fakeInner);
     assert.equal(subCmds.length, 2);
@@ -351,7 +364,12 @@ describe("buildCommands", () => {
     };
 
     const registered = [];
-    const fakeYargs = { command(cmd) { registered.push(cmd); return fakeYargs; } };
+    const fakeYargs = {
+      command(cmd) {
+        registered.push(cmd);
+        return fakeYargs;
+      },
+    };
 
     buildCommands(fakeYargs, spec);
     assert.equal(registered.length, 1);
@@ -360,7 +378,12 @@ describe("buildCommands", () => {
 
   it("handles empty spec gracefully", () => {
     const registered = [];
-    const fakeYargs = { command(cmd) { registered.push(cmd); return fakeYargs; } };
+    const fakeYargs = {
+      command(cmd) {
+        registered.push(cmd);
+        return fakeYargs;
+      },
+    };
     buildCommands(fakeYargs, { paths: {} });
     assert.equal(registered.length, 0);
   });
@@ -381,8 +404,13 @@ describe("buildGroupCommand", () => {
 
     const subCmds = [];
     const fakeYargs = {
-      command(c) { subCmds.push(c); return fakeYargs; },
-      demandCommand() { return fakeYargs; },
+      command(c) {
+        subCmds.push(c);
+        return fakeYargs;
+      },
+      demandCommand() {
+        return fakeYargs;
+      },
     };
     group.builder(fakeYargs);
     assert.equal(subCmds.length, 2);

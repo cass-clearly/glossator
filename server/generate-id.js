@@ -3,7 +3,7 @@
  * Produces prefixed IDs like "doc_k3mXp9q2aBvN" and "cmt_8avN3bWlR2xQ".
  */
 
-const { randomBytes } = require('crypto');
+const { randomBytes } = require("crypto");
 
 /**
  * Generate a prefixed random ID.
@@ -11,7 +11,7 @@ const { randomBytes } = require('crypto');
  * @returns {string}
  */
 function generateId(prefix) {
-  return `${prefix}_${randomBytes(8).toString('base64url')}`;
+  return `${prefix}_${randomBytes(8).toString("base64url")}`;
 }
 
 /**
@@ -25,7 +25,7 @@ async function insertWithId(prefix, insertFn) {
     try {
       return await insertFn(generateId(prefix));
     } catch (err) {
-      if (err.code === '23505' && attempt < 2) continue;
+      if (err.code === "23505" && attempt < 2) continue;
       throw err;
     }
   }

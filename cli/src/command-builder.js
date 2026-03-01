@@ -42,11 +42,11 @@ function resolvePath(pathTemplate, positional, options, argv) {
  */
 function buildSingleCommand({ path, method, cliDef }) {
   const positional = cliDef.positional || [];
-  const options    = cliDef.options    || {};
-  const fixedBody  = cliDef.fixedBody  || {};
+  const options = cliDef.options || {};
+  const fixedBody = cliDef.fixedBody || {};
 
   return {
-    command:  cliDef.command,
+    command: cliDef.command,
     describe: cliDef.describe || "",
 
     builder(yargs) {
@@ -54,7 +54,7 @@ function buildSingleCommand({ path, method, cliDef }) {
       for (const arg of positional) {
         const yargsName = toCamelCase(arg.name);
         yargs.positional(yargsName, {
-          type:     "string",
+          type: "string",
           describe: arg.describe || "",
         });
       }
@@ -62,11 +62,11 @@ function buildSingleCommand({ path, method, cliDef }) {
       // Register named options
       for (const [name, opt] of Object.entries(options)) {
         const def = {
-          type:     opt.type || "string",
+          type: opt.type || "string",
           describe: opt.describe || "",
         };
         if (opt.demandOption) def.demandOption = true;
-        if (opt.choices)      def.choices      = opt.choices;
+        if (opt.choices) def.choices = opt.choices;
         yargs.option(name, def);
       }
 
@@ -74,13 +74,13 @@ function buildSingleCommand({ path, method, cliDef }) {
     },
 
     async handler(argv) {
-      const client       = new RemarqClient(argv.url);
+      const client = new RemarqClient(argv.url);
       const resolvedPath = resolvePath(path, positional, options, argv);
 
       // Collect query params
       const query = {};
       for (const [name, opt] of Object.entries(options)) {
-        if (opt.from === "query" && argv[name] != null) {
+        if (opt.from === "query" && argv[name] !== null && argv[name] !== undefined) {
           query[opt.field || name] = argv[name];
         }
       }
@@ -91,19 +91,19 @@ function buildSingleCommand({ path, method, cliDef }) {
       for (const arg of positional) {
         if (arg.from === "body") {
           const val = argv[toCamelCase(arg.name)] ?? argv[arg.name];
-          if (val != null) body[arg.field || arg.name] = val;
+          if (val !== null && val !== undefined) body[arg.field || arg.name] = val;
         }
       }
 
       for (const [name, opt] of Object.entries(options)) {
-        if (opt.from === "body" && argv[name] != null) {
+        if (opt.from === "body" && argv[name] !== null && argv[name] !== undefined) {
           body[opt.field || name] = argv[name];
         }
       }
 
       const reqOpts = {};
       if (Object.keys(query).length > 0) reqOpts.query = query;
-      if (Object.keys(body).length  > 0) reqOpts.body  = body;
+      if (Object.keys(body).length > 0) reqOpts.body = body;
 
       const { data } = await client.request(method.toUpperCase(), resolvedPath, reqOpts);
 
@@ -122,7 +122,7 @@ function buildSingleCommand({ path, method, cliDef }) {
  */
 function buildGroupCommand(groupName, ops) {
   return {
-    command:  `${groupName} <command>`,
+    command: `${groupName} <command>`,
     describe: `Manage ${groupName}`,
 
     builder(yargs) {
@@ -143,7 +143,7 @@ function buildGroupCommand(groupName, ops) {
  * are registered as top-level commands.
  */
 function buildCommands(yargsInstance, spec) {
-  const groups   = {}; // groupName → Array<op>
+  const groups = {}; // groupName → Array<op>
   const topLevel = []; // ops with no group
 
   for (const [pathTemplate, pathItem] of Object.entries(spec.paths || {})) {

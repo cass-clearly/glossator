@@ -100,7 +100,7 @@ async function testCreateComment() {
     // Create a selection range on part of the heading
     const range = document.createRange();
     range.setStart(text, 4); // "The |Future..."
-    range.setEnd(text, 14);  // "The Future| of..."
+    range.setEnd(text, 14); // "The Future| of..."
 
     const sel = window.getSelection();
     sel.removeAllRanges();

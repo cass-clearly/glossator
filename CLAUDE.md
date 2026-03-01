@@ -63,12 +63,12 @@ The goal is the best global outcome, not for any one member to be right.
 
 Each member has a detailed persona file in `council/`. Read the full file before spawning each reviewer.
 
-| Role | File | Principles | Focus |
-|------|------|------------|-------|
-| 🔍 The Minimalist | `council/minimalist.md` | 1, 2, 4, 9, 14 | Scope, simplicity, delete-first |
-| 🔨 The Craftsperson | `council/craftsperson.md` | 3, 5, 6, 12 | TDD, refactoring, code quality |
-| 🛡️ The Steward | `council/steward.md` | 8, 9, 13, 15 | API stability, production readiness, failure modes |
-| 🏛️ The Architect | `council/architect.md` | 7, 10, 11 + all on deadlock | Coherence, shipping, tiebreaker |
+| Role                | File                      | Principles                  | Focus                                              |
+| ------------------- | ------------------------- | --------------------------- | -------------------------------------------------- |
+| 🔍 The Minimalist   | `council/minimalist.md`   | 1, 2, 4, 9, 14              | Scope, simplicity, delete-first                    |
+| 🔨 The Craftsperson | `council/craftsperson.md` | 3, 5, 6, 12                 | TDD, refactoring, code quality                     |
+| 🛡️ The Steward      | `council/steward.md`      | 8, 9, 13, 15                | API stability, production readiness, failure modes |
+| 🏛️ The Architect    | `council/architect.md`    | 7, 10, 11 + all on deadlock | Coherence, shipping, tiebreaker                    |
 
 ### How to Spawn Council Members
 
@@ -103,14 +103,18 @@ You must:
 Every meaningful change must follow this process. No exceptions.
 
 ### 1. Branch
+
 Create a feature branch off `main` before starting any work:
+
 ```
 git checkout main && git pull
 git checkout -b feature/<short-description>
 ```
 
 ### 2. Plan First (Council Review Round 1)
+
 Before writing any code, write a brief plan:
+
 - What problem does this solve?
 - What's the simplest design?
 - What are the API changes (if any)?
@@ -119,7 +123,9 @@ Before writing any code, write a brief plan:
 Spawn all four Council members against the plan. Address feedback. Do not start implementation until the Council approves the plan.
 
 ### 3. Implement with TDD
+
 Follow red-green-refactor strictly:
+
 1. Write a failing test for the next small unit of behavior
 2. Write the minimum code to make it pass
 3. Refactor — clean the code without changing behavior
@@ -128,27 +134,38 @@ Follow red-green-refactor strictly:
 Never write implementation code without a failing test first. Never skip the refactor step.
 
 ### 4. Commit + Push
+
 Commit with clear messages. Push the branch:
+
 ```
 git push -u origin feature/<short-description>
 ```
 
 ### 5. Open a PR
+
 ```
 gh pr create --title "<concise title>" --body "<what changed and why>"
 ```
+
 PR description must use the template in `.github/pull_request_template.md`. Fill in all sections.
 
 **When adding or changing API endpoints:**
+
 - Include an endpoint table in the PR description (in the "New/Changed Endpoints" section)
 - Update the README API reference (`README.md` → API Reference section) with the new endpoints, matching the existing table format
 
-### 6. Council Review (Round 2+)
-Spawn all four Council members against the PR. Each posts a review. Address all requested changes. Re-spawn all four. Repeat until all four approve.
+### 6. Wait for CI Green
+
+CI runs automatically on push: lint → format check → build → tests with coverage. **Do not request Council review until CI passes.** If CI fails, fix the failure and push again.
+
+### 7. Council Review (only after CI green)
+
+Spawn all four Council members against the PR. Each posts a review. Address all requested changes. Re-spawn all four. CI must pass again before the next review round. Repeat until all four approve.
 
 The Council approves. Human review is not required unless the Council explicitly flags it.
 
-### 7. Merge (only after all four approve)
+### 8. Merge (only after CI green + all four approve)
+
 ```
 gh pr merge --squash --delete-branch
 ```
@@ -160,11 +177,24 @@ gh pr merge --squash --delete-branch
 Target 80-90% line coverage. 100% is a waste of time — diminishing returns kick in hard.
 
 ### Running tests
+
 - **Server tests:** `npm run test:server`
 - **Client tests:** `npm run test:client`
 - **All tests:** `npm test`
+- **Everything (lint + format + tests):** `npm run check`
 
 Both suites use `node:test` + `node:assert/strict` and `c8` for coverage with 80% line threshold.
 
+### Linting & Formatting
+
+- **Lint:** `npm run lint` (ESLint — correctness, async safety, code clarity)
+- **Format check:** `npm run format:check` (Prettier — consistent style)
+- **Auto-format:** `npm run format` (Prettier — fix formatting in-place)
+
+ESLint catches real bugs (strict equality, unused vars, async pitfalls). Prettier handles all style decisions (quotes, spacing, line width). Don't argue about formatting — Prettier decides.
+
+CI runs both checks. Code that fails lint or format check will not be reviewed.
+
 ### Utility modules
+
 Pure functions live in `feedback-layer/src/utils/` as individual modules. These are imported by both the source files and the test files directly — no `_testExports` hacks needed. When adding testable logic, extract it to a utility file in this directory.

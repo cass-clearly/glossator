@@ -51,7 +51,7 @@ describe("fetchSpec", async () => {
   it("throws on connection error", async () => {
     await assert.rejects(
       () => fetchSpec("http://127.0.0.1:1"),
-      (err) => err instanceof Error
+      (err) => err instanceof Error,
     );
   });
 
@@ -70,7 +70,7 @@ describe("fetchSpec", async () => {
     try {
       await assert.rejects(
         () => fetchSpec(badBase),
-        (err) => err.message.includes("Invalid OpenAPI spec")
+        (err) => err.message.includes("Invalid OpenAPI spec"),
       );
     } finally {
       badServer.close();

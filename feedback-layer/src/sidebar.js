@@ -2,10 +2,7 @@
  * Sidebar UI: name input, comment list, comment form.
  */
 
-import {
-  setActiveHighlight,
-  scrollToHighlight,
-} from "./highlights.js";
+import { setActiveHighlight, scrollToHighlight } from "./highlights.js";
 import { openModal } from "./ui.js";
 import { escapeHtml } from "./utils/escape-html.js";
 import { threadComments } from "./utils/thread-comments.js";
@@ -21,14 +18,14 @@ const COMMENTER_KEY = "feedback-layer-commenter";
 let _sidebar = null;
 let _listEl = null;
 let _formEl = null;
-let _pendingQuote = null;
+let _pendingQuote = null; // eslint-disable-line no-unused-vars -- tracked for future quote display
 let _onSubmit = null;
 let _onDelete = null;
 let _onResolve = null;
 let _onReply = null;
 let _onEdit = null;
 let _onReaction = null;
-let _onColorChange = null;
+let _onColorChange = null; // eslint-disable-line no-unused-vars -- tracked for future color picker callback
 let _defaultColor = null;
 let _showResolved = false;
 let _lastComments = [];
@@ -62,7 +59,16 @@ export function getCommenter() {
  * @param {Function} opts.onEdit - Called with (commentId, comment) when edit saved
  * @param {Function} opts.onReaction - Called with (commentId, emoji) when reaction toggled
  */
-export function createSidebar({ onSubmit, onDelete, onResolve, onReply, onEdit, onReaction, onColorChange, defaultColor }) {
+export function createSidebar({
+  onSubmit,
+  onDelete,
+  onResolve,
+  onReply,
+  onEdit,
+  onReaction,
+  onColorChange,
+  defaultColor,
+}) {
   _onSubmit = onSubmit;
   _onDelete = onDelete;
   _onResolve = onResolve;
@@ -146,7 +152,7 @@ export function createSidebar({ onSubmit, onDelete, onResolve, onReply, onEdit, 
   const resolvedCb = _sidebar.querySelector(".fb-show-resolved-cb");
   resolvedCb.addEventListener("change", () => {
     _showResolved = resolvedCb.checked;
-    renderComments(_lastComments, _lastAnchoredIds);  // Use stored anchoredIds
+    renderComments(_lastComments, _lastAnchoredIds); // Use stored anchoredIds
   });
 
   // Global keyboard shortcut: "s" to toggle sidebar
@@ -252,13 +258,15 @@ function _handleSidebarKeydown(e) {
   if (key === "?") {
     e.preventDefault();
     _toggleShortcutsHelp();
-    return;
   }
 }
 
 function _toggleShortcutsHelp() {
   const existing = document.querySelector(".fb-shortcuts-overlay");
-  if (existing) { existing.remove(); return; }
+  if (existing) {
+    existing.remove();
+    return;
+  }
 
   const overlay = document.createElement("div");
   overlay.className = "fb-shortcuts-overlay";
@@ -287,8 +295,15 @@ function _toggleShortcutsHelp() {
 
   const close = () => overlay.remove();
   modal.querySelector(".fb-shortcuts-close").addEventListener("click", close);
-  overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
-  overlay.addEventListener("keydown", (e) => { if (e.key === "Escape") { e.stopPropagation(); close(); } });
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) close();
+  });
+  overlay.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      e.stopPropagation();
+      close();
+    }
+  });
 
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
@@ -445,9 +460,7 @@ export function renderComments(comments, anchoredIds = new Set(), commentRanges 
   const sortedTopLevel = [...anchored, ...orphaned];
 
   // Apply closed filter
-  const visibleTopLevel = _showResolved
-    ? sortedTopLevel
-    : sortedTopLevel.filter((a) => a.status !== 'closed');
+  const visibleTopLevel = _showResolved ? sortedTopLevel : sortedTopLevel.filter((a) => a.status !== "closed");
 
   if (sortedTopLevel.length === 0) {
     _listEl.innerHTML = `<div class="fb-empty">No comments yet. Select text to add one.</div>`;
@@ -499,17 +512,19 @@ export function renderComments(comments, anchoredIds = new Set(), commentRanges 
 }
 
 function buildCard(ann, isReply, isOrphaned = false) {
-  const isClosed = ann.status === 'closed';
+  const isClosed = ann.status === "closed";
   const card = document.createElement("div");
-  card.className = "fb-cmt-card"
-    + (isClosed ? " fb-cmt-closed" : "")
-    + (isReply ? " fb-cmt-reply" : "")
-    + (isOrphaned ? " fb-cmt-orphaned" : "");
+  card.className =
+    "fb-cmt-card" +
+    (isClosed ? " fb-cmt-closed" : "") +
+    (isReply ? " fb-cmt-reply" : "") +
+    (isOrphaned ? " fb-cmt-orphaned" : "");
   card.dataset.id = ann.id;
 
-  const orphanedQuoteHtml = (isOrphaned && ann.quote)
-    ? `<div class="fb-cmt-orphaned-quote">Content Deleted: "${escapeHtml(truncate(ann.quote, 120))}"</div>`
-    : "";
+  const orphanedQuoteHtml =
+    isOrphaned && ann.quote
+      ? `<div class="fb-cmt-orphaned-quote">Content Deleted: "${escapeHtml(truncate(ann.quote, 120))}"</div>`
+      : "";
 
   card.innerHTML = `
     ${orphanedQuoteHtml}
@@ -530,14 +545,19 @@ function buildCard(ann, isReply, isOrphaned = false) {
 
   if (!isReply) {
     card.addEventListener("click", (e) => {
-      if (e.target.closest(".fb-cmt-delete") || e.target.closest(".fb-cmt-resolve") || e.target.closest(".fb-cmt-edit") || e.target.closest(".fb-reactions")) return;
+      if (
+        e.target.closest(".fb-cmt-delete") ||
+        e.target.closest(".fb-cmt-resolve") ||
+        e.target.closest(".fb-cmt-edit") ||
+        e.target.closest(".fb-reactions")
+      ) {
+        return;
+      }
       if (!isOrphaned) {
         setActiveHighlight(ann.id);
         scrollToHighlight(ann.id);
       }
-      _listEl
-        .querySelectorAll(".fb-cmt-card")
-        .forEach((c) => c.classList.remove("fb-cmt-active"));
+      _listEl.querySelectorAll(".fb-cmt-card").forEach((c) => c.classList.remove("fb-cmt-active"));
       card.classList.add("fb-cmt-active");
     });
 
@@ -589,7 +609,8 @@ function buildReactionBar(container, ann) {
   // Add-reaction button (muted icon style)
   const addBtn = document.createElement("button");
   addBtn.className = "fb-reaction-add";
-  addBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="15" x2="16" y2="15"/><circle cx="9" cy="10" r="0.5" fill="currentColor"/><circle cx="15" cy="10" r="0.5" fill="currentColor"/></svg>';
+  addBtn.innerHTML =
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="15" x2="16" y2="15"/><circle cx="9" cy="10" r="0.5" fill="currentColor"/><circle cx="15" cy="10" r="0.5" fill="currentColor"/></svg>';
   addBtn.title = "Add reaction";
   addBtn.addEventListener("click", (e) => {
     e.stopPropagation();
@@ -601,7 +622,10 @@ function buildReactionBar(container, ann) {
 function showEmojiPicker(container, ann, addBtn) {
   // Remove existing picker if open
   const existing = container.querySelector(".fb-emoji-picker");
-  if (existing) { existing.remove(); return; }
+  if (existing) {
+    existing.remove();
+    return;
+  }
 
   const picker = document.createElement("div");
   picker.className = "fb-emoji-picker";
@@ -637,7 +661,11 @@ function showReplyForm(parentId, threadEl, replyBtn) {
 
   // Remove existing reply form if any
   const existing = threadEl.querySelector(".fb-reply-form");
-  if (existing) { existing.remove(); replyBtn.style.display = ""; return; }
+  if (existing) {
+    existing.remove();
+    replyBtn.style.display = "";
+    return;
+  }
 
   replyBtn.style.display = "none";
 
@@ -695,12 +723,16 @@ function showEditForm(ann, card) {
 
   // Replace comment with edit form
   commentEl.innerHTML = `
-    ${isRootComment ? `<div class="fb-color-picker">
+    ${
+      isRootComment
+        ? `<div class="fb-color-picker">
       <label class="fb-color-label">Color</label>
       <div class="fb-color-swatches">
         ${presetEntries.map(([name, hex]) => `<button type="button" class="fb-color-swatch${hex === currentColor ? " fb-color-swatch-active" : ""}" data-color="${hex}" title="${name}" style="background:${hex};"></button>`).join("")}
       </div>
-    </div>` : ""}
+    </div>`
+        : ""
+    }
     <textarea class="fb-form-textarea" rows="3">${escapeHtml(originalText)}</textarea>
     <div class="fb-form-actions" style="margin-top: 6px;">
       <button class="fb-btn fb-btn-primary fb-edit-save">Save</button>
@@ -749,13 +781,9 @@ function showEditForm(ann, card) {
  * Scroll the sidebar to a specific comment card and highlight it.
  */
 export function focusCommentCard(commentId) {
-  const card = _listEl.querySelector(
-    `.fb-cmt-card[data-id="${commentId}"]`
-  );
+  const card = _listEl.querySelector(`.fb-cmt-card[data-id="${commentId}"]`);
   if (card) {
-    _listEl
-      .querySelectorAll(".fb-cmt-card")
-      .forEach((c) => c.classList.remove("fb-cmt-active"));
+    _listEl.querySelectorAll(".fb-cmt-card").forEach((c) => c.classList.remove("fb-cmt-active"));
     card.classList.add("fb-cmt-active");
     card.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }

@@ -9,6 +9,7 @@
 ## What You Look For
 
 ### API Contract & Consumer Experience
+
 - **Backwards compatibility** — does this change break existing consumers? Are there agents, integrations, or scripts that depend on the current response shape?
 - **Response consistency** — do all endpoints follow the same patterns? Same error format? Same pagination style? Same naming conventions?
 - **API surface design** — are we sticking to our Stripe-like, resource-based API design? is the happy path obvious? Does the endpoint do what its name suggests? Can a developer use it correctly after reading the README once?
@@ -16,6 +17,7 @@
 - **Documentation accuracy** — does the README match reality? Are new endpoints documented? Are examples correct and copy-pasteable? Is the OpenAPI spec up to date after these changes? Does the CLI still work?
 
 ### Production Readiness
+
 - **Logging** — are log messages structured and useful? Do they include enough context to diagnose issues without reading source code? Are log levels appropriate (don't log expected conditions as errors)?
 - **Error messages** — can an operator understand what went wrong from the error alone? Do errors include context about what was being attempted?
 - **Resource management** — are database connections pooled and properly released? Are there potential memory leaks from unclosed resources or retained references?
@@ -24,6 +26,7 @@
 - **Configuration** — can this be changed without redeploying? Are defaults sensible?
 
 ### Failure Modes & Reliability
+
 - **Webhook delivery** — what happens when the receiving server is down? Is there retry logic with exponential backoff? Are retries idempotent?
 - **Timeout handling** — are there timeouts on outbound HTTP calls? What happens when a webhook endpoint is slow?
 - **Idempotency** — can this operation be safely retried? What happens on duplicate requests?

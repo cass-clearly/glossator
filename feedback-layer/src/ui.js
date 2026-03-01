@@ -177,9 +177,7 @@ export function openModal() {
     return;
   }
 
-  const docHtml = document.querySelector(
-    _config.contentSelector || "body"
-  ).innerHTML;
+  const docHtml = document.querySelector(_config.contentSelector || "body").innerHTML;
 
   const prompt = buildPrompt(docHtml, comments);
 
@@ -211,4 +209,3 @@ export function openModal() {
   closeBtn2.addEventListener("click", () => overlay.remove());
   footer.appendChild(closeBtn2);
 }
-

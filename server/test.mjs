@@ -23,7 +23,7 @@ describe("generate-id", async () => {
       calls++;
       if (calls < 3) {
         const err = new Error("unique violation");
-        err.code = '23505';
+        err.code = "23505";
         throw err;
       }
       return id;
@@ -34,12 +34,13 @@ describe("generate-id", async () => {
 
   it("insertWithId throws after max retries", async () => {
     await assert.rejects(
-      () => insertWithId("doc", async () => {
-        const err = new Error("unique violation");
-        err.code = '23505';
-        throw err;
-      }),
-      (err) => err.code === '23505'
+      () =>
+        insertWithId("doc", async () => {
+          const err = new Error("unique violation");
+          err.code = "23505";
+          throw err;
+        }),
+      (err) => err.code === "23505",
     );
   });
 });
@@ -66,7 +67,7 @@ describe("normalize-uri", async () => {
   it("strips tracking params", () => {
     assert.equal(
       normalizeUri("https://example.com/page?utm_source=twitter&foo=bar"),
-      "https://example.com/page?foo=bar"
+      "https://example.com/page?foo=bar",
     );
   });
 
@@ -75,10 +76,7 @@ describe("normalize-uri", async () => {
   });
 
   it("sorts query params", () => {
-    assert.equal(
-      normalizeUri("https://example.com/page?z=1&a=2"),
-      "https://example.com/page?a=2&z=1"
-    );
+    assert.equal(normalizeUri("https://example.com/page?z=1&a=2"), "https://example.com/page?a=2&z=1");
   });
 
   it("throws on invalid URI", () => {
@@ -133,9 +131,7 @@ describe("validate-color", async () => {
 });
 
 describe("webhooks", async () => {
-  const {
-    signPayload, deliverWebhook, retryWithBackoff,
-  } = await import("./webhooks.js");
+  const { signPayload, deliverWebhook, retryWithBackoff } = await import("./webhooks.js");
 
   it("signPayload produces valid HMAC-SHA256 hex", () => {
     const sig = signPayload("mysecret", '{"event":"test"}');
@@ -156,26 +152,41 @@ describe("webhooks", async () => {
 
   it("retryWithBackoff succeeds on first try", async () => {
     let calls = 0;
-    const result = await retryWithBackoff(() => { calls++; return "ok"; }, { baseDelay: 1 });
+    const result = await retryWithBackoff(
+      () => {
+        calls++;
+        return "ok";
+      },
+      { baseDelay: 1 },
+    );
     assert.equal(result, "ok");
     assert.equal(calls, 1);
   });
 
   it("retryWithBackoff retries on failure", async () => {
     let calls = 0;
-    const result = await retryWithBackoff(() => {
-      calls++;
-      if (calls < 3) throw new Error("fail");
-      return "ok";
-    }, { maxAttempts: 3, baseDelay: 1 });
+    const result = await retryWithBackoff(
+      () => {
+        calls++;
+        if (calls < 3) throw new Error("fail");
+        return "ok";
+      },
+      { maxAttempts: 3, baseDelay: 1 },
+    );
     assert.equal(result, "ok");
     assert.equal(calls, 3);
   });
 
   it("retryWithBackoff throws after max attempts", async () => {
     await assert.rejects(
-      () => retryWithBackoff(() => { throw new Error("always fails"); }, { maxAttempts: 2, baseDelay: 1 }),
-      { message: "always fails" }
+      () =>
+        retryWithBackoff(
+          () => {
+            throw new Error("always fails");
+          },
+          { maxAttempts: 2, baseDelay: 1 },
+        ),
+      { message: "always fails" },
     );
   });
 
@@ -184,8 +195,13 @@ describe("webhooks", async () => {
     const receiver = createServer((req, res) => {
       receivedHeaders = req.headers;
       let data = "";
-      req.on("data", (chunk) => { data += chunk; });
-      req.on("end", () => { receivedBody = data; res.writeHead(200).end(); });
+      req.on("data", (chunk) => {
+        data += chunk;
+      });
+      req.on("end", () => {
+        receivedBody = data;
+        res.writeHead(200).end();
+      });
     });
 
     await new Promise((resolve) => receiver.listen(0, "127.0.0.1", resolve));
@@ -212,15 +228,13 @@ describe("webhooks", async () => {
     const port = receiver.address().port;
 
     try {
-      await assert.rejects(
-        () => deliverWebhook(`http://127.0.0.1:${port}`, "secret", { test: true }),
-        { message: "Webhook delivery failed: 500" }
-      );
+      await assert.rejects(() => deliverWebhook(`http://127.0.0.1:${port}`, "secret", { test: true }), {
+        message: "Webhook delivery failed: 500",
+      });
     } finally {
       receiver.close();
     }
   });
-
 });
 
 // ── Integration tests ───────────────────────────────────────────────
@@ -691,22 +705,28 @@ describe("API", async () => {
 
     it("filters by status=open and includes replies", async () => {
       const uri = "https://example.com/status-open";
-      const c1 = await (await fetch(`${BASE}/comments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uri, quote: "q1", body: "open one", author: "a" }),
-      })).json();
+      const c1 = await (
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ uri, quote: "q1", body: "open one", author: "a" }),
+        })
+      ).json();
       // Add a reply to the open root
-      const r1 = await (await fetch(`${BASE}/comments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uri, body: "reply to open", author: "a", parent: c1.id }),
-      })).json();
-      const c2 = await (await fetch(`${BASE}/comments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uri, quote: "q2", body: "closed one", author: "a" }),
-      })).json();
+      const r1 = await (
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ uri, body: "reply to open", author: "a", parent: c1.id }),
+        })
+      ).json();
+      const c2 = await (
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ uri, quote: "q2", body: "closed one", author: "a" }),
+        })
+      ).json();
       await fetch(`${BASE}/comments/${c2.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -725,22 +745,28 @@ describe("API", async () => {
 
     it("filters by status=closed and includes replies", async () => {
       const uri = "https://example.com/status-closed";
-      const c1 = await (await fetch(`${BASE}/comments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uri, quote: "q1", body: "open one", author: "a" }),
-      })).json();
-      const c2 = await (await fetch(`${BASE}/comments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uri, quote: "q2", body: "closed one", author: "a" }),
-      })).json();
+      const c1 = await (
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ uri, quote: "q1", body: "open one", author: "a" }),
+        })
+      ).json();
+      const c2 = await (
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ uri, quote: "q2", body: "closed one", author: "a" }),
+        })
+      ).json();
       // Add a reply to c2 before closing it
-      const r2 = await (await fetch(`${BASE}/comments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uri, body: "reply to closed", author: "a", parent: c2.id }),
-      })).json();
+      const r2 = await (
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ uri, body: "reply to closed", author: "a", parent: c2.id }),
+        })
+      ).json();
       await fetch(`${BASE}/comments/${c2.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -759,16 +785,20 @@ describe("API", async () => {
 
     it("returns all when no status param, replies have null status", async () => {
       const uri = "https://example.com/status-all";
-      const c1 = await (await fetch(`${BASE}/comments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uri, quote: "q1", body: "open one", author: "a" }),
-      })).json();
-      await (await fetch(`${BASE}/comments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uri, quote: "q2", body: "closed one", author: "a" }),
-      })).json();
+      const c1 = await (
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ uri, quote: "q1", body: "open one", author: "a" }),
+        })
+      ).json();
+      await (
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ uri, quote: "q2", body: "closed one", author: "a" }),
+        })
+      ).json();
       // Add a reply
       await fetch(`${BASE}/comments`, {
         method: "POST",
@@ -788,11 +818,13 @@ describe("API", async () => {
     });
 
     it("returns 400 for invalid status", async () => {
-      const c = await (await fetch(`${BASE}/comments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uri: "https://example.com/status-invalid", quote: "q", body: "b", author: "a" }),
-      })).json();
+      const c = await (
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ uri: "https://example.com/status-invalid", quote: "q", body: "b", author: "a" }),
+        })
+      ).json();
 
       const res = await fetch(`${BASE}/comments?document=${c.document}&status=invalid`);
       assert.equal(res.status, 400);
@@ -802,22 +834,26 @@ describe("API", async () => {
 
     it("status filter works with uri param", async () => {
       const uri = "https://example.com/status-uri-filter";
-      const c1 = await (await fetch(`${BASE}/comments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uri, quote: "q1", body: "open one", author: "a" }),
-      })).json();
+      const c1 = await (
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ uri, quote: "q1", body: "open one", author: "a" }),
+        })
+      ).json();
       // Add reply to open root
       await fetch(`${BASE}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ uri, body: "reply", author: "a", parent: c1.id }),
       });
-      const c2 = await (await fetch(`${BASE}/comments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uri, quote: "q2", body: "closed one", author: "a" }),
-      })).json();
+      const c2 = await (
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ uri, quote: "q2", body: "closed one", author: "a" }),
+        })
+      ).json();
       await fetch(`${BASE}/comments/${c2.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -1002,16 +1038,20 @@ describe("API", async () => {
     it("GET /comments?status=open without document/uri returns cross-document results", async () => {
       const uri1 = "https://example.com/cross-doc-1";
       const uri2 = "https://example.com/cross-doc-2";
-      const c1 = await (await fetch(`${BASE}/comments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uri: uri1, quote: "q1", body: "open doc1", author: "a" }),
-      })).json();
-      const c2 = await (await fetch(`${BASE}/comments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uri: uri2, quote: "q2", body: "open doc2", author: "a" }),
-      })).json();
+      const c1 = await (
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ uri: uri1, quote: "q1", body: "open doc1", author: "a" }),
+        })
+      ).json();
+      const c2 = await (
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ uri: uri2, quote: "q2", body: "open doc2", author: "a" }),
+        })
+      ).json();
       // Add reply to c1
       await fetch(`${BASE}/comments`, {
         method: "POST",
@@ -1040,11 +1080,13 @@ describe("API", async () => {
 
     it("GET /comments?document=X&expand=document hydrates document object", async () => {
       const uri = "https://example.com/expand-test";
-      const c = await (await fetch(`${BASE}/comments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uri, quote: "q", body: "b", author: "a" }),
-      })).json();
+      const c = await (
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ uri, quote: "q", body: "b", author: "a" }),
+        })
+      ).json();
 
       const res = await fetch(`${BASE}/comments?document=${c.document}&expand=document`);
       const json = await res.json();
@@ -1056,11 +1098,13 @@ describe("API", async () => {
 
     it("GET /comments?status=open&expand=document cross-document with hydration", async () => {
       const uri = "https://example.com/expand-cross";
-      const c = await (await fetch(`${BASE}/comments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uri, quote: "q", body: "b", author: "a" }),
-      })).json();
+      const c = await (
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ uri, quote: "q", body: "b", author: "a" }),
+        })
+      ).json();
 
       const res = await fetch(`${BASE}/comments?status=open&expand=document`);
       const json = await res.json();
@@ -1073,11 +1117,13 @@ describe("API", async () => {
 
     it("GET /comments/:id?expand=document hydrates on single-resource fetch", async () => {
       const uri = "https://example.com/expand-single";
-      const c = await (await fetch(`${BASE}/comments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uri, quote: "q", body: "b", author: "a" }),
-      })).json();
+      const c = await (
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ uri, quote: "q", body: "b", author: "a" }),
+        })
+      ).json();
 
       const res = await fetch(`${BASE}/comments/${c.id}?expand=document`);
       const json = await res.json();
@@ -1090,16 +1136,25 @@ describe("API", async () => {
 
   describe("PATCH /comments/:id reply guards", () => {
     it("returns 400 when setting status on a reply", async () => {
-      const parent = await (await fetch(`${BASE}/comments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uri: "https://example.com/patch-reply", quote: "q", body: "parent", author: "a" }),
-      })).json();
-      const reply = await (await fetch(`${BASE}/comments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uri: "https://example.com/patch-reply", body: "reply", author: "a", parent: parent.id }),
-      })).json();
+      const parent = await (
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ uri: "https://example.com/patch-reply", quote: "q", body: "parent", author: "a" }),
+        })
+      ).json();
+      const reply = await (
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            uri: "https://example.com/patch-reply",
+            body: "reply",
+            author: "a",
+            parent: parent.id,
+          }),
+        })
+      ).json();
 
       const res = await fetch(`${BASE}/comments/${reply.id}`, {
         method: "PATCH",
@@ -1112,16 +1167,30 @@ describe("API", async () => {
     });
 
     it("allows updating body on a reply", async () => {
-      const parent = await (await fetch(`${BASE}/comments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uri: "https://example.com/patch-reply-body", quote: "q", body: "parent", author: "a" }),
-      })).json();
-      const reply = await (await fetch(`${BASE}/comments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uri: "https://example.com/patch-reply-body", body: "old reply", author: "a", parent: parent.id }),
-      })).json();
+      const parent = await (
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            uri: "https://example.com/patch-reply-body",
+            quote: "q",
+            body: "parent",
+            author: "a",
+          }),
+        })
+      ).json();
+      const reply = await (
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            uri: "https://example.com/patch-reply-body",
+            body: "old reply",
+            author: "a",
+            parent: parent.id,
+          }),
+        })
+      ).json();
 
       const res = await fetch(`${BASE}/comments/${reply.id}`, {
         method: "PATCH",
@@ -1171,11 +1240,13 @@ describe("API", async () => {
 
   describe("POST /comments/:id/reactions", () => {
     it("adds a reaction to a comment", async () => {
-      const cmt = await (await fetch(`${BASE}/comments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uri: "https://example.com/react", quote: "q", body: "b", author: "a" }),
-      })).json();
+      const cmt = await (
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ uri: "https://example.com/react", quote: "q", body: "b", author: "a" }),
+        })
+      ).json();
 
       const res = await fetch(`${BASE}/comments/${cmt.id}/reactions`, {
         method: "POST",
@@ -1192,11 +1263,13 @@ describe("API", async () => {
     });
 
     it("multiple authors can react with same emoji", async () => {
-      const cmt = await (await fetch(`${BASE}/comments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uri: "https://example.com/react2", quote: "q", body: "b", author: "a" }),
-      })).json();
+      const cmt = await (
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ uri: "https://example.com/react2", quote: "q", body: "b", author: "a" }),
+        })
+      ).json();
 
       await fetch(`${BASE}/comments/${cmt.id}/reactions`, {
         method: "POST",
@@ -1214,11 +1287,13 @@ describe("API", async () => {
     });
 
     it("same author reacting twice with same emoji is idempotent", async () => {
-      const cmt = await (await fetch(`${BASE}/comments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uri: "https://example.com/react3", quote: "q", body: "b", author: "a" }),
-      })).json();
+      const cmt = await (
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ uri: "https://example.com/react3", quote: "q", body: "b", author: "a" }),
+        })
+      ).json();
 
       await fetch(`${BASE}/comments/${cmt.id}/reactions`, {
         method: "POST",
@@ -1236,11 +1311,13 @@ describe("API", async () => {
     });
 
     it("returns 400 for disallowed emoji", async () => {
-      const cmt = await (await fetch(`${BASE}/comments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uri: "https://example.com/react4", quote: "q", body: "b", author: "a" }),
-      })).json();
+      const cmt = await (
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ uri: "https://example.com/react4", quote: "q", body: "b", author: "a" }),
+        })
+      ).json();
 
       const res = await fetch(`${BASE}/comments/${cmt.id}/reactions`, {
         method: "POST",
@@ -1253,11 +1330,13 @@ describe("API", async () => {
     });
 
     it("returns 400 when emoji or author missing", async () => {
-      const cmt = await (await fetch(`${BASE}/comments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uri: "https://example.com/react5", quote: "q", body: "b", author: "a" }),
-      })).json();
+      const cmt = await (
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ uri: "https://example.com/react5", quote: "q", body: "b", author: "a" }),
+        })
+      ).json();
 
       const res1 = await fetch(`${BASE}/comments/${cmt.id}/reactions`, {
         method: "POST",
@@ -1286,11 +1365,13 @@ describe("API", async () => {
 
   describe("DELETE /comments/:id/reactions/:emoji", () => {
     it("removes a reaction", async () => {
-      const cmt = await (await fetch(`${BASE}/comments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uri: "https://example.com/unreact", quote: "q", body: "b", author: "a" }),
-      })).json();
+      const cmt = await (
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ uri: "https://example.com/unreact", quote: "q", body: "b", author: "a" }),
+        })
+      ).json();
 
       await fetch(`${BASE}/comments/${cmt.id}/reactions`, {
         method: "POST",
@@ -1298,45 +1379,44 @@ describe("API", async () => {
         body: JSON.stringify({ emoji: "👍", author: "Alice" }),
       });
 
-      const res = await fetch(
-        `${BASE}/comments/${cmt.id}/reactions/${encodeURIComponent("👍")}?author=Alice`,
-        { method: "DELETE" }
-      );
+      const res = await fetch(`${BASE}/comments/${cmt.id}/reactions/${encodeURIComponent("👍")}?author=Alice`, {
+        method: "DELETE",
+      });
       assert.equal(res.status, 200);
       const json = await res.json();
       assert.equal(json.reactions.length, 0);
     });
 
     it("returns 400 when author query param missing", async () => {
-      const cmt = await (await fetch(`${BASE}/comments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uri: "https://example.com/unreact2", quote: "q", body: "b", author: "a" }),
-      })).json();
+      const cmt = await (
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ uri: "https://example.com/unreact2", quote: "q", body: "b", author: "a" }),
+        })
+      ).json();
 
-      const res = await fetch(
-        `${BASE}/comments/${cmt.id}/reactions/${encodeURIComponent("👍")}`,
-        { method: "DELETE" }
-      );
+      const res = await fetch(`${BASE}/comments/${cmt.id}/reactions/${encodeURIComponent("👍")}`, { method: "DELETE" });
       assert.equal(res.status, 400);
     });
 
     it("returns 404 for nonexistent comment", async () => {
-      const res = await fetch(
-        `${BASE}/comments/cmt_nonexistent/reactions/${encodeURIComponent("👍")}?author=Alice`,
-        { method: "DELETE" }
-      );
+      const res = await fetch(`${BASE}/comments/cmt_nonexistent/reactions/${encodeURIComponent("👍")}?author=Alice`, {
+        method: "DELETE",
+      });
       assert.equal(res.status, 404);
     });
   });
 
   describe("GET /comments includes reactions", () => {
     it("returns reactions array on each comment", async () => {
-      const cmt = await (await fetch(`${BASE}/comments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uri: "https://example.com/react-list", quote: "q", body: "b", author: "a" }),
-      })).json();
+      const cmt = await (
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ uri: "https://example.com/react-list", quote: "q", body: "b", author: "a" }),
+        })
+      ).json();
 
       await fetch(`${BASE}/comments/${cmt.id}/reactions`, {
         method: "POST",
@@ -1353,17 +1433,19 @@ describe("API", async () => {
       const json = await res.json();
       assert.equal(json.data.length, 1);
       assert.equal(json.data[0].reactions.length, 2);
-      const thumbs = json.data[0].reactions.find(r => r.emoji === "👍");
+      const thumbs = json.data[0].reactions.find((r) => r.emoji === "👍");
       assert.equal(thumbs.count, 1);
       assert.deepEqual(thumbs.authors, ["Alice"]);
     });
 
     it("returns empty reactions array when no reactions", async () => {
-      const cmt = await (await fetch(`${BASE}/comments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uri: "https://example.com/react-empty", quote: "q", body: "b", author: "a" }),
-      })).json();
+      const cmt = await (
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ uri: "https://example.com/react-empty", quote: "q", body: "b", author: "a" }),
+        })
+      ).json();
 
       const res = await fetch(`${BASE}/comments?document=${cmt.document}`);
       const json = await res.json();
@@ -1371,11 +1453,13 @@ describe("API", async () => {
     });
 
     it("GET /comments/:id includes reactions", async () => {
-      const cmt = await (await fetch(`${BASE}/comments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uri: "https://example.com/react-single", quote: "q", body: "b", author: "a" }),
-      })).json();
+      const cmt = await (
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ uri: "https://example.com/react-single", quote: "q", body: "b", author: "a" }),
+        })
+      ).json();
 
       await fetch(`${BASE}/comments/${cmt.id}/reactions`, {
         method: "POST",
@@ -1392,11 +1476,13 @@ describe("API", async () => {
 
   describe("Reactions cascade on comment delete", () => {
     it("deleting a comment removes its reactions", async () => {
-      const cmt = await (await fetch(`${BASE}/comments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uri: "https://example.com/react-cascade", quote: "q", body: "b", author: "a" }),
-      })).json();
+      const cmt = await (
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ uri: "https://example.com/react-cascade", quote: "q", body: "b", author: "a" }),
+        })
+      ).json();
 
       await fetch(`${BASE}/comments/${cmt.id}/reactions`, {
         method: "POST",
@@ -1573,11 +1659,13 @@ describe("API", async () => {
 
   describe("GET /webhooks/:id", () => {
     it("retrieves a webhook", async () => {
-      const create = await (await fetch(`${BASE}/webhooks`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: "https://example.com/hook", secret: "s", events: ["comment.created"] }),
-      })).json();
+      const create = await (
+        await fetch(`${BASE}/webhooks`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: "https://example.com/hook", secret: "s", events: ["comment.created"] }),
+        })
+      ).json();
 
       const res = await fetch(`${BASE}/webhooks/${create.id}`);
       const json = await res.json();
@@ -1593,11 +1681,13 @@ describe("API", async () => {
 
   describe("PATCH /webhooks/:id", () => {
     it("updates url", async () => {
-      const create = await (await fetch(`${BASE}/webhooks`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: "https://example.com/hook", secret: "s", events: ["comment.created"] }),
-      })).json();
+      const create = await (
+        await fetch(`${BASE}/webhooks`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: "https://example.com/hook", secret: "s", events: ["comment.created"] }),
+        })
+      ).json();
 
       const res = await fetch(`${BASE}/webhooks/${create.id}`, {
         method: "PATCH",
@@ -1610,11 +1700,13 @@ describe("API", async () => {
     });
 
     it("updates events", async () => {
-      const create = await (await fetch(`${BASE}/webhooks`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: "https://example.com/hook", secret: "s", events: ["comment.created"] }),
-      })).json();
+      const create = await (
+        await fetch(`${BASE}/webhooks`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: "https://example.com/hook", secret: "s", events: ["comment.created"] }),
+        })
+      ).json();
 
       const res = await fetch(`${BASE}/webhooks/${create.id}`, {
         method: "PATCH",
@@ -1626,11 +1718,13 @@ describe("API", async () => {
     });
 
     it("deactivates webhook", async () => {
-      const create = await (await fetch(`${BASE}/webhooks`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: "https://example.com/hook", secret: "s", events: ["comment.created"] }),
-      })).json();
+      const create = await (
+        await fetch(`${BASE}/webhooks`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: "https://example.com/hook", secret: "s", events: ["comment.created"] }),
+        })
+      ).json();
 
       const res = await fetch(`${BASE}/webhooks/${create.id}`, {
         method: "PATCH",
@@ -1642,11 +1736,13 @@ describe("API", async () => {
     });
 
     it("returns 400 for invalid events", async () => {
-      const create = await (await fetch(`${BASE}/webhooks`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: "https://example.com/hook", secret: "s", events: ["comment.created"] }),
-      })).json();
+      const create = await (
+        await fetch(`${BASE}/webhooks`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: "https://example.com/hook", secret: "s", events: ["comment.created"] }),
+        })
+      ).json();
 
       const res = await fetch(`${BASE}/webhooks/${create.id}`, {
         method: "PATCH",
@@ -1657,11 +1753,13 @@ describe("API", async () => {
     });
 
     it("returns 400 for non-http URL on update", async () => {
-      const create = await (await fetch(`${BASE}/webhooks`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: "https://example.com/hook", secret: "s", events: ["comment.created"] }),
-      })).json();
+      const create = await (
+        await fetch(`${BASE}/webhooks`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: "https://example.com/hook", secret: "s", events: ["comment.created"] }),
+        })
+      ).json();
 
       const res = await fetch(`${BASE}/webhooks/${create.id}`, {
         method: "PATCH",
@@ -1674,11 +1772,13 @@ describe("API", async () => {
     });
 
     it("returns 400 for garbage URL string on update", async () => {
-      const create = await (await fetch(`${BASE}/webhooks`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: "https://example.com/hook", secret: "s", events: ["comment.created"] }),
-      })).json();
+      const create = await (
+        await fetch(`${BASE}/webhooks`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: "https://example.com/hook", secret: "s", events: ["comment.created"] }),
+        })
+      ).json();
 
       const res = await fetch(`${BASE}/webhooks/${create.id}`, {
         method: "PATCH",
@@ -1706,11 +1806,13 @@ describe("API", async () => {
         body: JSON.stringify({ url: "https://example.com/hook-a", secret: "s", events: ["comment.created"] }),
       });
 
-      const second = await (await fetch(`${BASE}/webhooks`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: "https://example.com/hook-b", secret: "s", events: ["comment.created"] }),
-      })).json();
+      const second = await (
+        await fetch(`${BASE}/webhooks`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: "https://example.com/hook-b", secret: "s", events: ["comment.created"] }),
+        })
+      ).json();
 
       const res = await fetch(`${BASE}/webhooks/${second.id}`, {
         method: "PATCH",
@@ -1723,11 +1825,13 @@ describe("API", async () => {
     });
 
     it("allows updating a webhook to its own URL", async () => {
-      const create = await (await fetch(`${BASE}/webhooks`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: "https://example.com/hook-self", secret: "s", events: ["comment.created"] }),
-      })).json();
+      const create = await (
+        await fetch(`${BASE}/webhooks`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: "https://example.com/hook-self", secret: "s", events: ["comment.created"] }),
+        })
+      ).json();
 
       const res = await fetch(`${BASE}/webhooks/${create.id}`, {
         method: "PATCH",
@@ -1742,11 +1846,13 @@ describe("API", async () => {
 
   describe("DELETE /webhooks/:id", () => {
     it("deletes a webhook", async () => {
-      const create = await (await fetch(`${BASE}/webhooks`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: "https://example.com/hook", secret: "s", events: ["comment.created"] }),
-      })).json();
+      const create = await (
+        await fetch(`${BASE}/webhooks`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: "https://example.com/hook", secret: "s", events: ["comment.created"] }),
+        })
+      ).json();
 
       const res = await fetch(`${BASE}/webhooks/${create.id}`, { method: "DELETE" });
       const json = await res.json();
@@ -1771,8 +1877,13 @@ describe("API", async () => {
       let receivedPayload;
       const receiver = createServer((req, res) => {
         let data = "";
-        req.on("data", (chunk) => { data += chunk; });
-        req.on("end", () => { receivedPayload = JSON.parse(data); res.writeHead(200).end(); });
+        req.on("data", (chunk) => {
+          data += chunk;
+        });
+        req.on("end", () => {
+          receivedPayload = JSON.parse(data);
+          res.writeHead(200).end();
+        });
       });
       await new Promise((resolve) => receiver.listen(0, "127.0.0.1", resolve));
       const port = receiver.address().port;
@@ -1810,8 +1921,13 @@ describe("API", async () => {
       let receivedPayload;
       const receiver = createServer((req, res) => {
         let data = "";
-        req.on("data", (chunk) => { data += chunk; });
-        req.on("end", () => { receivedPayload = JSON.parse(data); res.writeHead(200).end(); });
+        req.on("data", (chunk) => {
+          data += chunk;
+        });
+        req.on("end", () => {
+          receivedPayload = JSON.parse(data);
+          res.writeHead(200).end();
+        });
       });
       await new Promise((resolve) => receiver.listen(0, "127.0.0.1", resolve));
       const port = receiver.address().port;
@@ -1827,11 +1943,13 @@ describe("API", async () => {
           }),
         });
 
-        const cmt = await (await fetch(`${BASE}/comments`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ uri: "https://example.com/wh-resolve", quote: "q", body: "b", author: "a" }),
-        })).json();
+        const cmt = await (
+          await fetch(`${BASE}/comments`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ uri: "https://example.com/wh-resolve", quote: "q", body: "b", author: "a" }),
+          })
+        ).json();
 
         await fetch(`${BASE}/comments/${cmt.id}`, {
           method: "PATCH",
@@ -1853,8 +1971,13 @@ describe("API", async () => {
       let receivedPayload;
       const receiver = createServer((req, res) => {
         let data = "";
-        req.on("data", (chunk) => { data += chunk; });
-        req.on("end", () => { receivedPayload = JSON.parse(data); res.writeHead(200).end(); });
+        req.on("data", (chunk) => {
+          data += chunk;
+        });
+        req.on("end", () => {
+          receivedPayload = JSON.parse(data);
+          res.writeHead(200).end();
+        });
       });
       await new Promise((resolve) => receiver.listen(0, "127.0.0.1", resolve));
       const port = receiver.address().port;
@@ -1870,11 +1993,13 @@ describe("API", async () => {
           }),
         });
 
-        const cmt = await (await fetch(`${BASE}/comments`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ uri: "https://example.com/wh-delete", quote: "q", body: "b", author: "a" }),
-        })).json();
+        const cmt = await (
+          await fetch(`${BASE}/comments`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ uri: "https://example.com/wh-delete", quote: "q", body: "b", author: "a" }),
+          })
+        ).json();
 
         await fetch(`${BASE}/comments/${cmt.id}`, { method: "DELETE" });
 
@@ -1898,15 +2023,17 @@ describe("API", async () => {
       const port = receiver.address().port;
 
       try {
-        const wh = await (await fetch(`${BASE}/webhooks`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            url: `http://127.0.0.1:${port}`,
-            secret: "test-secret",
-            events: ["comment.created"],
-          }),
-        })).json();
+        const wh = await (
+          await fetch(`${BASE}/webhooks`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              url: `http://127.0.0.1:${port}`,
+              secret: "test-secret",
+              events: ["comment.created"],
+            }),
+          })
+        ).json();
 
         // Deactivate
         await fetch(`${BASE}/webhooks/${wh.id}`, {
@@ -1944,7 +2071,7 @@ describe("API", async () => {
           body: JSON.stringify({
             url: `http://127.0.0.1:${port}`,
             secret: "test-secret",
-            events: ["comment.resolved"],  // Only subscribed to resolved
+            events: ["comment.resolved"], // Only subscribed to resolved
           }),
         });
 
@@ -1967,8 +2094,13 @@ describe("API", async () => {
       const receiver = createServer((req, res) => {
         receivedSignature = req.headers["x-remarq-signature"];
         let data = "";
-        req.on("data", (chunk) => { data += chunk; });
-        req.on("end", () => { receivedBody = data; res.writeHead(200).end(); });
+        req.on("data", (chunk) => {
+          data += chunk;
+        });
+        req.on("end", () => {
+          receivedBody = data;
+          res.writeHead(200).end();
+        });
       });
       await new Promise((resolve) => receiver.listen(0, "127.0.0.1", resolve));
       const port = receiver.address().port;

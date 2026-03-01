@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.1.0] - 2026-02-15
 
 ### Added
+
 - **Full Mermaid diagram support** - annotations now work on all Mermaid diagram types including:
   - Flowcharts and graphs (HTML-based rendering)
   - Sequence diagrams (SVG-based rendering)
@@ -24,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Click-to-jump functionality works on all diagram types
 
 ### Fixed
+
 - SVG highlight positioning in transformed groups (ERD entities)
 - Click event propagation through highlight overlays to underlying text
 - Proper separation of HTML vs SVG highlighting strategies
@@ -31,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2024-02-14
 
 ### Added
+
 - Initial public release
 - Collaborative commenting and highlighting for HTML documents
 - Threaded replies with resolve/unresolve functionality

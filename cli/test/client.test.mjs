@@ -28,9 +28,7 @@ describe("RemarqClient", async () => {
           res.end(body);
         } else if (url.pathname === "/query") {
           res.writeHead(200, { "Content-Type": "application/json" });
-          res.end(
-            JSON.stringify(Object.fromEntries(url.searchParams))
-          );
+          res.end(JSON.stringify(Object.fromEntries(url.searchParams)));
         } else if (url.pathname === "/error") {
           res.writeHead(400, { "Content-Type": "application/json" });
           res.end(JSON.stringify({ error: { message: "Bad request" } }));
@@ -113,11 +111,14 @@ describe("RemarqClient", async () => {
 
   it("throws on 4xx errors with message", async () => {
     const client = new RemarqClient(BASE);
-    await assert.rejects(() => client.request("GET", "/error"), (err) => {
-      assert.equal(err.message, "Bad request");
-      assert.equal(err.status, 400);
-      return true;
-    });
+    await assert.rejects(
+      () => client.request("GET", "/error"),
+      (err) => {
+        assert.equal(err.message, "Bad request");
+        assert.equal(err.status, 400);
+        return true;
+      },
+    );
   });
 
   it("throws on 5xx errors with generic message", async () => {
@@ -128,7 +129,7 @@ describe("RemarqClient", async () => {
         assert.equal(err.message, "HTTP 500");
         assert.equal(err.status, 500);
         return true;
-      }
+      },
     );
   });
 

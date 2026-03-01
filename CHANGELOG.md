@@ -36,6 +36,6 @@
 
 - Pre-commit hook to auto-rebuild feedback-layer bundle (#170)
 - Pull request template (#172)
-- Extract pure functions to utils/ directory, remove _testExports (#110)
+- Extract pure functions to utils/ directory, remove \_testExports (#110)
 - Expand unit test coverage: client tests + server edge cases (#104)
 - Remove default Postgres password — fail-fast pattern (#51)

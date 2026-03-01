@@ -29,7 +29,7 @@ describe("escapeHtml", async () => {
   it("handles all special chars together", () => {
     assert.equal(
       escapeHtml(`<script>alert("x&y")</script>`),
-      "&lt;script&gt;alert(&quot;x&amp;y&quot;)&lt;/script&gt;"
+      "&lt;script&gt;alert(&quot;x&amp;y&quot;)&lt;/script&gt;",
     );
   });
 
@@ -44,9 +44,7 @@ describe("formatComments", async () => {
   const { formatComments } = await import("../src/utils/format-comments.js");
 
   it("formats a single comment", () => {
-    const result = formatComments([
-      { id: "c1", author: "Alice", quote: "hello world", body: "Fix typo" },
-    ]);
+    const result = formatComments([{ id: "c1", author: "Alice", quote: "hello world", body: "Fix typo" }]);
     assert.ok(result.includes("**1. [Alice]**"));
     assert.ok(result.includes('Highlighted text: "hello world"'));
     assert.ok(result.includes("Comment: Fix typo"));
@@ -75,9 +73,7 @@ describe("formatComments", async () => {
   });
 
   it("handles comment without quote", () => {
-    const result = formatComments([
-      { id: "c1", author: "Alice", body: "general note" },
-    ]);
+    const result = formatComments([{ id: "c1", author: "Alice", body: "general note" }]);
     assert.ok(result.includes("Comment: general note"));
     assert.ok(!result.includes("Highlighted text"));
   });
@@ -89,9 +85,7 @@ describe("buildPrompt", async () => {
   const { buildPrompt } = await import("../src/prompt-builder.js");
 
   it("includes document HTML", () => {
-    const prompt = buildPrompt("<p>Hello</p>", [
-      { id: "c1", author: "A", quote: "q", body: "b" },
-    ]);
+    const prompt = buildPrompt("<p>Hello</p>", [{ id: "c1", author: "A", quote: "q", body: "b" }]);
     assert.ok(prompt.includes("<p>Hello</p>"));
   });
 
@@ -104,18 +98,14 @@ describe("buildPrompt", async () => {
   });
 
   it("includes instructions section", () => {
-    const prompt = buildPrompt("<p>Doc</p>", [
-      { id: "c1", author: "A", quote: "q", body: "b" },
-    ]);
+    const prompt = buildPrompt("<p>Doc</p>", [{ id: "c1", author: "A", quote: "q", body: "b" }]);
     assert.ok(prompt.includes("## Instructions"));
     assert.ok(prompt.includes("### Revised Document"));
     assert.ok(prompt.includes("### Changelog"));
   });
 
   it("includes formatted comments", () => {
-    const prompt = buildPrompt("<p>Doc</p>", [
-      { id: "c1", author: "Alice", quote: "highlighted", body: "fix this" },
-    ]);
+    const prompt = buildPrompt("<p>Doc</p>", [{ id: "c1", author: "Alice", quote: "highlighted", body: "fix this" }]);
     assert.ok(prompt.includes("**1. [Alice]**"));
     assert.ok(prompt.includes("fix this"));
   });
@@ -333,10 +323,16 @@ describe("injectPrintHideStyles", async () => {
     globalThis.document = {
       createElement(tag) {
         const el = { tagName: tag, attrs: {}, textContent: "" };
-        el.setAttribute = (k, v) => { el.attrs[k] = v; };
+        el.setAttribute = (k, v) => {
+          el.attrs[k] = v;
+        };
         return el;
       },
-      head: { appendChild(el) { appended.push(el); } },
+      head: {
+        appendChild(el) {
+          appended.push(el);
+        },
+      },
     };
 
     try {

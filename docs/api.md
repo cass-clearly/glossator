@@ -41,6 +41,7 @@ curl "http://localhost:3000/comments?uri=https://example.com/article&status=open
 ## Base URL
 
 When running locally:
+
 ```
 http://localhost:3000
 ```
@@ -58,6 +59,7 @@ When deployed, replace with your server's URL.
 Check if the server is running.
 
 **Response:**
+
 ```json
 {
   "status": "ok"
@@ -65,9 +67,11 @@ Check if the server is running.
 ```
 
 **Status Codes:**
+
 - `200 OK` — Server is healthy
 
 **Example:**
+
 ```bash
 curl http://localhost:3000/health
 ```
@@ -81,6 +85,7 @@ curl http://localhost:3000/health
 List all documents.
 
 **Response:**
+
 ```json
 {
   "object": "list",
@@ -96,9 +101,11 @@ List all documents.
 ```
 
 **Status Codes:**
+
 - `200 OK` — Returns list of documents
 
 **Example:**
+
 ```bash
 curl http://localhost:3000/documents
 ```
@@ -110,6 +117,7 @@ curl http://localhost:3000/documents
 Create a new document (or return existing if URI already exists).
 
 **Request Body:**
+
 ```json
 {
   "uri": "https://example.com/article"
@@ -117,6 +125,7 @@ Create a new document (or return existing if URI already exists).
 ```
 
 **Response (201 Created):**
+
 ```json
 {
   "id": "doc_k3mXp9q2aBvN",
@@ -127,6 +136,7 @@ Create a new document (or return existing if URI already exists).
 ```
 
 **Response (200 OK, if document already exists):**
+
 ```json
 {
   "id": "doc_k3mXp9q2aBvN",
@@ -137,11 +147,13 @@ Create a new document (or return existing if URI already exists).
 ```
 
 **Status Codes:**
+
 - `201 Created` — Document was created
 - `200 OK` — Document already existed
 - `400 Bad Request` — Missing or invalid URI
 
 **Error Response (400):**
+
 ```json
 {
   "error": {
@@ -151,6 +163,7 @@ Create a new document (or return existing if URI already exists).
 ```
 
 **Example:**
+
 ```bash
 curl -X POST http://localhost:3000/documents \
   -H "Content-Type: application/json" \
@@ -158,6 +171,7 @@ curl -X POST http://localhost:3000/documents \
 ```
 
 **Notes:**
+
 - URIs are automatically normalized (lowercased scheme/host, sorted query params, etc.)
 - Duplicate URIs return the existing document with `200 OK` instead of creating a new one
 
@@ -168,9 +182,11 @@ curl -X POST http://localhost:3000/documents \
 Get a single document by ID.
 
 **Parameters:**
+
 - `id` (path, required) — Document ID (e.g., `doc_k3mXp9q2aBvN`)
 
 **Response (200 OK):**
+
 ```json
 {
   "id": "doc_k3mXp9q2aBvN",
@@ -181,10 +197,12 @@ Get a single document by ID.
 ```
 
 **Status Codes:**
+
 - `200 OK` — Document found
 - `404 Not Found` — Document not found
 
 **Error Response (404):**
+
 ```json
 {
   "error": {
@@ -194,6 +212,7 @@ Get a single document by ID.
 ```
 
 **Example:**
+
 ```bash
 curl http://localhost:3000/documents/doc_k3mXp9q2aBvN
 ```
@@ -205,9 +224,11 @@ curl http://localhost:3000/documents/doc_k3mXp9q2aBvN
 Delete a document and all its comments.
 
 **Parameters:**
+
 - `id` (path, required) — Document ID
 
 **Response (200 OK):**
+
 ```json
 {
   "id": "doc_k3mXp9q2aBvN",
@@ -218,15 +239,18 @@ Delete a document and all its comments.
 ```
 
 **Status Codes:**
+
 - `200 OK` — Document deleted
 - `404 Not Found` — Document not found
 
 **Example:**
+
 ```bash
 curl -X DELETE http://localhost:3000/documents/doc_k3mXp9q2aBvN
 ```
 
 **Notes:**
+
 - Deleting a document cascades to all comments on that document
 
 ---
@@ -238,6 +262,7 @@ curl -X DELETE http://localhost:3000/documents/doc_k3mXp9q2aBvN
 List comments with optional filtering.
 
 **Query Parameters:**
+
 - `document` (optional) — Filter by document ID
 - `uri` (optional) — Filter by document URI (alternative to `document`)
 - `status` (optional) — Filter by status (`open` or `closed`)
@@ -245,6 +270,7 @@ List comments with optional filtering.
 - `expand` (optional) — Set to `document` to hydrate document objects
 
 **Response:**
+
 ```json
 {
   "object": "list",
@@ -280,10 +306,12 @@ List comments with optional filtering.
 ```
 
 **Status Codes:**
+
 - `200 OK` — Returns list of comments
 - `400 Bad Request` — Invalid status value
 
 **Error Response (400):**
+
 ```json
 {
   "error": {
@@ -309,6 +337,7 @@ curl "http://localhost:3000/comments?document=doc_k3mXp9q2aBvN&expand=document"
 ```
 
 **Notes:**
+
 - Replies always have `status: null` (only top-level comments have status)
 - When filtering by status, replies to matching top-level comments are included
 - `expand=document` replaces the document ID with the full document object
@@ -320,6 +349,7 @@ curl "http://localhost:3000/comments?document=doc_k3mXp9q2aBvN&expand=document"
 Create a new comment or reply.
 
 **Request Body (top-level comment):**
+
 ```json
 {
   "uri": "https://example.com/article",
@@ -332,6 +362,7 @@ Create a new comment or reply.
 ```
 
 **Request Body (reply):**
+
 ```json
 {
   "document": "doc_k3mXp9q2aBvN",
@@ -342,6 +373,7 @@ Create a new comment or reply.
 ```
 
 **Required Fields:**
+
 - `body` (string) — Comment text
 - `author` (string) — Author name
 - `uri` OR `document` (string) — Document URI or ID
@@ -349,10 +381,12 @@ Create a new comment or reply.
 - `parent` (string, optional) — Parent comment ID (for replies)
 
 **Optional Fields:**
+
 - `prefix` (string) — Text context before the quote
 - `suffix` (string) — Text context after the quote
 
 **Response (201 Created):**
+
 ```json
 {
   "id": "cmt_abc123",
@@ -370,6 +404,7 @@ Create a new comment or reply.
 ```
 
 **Status Codes:**
+
 - `201 Created` — Comment created
 - `400 Bad Request` — Missing required fields or invalid data
 - `404 Not Found` — Referenced document ID does not exist
@@ -377,6 +412,7 @@ Create a new comment or reply.
 **Error Responses:**
 
 Missing body or author:
+
 ```json
 {
   "error": {
@@ -386,6 +422,7 @@ Missing body or author:
 ```
 
 Missing quote for top-level comment:
+
 ```json
 {
   "error": {
@@ -395,6 +432,7 @@ Missing quote for top-level comment:
 ```
 
 Missing uri or document:
+
 ```json
 {
   "error": {
@@ -404,6 +442,7 @@ Missing uri or document:
 ```
 
 Document not found:
+
 ```json
 {
   "error": {
@@ -437,6 +476,7 @@ curl -X POST http://localhost:3000/comments \
 ```
 
 **Notes:**
+
 - If using `uri`, the document will be auto-created if it doesn't exist
 - Top-level comments default to `status: "open"`
 - Replies have `status: null` and cannot be resolved/closed independently
@@ -449,10 +489,12 @@ curl -X POST http://localhost:3000/comments \
 Get a single comment by ID.
 
 **Parameters:**
+
 - `id` (path, required) — Comment ID (e.g., `cmt_abc123`)
 - `expand` (query, optional) — Set to `document` to hydrate document object
 
 **Response (200 OK):**
+
 ```json
 {
   "id": "cmt_abc123",
@@ -470,10 +512,12 @@ Get a single comment by ID.
 ```
 
 **Status Codes:**
+
 - `200 OK` — Comment found
 - `404 Not Found` — Comment not found
 
 **Error Response (404):**
+
 ```json
 {
   "error": {
@@ -499,9 +543,11 @@ curl "http://localhost:3000/comments/cmt_abc123?expand=document"
 Update a comment's body or status.
 
 **Parameters:**
+
 - `id` (path, required) — Comment ID
 
 **Request Body:**
+
 ```json
 {
   "body": "Updated comment text",
@@ -510,11 +556,13 @@ Update a comment's body or status.
 ```
 
 **Fields:**
+
 - `body` (string, optional) — New comment text
 - `status` (string, optional) — New status (`open` or `closed`)
   - Can only be set on top-level comments, not replies
 
 **Response (200 OK):**
+
 ```json
 {
   "id": "cmt_abc123",
@@ -532,6 +580,7 @@ Update a comment's body or status.
 ```
 
 **Status Codes:**
+
 - `200 OK` — Comment updated
 - `400 Bad Request` — Invalid status value or attempting to set status on a reply
 - `404 Not Found` — Comment not found
@@ -539,6 +588,7 @@ Update a comment's body or status.
 **Error Responses:**
 
 Invalid status:
+
 ```json
 {
   "error": {
@@ -548,6 +598,7 @@ Invalid status:
 ```
 
 Setting status on a reply:
+
 ```json
 {
   "error": {
@@ -582,9 +633,11 @@ curl -X PATCH http://localhost:3000/comments/cmt_abc123 \
 Delete a comment and all its replies.
 
 **Parameters:**
+
 - `id` (path, required) — Comment ID
 
 **Response (200 OK):**
+
 ```json
 {
   "id": "cmt_abc123",
@@ -602,15 +655,18 @@ Delete a comment and all its replies.
 ```
 
 **Status Codes:**
+
 - `200 OK` — Comment deleted
 - `404 Not Found` — Comment not found
 
 **Example:**
+
 ```bash
 curl -X DELETE http://localhost:3000/comments/cmt_abc123
 ```
 
 **Notes:**
+
 - Deleting a comment cascades to all replies on that comment
 
 ---
@@ -642,6 +698,7 @@ All errors follow this format:
 ### Creating a comment without a quote
 
 **Error:**
+
 ```json
 {
   "error": {
@@ -657,6 +714,7 @@ All errors follow this format:
 ### Invalid status filter
 
 **Error:**
+
 ```json
 {
   "error": {
@@ -672,6 +730,7 @@ All errors follow this format:
 ### Setting status on a reply
 
 **Error:**
+
 ```json
 {
   "error": {
@@ -687,6 +746,7 @@ All errors follow this format:
 ### Document not found when creating a comment
 
 **Error:**
+
 ```json
 {
   "error": {
@@ -722,11 +782,11 @@ Register HTTP endpoints to receive notifications when comments are created, reso
 
 ### Events
 
-| Event | Triggered when |
-|-------|----------------|
-| `comment.created` | A new comment or reply is created |
+| Event              | Triggered when                               |
+| ------------------ | -------------------------------------------- |
+| `comment.created`  | A new comment or reply is created            |
 | `comment.resolved` | A root comment's status is set to `"closed"` |
-| `comment.deleted` | A comment is deleted |
+| `comment.deleted`  | A comment is deleted                         |
 
 ### Payload format
 
@@ -737,7 +797,9 @@ Standard webhook payloads are delivered as `POST` requests:
   "event": "comment.created",
   "created_at": "2025-01-01T00:00:00.000Z",
   "data": {
-    "comment": { /* comment object */ }
+    "comment": {
+      /* comment object */
+    }
   }
 }
 ```
@@ -788,11 +850,11 @@ Register a new webhook.
 
 **Request body:**
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `url` | string | Yes | Endpoint URL |
-| `secret` | string | Yes | HMAC-SHA256 signing secret |
-| `events` | string[] | Yes | Events to subscribe to |
+| Field    | Type     | Required | Description                |
+| -------- | -------- | -------- | -------------------------- |
+| `url`    | string   | Yes      | Endpoint URL               |
+| `secret` | string   | Yes      | HMAC-SHA256 signing secret |
+| `events` | string[] | Yes      | Events to subscribe to     |
 
 **Response:** `201` with webhook object. Returns `409` if a webhook with the same URL already exists.
 
@@ -808,11 +870,11 @@ Update a webhook. All fields are optional.
 
 **Request body:**
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `url` | string | New endpoint URL |
-| `events` | string[] | New event subscriptions |
-| `active` | boolean | Enable or disable the webhook |
+| Field    | Type     | Description                   |
+| -------- | -------- | ----------------------------- |
+| `url`    | string   | New endpoint URL              |
+| `events` | string[] | New event subscriptions       |
+| `active` | boolean  | Enable or disable the webhook |
 
 **Response:** Updated webhook object. Returns `404` if not found. Returns `409` if the new URL is already used by another webhook.
 
