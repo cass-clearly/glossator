@@ -43,27 +43,24 @@ cp node_modules/@csalvato/remarq/dist/feedback-layer.js public/
 Then add to your HTML:
 
 ```html
-<script
-  src="/feedback-layer.js"
-  data-api-url="http://localhost:3333"
-  data-content-selector="article"
-></script>
+<script src="/feedback-layer.js" data-api-url="http://localhost:3333" data-content-selector="article"></script>
 ```
 
 ## Configuration
 
 Configure via data attributes on the script tag:
 
-| Attribute | Required | Default | Description |
-|-----------|----------|---------|-------------|
-| `data-api-url` | Yes | - | URL of your Remarq server |
-| `data-content-selector` | No | `"body"` | CSS selector for annotatable content |
-| `data-document-uri` | No | `window.location.pathname` | Unique identifier for this document |
-| `data-theme` | No | `"auto"` | Color theme: `"auto"` (follows OS), `"dark"`, or `"light"` |
+| Attribute               | Required | Default                    | Description                                                |
+| ----------------------- | -------- | -------------------------- | ---------------------------------------------------------- |
+| `data-api-url`          | Yes      | -                          | URL of your Remarq server                                  |
+| `data-content-selector` | No       | `"body"`                   | CSS selector for annotatable content                       |
+| `data-document-uri`     | No       | `window.location.pathname` | Unique identifier for this document                        |
+| `data-theme`            | No       | `"auto"`                   | Color theme: `"auto"` (follows OS), `"dark"`, or `"light"` |
 
 ### Examples
 
 **Annotate just the main article:**
+
 ```html
 <script
   src="https://unpkg.com/@csalvato/remarq@1/dist/feedback-layer.js"
@@ -73,6 +70,7 @@ Configure via data attributes on the script tag:
 ```
 
 **Annotate a specific div:**
+
 ```html
 <script
   src="https://unpkg.com/@csalvato/remarq@1/dist/feedback-layer.js"
@@ -82,6 +80,7 @@ Configure via data attributes on the script tag:
 ```
 
 **Multiple documents on same domain:**
+
 ```html
 <script
   src="https://unpkg.com/@csalvato/remarq@1/dist/feedback-layer.js"
@@ -112,23 +111,23 @@ The server implements these endpoints:
 
 **Documents**
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/documents` | List all documents |
-| `POST` | `/documents` | Create or find a document by URI |
-| `GET` | `/documents/:id` | Retrieve a document |
+| Method   | Endpoint         | Description                        |
+| -------- | ---------------- | ---------------------------------- |
+| `GET`    | `/documents`     | List all documents                 |
+| `POST`   | `/documents`     | Create or find a document by URI   |
+| `GET`    | `/documents/:id` | Retrieve a document                |
 | `DELETE` | `/documents/:id` | Delete a document and its comments |
 
 **Comments**
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/comments?document=<id>` | List comments by document ID |
-| `GET` | `/comments?uri=<url>` | List comments by document URI |
-| `POST` | `/comments` | Create a comment |
-| `GET` | `/comments/:id` | Retrieve a comment |
-| `PATCH` | `/comments/:id` | Update body or status |
-| `DELETE` | `/comments/:id` | Delete a comment and its replies |
+| Method   | Endpoint                  | Description                      |
+| -------- | ------------------------- | -------------------------------- |
+| `GET`    | `/comments?document=<id>` | List comments by document ID     |
+| `GET`    | `/comments?uri=<url>`     | List comments by document URI    |
+| `POST`   | `/comments`               | Create a comment                 |
+| `GET`    | `/comments/:id`           | Retrieve a comment               |
+| `PATCH`  | `/comments/:id`           | Update body or status            |
+| `DELETE` | `/comments/:id`           | Delete a comment and its replies |
 
 ## Usage
 
@@ -167,5 +166,6 @@ MIT
 ## Credits
 
 Built with:
+
 - [Apache Annotator](https://annotator.apache.org/) - Text anchoring
 - [esbuild](https://esbuild.github.io/) - Bundling

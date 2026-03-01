@@ -1,9 +1,5 @@
 function formatDocument(doc) {
-  const lines = [
-    `ID:      ${doc.id}`,
-    `URI:     ${doc.uri}`,
-    `Created: ${doc.created_at}`,
-  ];
+  const lines = [`ID:      ${doc.id}`, `URI:     ${doc.uri}`, `Created: ${doc.created_at}`];
   return lines.join("\n");
 }
 
@@ -13,15 +9,13 @@ function formatComment(comment) {
     `Document: ${typeof comment.document === "object" ? comment.document.id : comment.document}`,
     `Author:   ${comment.author}`,
   ];
-  if (comment.status != null) lines.push(`Status:   ${comment.status}`);
+  if (comment.status !== null && comment.status !== undefined) lines.push(`Status:   ${comment.status}`);
   if (comment.parent) lines.push(`Parent:   ${comment.parent}`);
   if (comment.quote) lines.push(`Quote:    "${comment.quote}"`);
   lines.push(`Body:     ${comment.body}`);
   if (comment.color) lines.push(`Color:    ${comment.color}`);
   if (comment.reactions && comment.reactions.length > 0) {
-    const rxn = comment.reactions
-      .map((r) => `${r.emoji} (${r.count})`)
-      .join("  ");
+    const rxn = comment.reactions.map((r) => `${r.emoji} (${r.count})`).join("  ");
     lines.push(`Reactions: ${rxn}`);
   }
   lines.push(`Created:  ${comment.created_at}`);
@@ -67,7 +61,7 @@ function genericFormat(data) {
   }
 
   if (data.object === "document") return formatDocument(data);
-  if (data.object === "comment")  return formatComment(data);
+  if (data.object === "comment") return formatComment(data);
 
   // Reaction response: { comment_id, reactions }
   if (Object.prototype.hasOwnProperty.call(data, "comment_id")) {

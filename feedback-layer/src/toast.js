@@ -57,5 +57,7 @@ function removeToast(toast) {
   toast.classList.remove("fb-toast-visible");
   toast.addEventListener("transitionend", () => toast.remove(), { once: true });
   // Fallback removal if transitionend doesn't fire
-  setTimeout(() => { if (toast.parentNode) toast.remove(); }, 300);
+  setTimeout(() => {
+    if (toast.parentNode) toast.remove();
+  }, 300);
 }

@@ -15,33 +15,19 @@ export function setBaseUrl(url) {
  */
 async function throwIfNotOk(res, fallbackMessage) {
   if (res.ok) return;
-  const err = await res
-    .json()
-    .catch(() => ({ error: { message: res.statusText } }));
+  const err = await res.json().catch(() => ({ error: { message: res.statusText } }));
   throw new Error(err.error?.message || `${fallbackMessage}: ${res.status}`);
 }
 
 export async function fetchComments(uri, documentId) {
-  const query = documentId
-    ? `document=${encodeURIComponent(documentId)}`
-    : `uri=${encodeURIComponent(uri)}`;
+  const query = documentId ? `document=${encodeURIComponent(documentId)}` : `uri=${encodeURIComponent(uri)}`;
   const res = await fetch(`${_baseUrl}/comments?${query}`);
   await throwIfNotOk(res, "Failed to fetch comments");
   const json = await res.json();
   return json.data;
 }
 
-export async function createComment({
-  uri,
-  document,
-  quote,
-  prefix,
-  suffix,
-  body,
-  author,
-  parent,
-  color,
-}) {
+export async function createComment({ uri, document, quote, prefix, suffix, body, author, parent, color }) {
   const payload = { quote, prefix, suffix, body, author, parent };
   if (color) payload.color = color;
   if (document) {
@@ -101,7 +87,7 @@ export async function addReaction(commentId, emoji, author) {
 export async function removeReaction(commentId, emoji, author) {
   const res = await fetch(
     `${_baseUrl}/comments/${commentId}/reactions/${encodeURIComponent(emoji)}?author=${encodeURIComponent(author)}`,
-    { method: "DELETE" }
+    { method: "DELETE" },
   );
   await throwIfNotOk(res, "Failed to remove reaction");
   return res.json();

@@ -35,7 +35,9 @@ async function retryWithBackoff(fn, { maxAttempts = 3, baseDelay = 1000 } = {}) 
     } catch (err) {
       if (attempt === maxAttempts) throw err;
       const delay = baseDelay * Math.pow(2, attempt - 1);
-      await new Promise((resolve) => setTimeout(resolve, delay));
+      await new Promise((resolve) => {
+        setTimeout(resolve, delay);
+      });
     }
   }
 }
@@ -50,10 +52,9 @@ function triggerEvent(pool, eventType, data) {
 }
 
 async function _dispatchWebhooks(pool, eventType, data) {
-  const { rows: webhooks } = await pool.query(
-    "SELECT * FROM webhooks WHERE active = true AND $1 = ANY(events)",
-    [eventType]
-  );
+  const { rows: webhooks } = await pool.query("SELECT * FROM webhooks WHERE active = true AND $1 = ANY(events)", [
+    eventType,
+  ]);
 
   const payload = {
     event: eventType,

@@ -33,9 +33,9 @@ const { ALLOWED_REACTION_EMOJIS } = require("../shared/emoji-constants.js");
 const documentSchema = {
   type: "object",
   properties: {
-    id:         { type: "string", example: "doc_abc123" },
-    object:     { type: "string", enum: ["document"] },
-    uri:        { type: "string", example: "https://example.com/page.html" },
+    id: { type: "string", example: "doc_abc123" },
+    object: { type: "string", enum: ["document"] },
+    uri: { type: "string", example: "https://example.com/page.html" },
     created_at: { type: "string", format: "date-time" },
   },
 };
@@ -43,24 +43,24 @@ const documentSchema = {
 const commentSchema = {
   type: "object",
   properties: {
-    id:         { type: "string", example: "cmt_abc123" },
-    object:     { type: "string", enum: ["comment"] },
-    document:   { type: "string", example: "doc_abc123" },
-    quote:      { type: "string", nullable: true },
-    prefix:     { type: "string", nullable: true },
-    suffix:     { type: "string", nullable: true },
-    body:       { type: "string" },
-    author:     { type: "string" },
-    status:     { type: "string", enum: ["open", "closed"], nullable: true },
-    parent:     { type: "string", nullable: true },
-    color:      { type: "string", nullable: true, description: "Preset name or #rrggbb hex" },
-    reactions:  {
+    id: { type: "string", example: "cmt_abc123" },
+    object: { type: "string", enum: ["comment"] },
+    document: { type: "string", example: "doc_abc123" },
+    quote: { type: "string", nullable: true },
+    prefix: { type: "string", nullable: true },
+    suffix: { type: "string", nullable: true },
+    body: { type: "string" },
+    author: { type: "string" },
+    status: { type: "string", enum: ["open", "closed"], nullable: true },
+    parent: { type: "string", nullable: true },
+    color: { type: "string", nullable: true, description: "Preset name or #rrggbb hex" },
+    reactions: {
       type: "array",
       items: {
         type: "object",
         properties: {
-          emoji:   { type: "string" },
-          count:   { type: "integer" },
+          emoji: { type: "string" },
+          count: { type: "integer" },
           authors: { type: "array", items: { type: "string" } },
         },
       },
@@ -78,8 +78,8 @@ const reactionsResponseSchema = {
       items: {
         type: "object",
         properties: {
-          emoji:   { type: "string" },
-          count:   { type: "integer" },
+          emoji: { type: "string" },
+          count: { type: "integer" },
           authors: { type: "array", items: { type: "string" } },
         },
       },
@@ -103,7 +103,7 @@ const listResponse = (itemSchema) => ({
   type: "object",
   properties: {
     object: { type: "string", enum: ["list"] },
-    data:   { type: "array", items: itemSchema },
+    data: { type: "array", items: itemSchema },
   },
 });
 
@@ -129,7 +129,6 @@ const spec = {
   servers: [{ url: "/" }],
 
   paths: {
-
     // ── Health ──────────────────────────────────────────────────────
 
     "/health": {
@@ -143,7 +142,7 @@ const spec = {
           describe: "Check API health",
         },
         responses: {
-          "200": {
+          200: {
             description: "Server is healthy",
             content: jsonContent({
               type: "object",
@@ -167,7 +166,7 @@ const spec = {
           describe: "List all documents",
         },
         responses: {
-          "200": {
+          200: {
             description: "List of documents",
             content: jsonContent(listResponse(documentSchema)),
           },
@@ -182,9 +181,7 @@ const spec = {
           group: "documents",
           command: "create <uri>",
           describe: "Create a document for a URI",
-          positional: [
-            { name: "uri", describe: "Document URI", from: "body", field: "uri" },
-          ],
+          positional: [{ name: "uri", describe: "Document URI", from: "body", field: "uri" }],
         },
         requestBody: {
           required: true,
@@ -195,15 +192,15 @@ const spec = {
           }),
         },
         responses: {
-          "200": {
+          200: {
             description: "Document already existed",
             content: jsonContent(documentSchema),
           },
-          "201": {
+          201: {
             description: "Document created",
             content: jsonContent(documentSchema),
           },
-          "400": { description: "Bad request", content: jsonContent(errorSchema) },
+          400: { description: "Bad request", content: jsonContent(errorSchema) },
         },
       },
     },
@@ -217,14 +214,12 @@ const spec = {
           group: "documents",
           command: "get <id>",
           describe: "Get a document by ID",
-          positional: [
-            { name: "id", describe: "Document ID", from: "path", paramName: "id" },
-          ],
+          positional: [{ name: "id", describe: "Document ID", from: "path", paramName: "id" }],
         },
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
         responses: {
-          "200": { description: "Document", content: jsonContent(documentSchema) },
-          "404": { description: "Not found", content: jsonContent(errorSchema) },
+          200: { description: "Document", content: jsonContent(documentSchema) },
+          404: { description: "Not found", content: jsonContent(errorSchema) },
         },
       },
 
@@ -236,14 +231,12 @@ const spec = {
           group: "documents",
           command: "delete <id>",
           describe: "Delete a document by ID",
-          positional: [
-            { name: "id", describe: "Document ID", from: "path", paramName: "id" },
-          ],
+          positional: [{ name: "id", describe: "Document ID", from: "path", paramName: "id" }],
         },
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
         responses: {
-          "200": { description: "Deleted document", content: jsonContent(documentSchema) },
-          "404": { description: "Not found", content: jsonContent(errorSchema) },
+          200: { description: "Deleted document", content: jsonContent(documentSchema) },
+          404: { description: "Not found", content: jsonContent(errorSchema) },
         },
       },
     },
@@ -261,8 +254,8 @@ const spec = {
           describe: "List comments",
           options: {
             document: { type: "string", describe: "Filter by document ID", from: "query" },
-            uri:      { type: "string", describe: "Filter by document URI", from: "query" },
-            status:   {
+            uri: { type: "string", describe: "Filter by document URI", from: "query" },
+            status: {
               type: "string",
               describe: "Filter by status",
               choices: ["open", "closed"],
@@ -272,16 +265,16 @@ const spec = {
         },
         parameters: [
           { name: "document", in: "query", schema: { type: "string" } },
-          { name: "uri",      in: "query", schema: { type: "string" } },
-          { name: "status",   in: "query", schema: { type: "string", enum: ["open", "closed"] } },
-          { name: "expand",   in: "query", schema: { type: "string", enum: ["document"] } },
+          { name: "uri", in: "query", schema: { type: "string" } },
+          { name: "status", in: "query", schema: { type: "string", enum: ["open", "closed"] } },
+          { name: "expand", in: "query", schema: { type: "string", enum: ["document"] } },
         ],
         responses: {
-          "200": {
+          200: {
             description: "List of comments",
             content: jsonContent(listResponse(commentSchema)),
           },
-          "400": { description: "Bad request", content: jsonContent(errorSchema) },
+          400: { description: "Bad request", content: jsonContent(errorSchema) },
         },
       },
 
@@ -295,11 +288,11 @@ const spec = {
             command: "create",
             describe: "Create a new comment",
             options: {
-              uri:    { type: "string", demandOption: true, describe: "Document URI", from: "body" },
-              quote:  { type: "string", demandOption: true, describe: "Quoted text", from: "body" },
+              uri: { type: "string", demandOption: true, describe: "Document URI", from: "body" },
+              quote: { type: "string", demandOption: true, describe: "Quoted text", from: "body" },
               author: { type: "string", demandOption: true, describe: "Author name", from: "body" },
-              body:   { type: "string", demandOption: true, describe: "Comment body", from: "body" },
-              color:  { type: "string", describe: "Highlight color", from: "body" },
+              body: { type: "string", demandOption: true, describe: "Comment body", from: "body" },
+              color: { type: "string", describe: "Highlight color", from: "body" },
             },
           },
           {
@@ -316,7 +309,7 @@ const spec = {
             ],
             options: {
               author: { type: "string", demandOption: true, describe: "Author name", from: "body" },
-              body:   { type: "string", demandOption: true, describe: "Reply body", from: "body" },
+              body: { type: "string", demandOption: true, describe: "Reply body", from: "body" },
             },
           },
         ],
@@ -325,22 +318,22 @@ const spec = {
           content: jsonContent({
             type: "object",
             properties: {
-              uri:    { type: "string", description: "Document URI (or use document)" },
+              uri: { type: "string", description: "Document URI (or use document)" },
               document: { type: "string", description: "Document ID (or use uri)" },
-              quote:  { type: "string", description: "Highlighted text" },
+              quote: { type: "string", description: "Highlighted text" },
               prefix: { type: "string" },
               suffix: { type: "string" },
-              body:   { type: "string" },
+              body: { type: "string" },
               author: { type: "string" },
               parent: { type: "string", description: "Parent comment ID (for replies)" },
-              color:  { type: "string", description: "Preset name or #rrggbb hex" },
+              color: { type: "string", description: "Preset name or #rrggbb hex" },
             },
           }),
         },
         responses: {
-          "201": { description: "Comment created", content: jsonContent(commentSchema) },
-          "400": { description: "Bad request", content: jsonContent(errorSchema) },
-          "404": { description: "Document not found", content: jsonContent(errorSchema) },
+          201: { description: "Comment created", content: jsonContent(commentSchema) },
+          400: { description: "Bad request", content: jsonContent(errorSchema) },
+          404: { description: "Document not found", content: jsonContent(errorSchema) },
         },
       },
     },
@@ -354,17 +347,15 @@ const spec = {
           group: "comments",
           command: "get <id>",
           describe: "Get a comment by ID",
-          positional: [
-            { name: "id", describe: "Comment ID", from: "path", paramName: "id" },
-          ],
+          positional: [{ name: "id", describe: "Comment ID", from: "path", paramName: "id" }],
         },
         parameters: [
           { name: "id", in: "path", required: true, schema: { type: "string" } },
           { name: "expand", in: "query", schema: { type: "string", enum: ["document"] } },
         ],
         responses: {
-          "200": { description: "Comment", content: jsonContent(commentSchema) },
-          "404": { description: "Not found", content: jsonContent(errorSchema) },
+          200: { description: "Comment", content: jsonContent(commentSchema) },
+          404: { description: "Not found", content: jsonContent(errorSchema) },
         },
       },
 
@@ -377,36 +368,30 @@ const spec = {
             group: "comments",
             command: "update <id>",
             describe: "Update a comment",
-            positional: [
-              { name: "id", describe: "Comment ID", from: "path", paramName: "id" },
-            ],
+            positional: [{ name: "id", describe: "Comment ID", from: "path", paramName: "id" }],
             options: {
-              body:   { type: "string", describe: "New comment body", from: "body" },
+              body: { type: "string", describe: "New comment body", from: "body" },
               status: {
                 type: "string",
                 describe: "New status",
                 choices: ["open", "closed"],
                 from: "body",
               },
-              color:  { type: "string", describe: "Highlight color", from: "body" },
+              color: { type: "string", describe: "Highlight color", from: "body" },
             },
           },
           {
             group: "comments",
             command: "resolve <id>",
             describe: "Resolve (close) a comment",
-            positional: [
-              { name: "id", describe: "Comment ID", from: "path", paramName: "id" },
-            ],
+            positional: [{ name: "id", describe: "Comment ID", from: "path", paramName: "id" }],
             fixedBody: { status: "closed" },
           },
           {
             group: "comments",
             command: "reopen <id>",
             describe: "Reopen a resolved comment",
-            positional: [
-              { name: "id", describe: "Comment ID", from: "path", paramName: "id" },
-            ],
+            positional: [{ name: "id", describe: "Comment ID", from: "path", paramName: "id" }],
             fixedBody: { status: "open" },
           },
         ],
@@ -415,16 +400,16 @@ const spec = {
           content: jsonContent({
             type: "object",
             properties: {
-              body:   { type: "string" },
+              body: { type: "string" },
               status: { type: "string", enum: ["open", "closed"] },
-              color:  { type: "string", nullable: true },
+              color: { type: "string", nullable: true },
             },
           }),
         },
         responses: {
-          "200": { description: "Updated comment", content: jsonContent(commentSchema) },
-          "400": { description: "Bad request", content: jsonContent(errorSchema) },
-          "404": { description: "Not found", content: jsonContent(errorSchema) },
+          200: { description: "Updated comment", content: jsonContent(commentSchema) },
+          400: { description: "Bad request", content: jsonContent(errorSchema) },
+          404: { description: "Not found", content: jsonContent(errorSchema) },
         },
       },
 
@@ -436,14 +421,12 @@ const spec = {
           group: "comments",
           command: "delete <id>",
           describe: "Delete a comment",
-          positional: [
-            { name: "id", describe: "Comment ID", from: "path", paramName: "id" },
-          ],
+          positional: [{ name: "id", describe: "Comment ID", from: "path", paramName: "id" }],
         },
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
         responses: {
-          "200": { description: "Deleted comment", content: jsonContent(commentSchema) },
-          "404": { description: "Not found", content: jsonContent(errorSchema) },
+          200: { description: "Deleted comment", content: jsonContent(commentSchema) },
+          404: { description: "Not found", content: jsonContent(errorSchema) },
         },
       },
     },
@@ -459,11 +442,15 @@ const spec = {
           group: "reactions",
           command: "add <comment-id>",
           describe: "Add a reaction to a comment",
-          positional: [
-            { name: "comment-id", describe: "Comment ID", from: "path", paramName: "id" },
-          ],
+          positional: [{ name: "comment-id", describe: "Comment ID", from: "path", paramName: "id" }],
           options: {
-            emoji:  { type: "string", demandOption: true, describe: "Reaction emoji", choices: ALLOWED_REACTION_EMOJIS, from: "body" },
+            emoji: {
+              type: "string",
+              demandOption: true,
+              describe: "Reaction emoji",
+              choices: ALLOWED_REACTION_EMOJIS,
+              from: "body",
+            },
             author: { type: "string", demandOption: true, describe: "Author name", from: "body" },
           },
         },
@@ -474,15 +461,15 @@ const spec = {
             type: "object",
             required: ["emoji", "author"],
             properties: {
-              emoji:  { type: "string", enum: ALLOWED_REACTION_EMOJIS },
+              emoji: { type: "string", enum: ALLOWED_REACTION_EMOJIS },
               author: { type: "string" },
             },
           }),
         },
         responses: {
-          "201": { description: "Reaction added", content: jsonContent(reactionsResponseSchema) },
-          "400": { description: "Bad request", content: jsonContent(errorSchema) },
-          "404": { description: "Comment not found", content: jsonContent(errorSchema) },
+          201: { description: "Reaction added", content: jsonContent(reactionsResponseSchema) },
+          400: { description: "Bad request", content: jsonContent(errorSchema) },
+          404: { description: "Comment not found", content: jsonContent(errorSchema) },
         },
       },
     },
@@ -496,11 +483,9 @@ const spec = {
           group: "reactions",
           command: "remove <comment-id>",
           describe: "Remove a reaction from a comment",
-          positional: [
-            { name: "comment-id", describe: "Comment ID", from: "path", paramName: "id" },
-          ],
+          positional: [{ name: "comment-id", describe: "Comment ID", from: "path", paramName: "id" }],
           options: {
-            emoji:  {
+            emoji: {
               type: "string",
               demandOption: true,
               describe: "Reaction emoji",
@@ -516,23 +501,23 @@ const spec = {
           },
         },
         parameters: [
-          { name: "id",    in: "path",  required: true, schema: { type: "string" } },
-          { name: "emoji", in: "path",  required: true, schema: { type: "string" } },
+          { name: "id", in: "path", required: true, schema: { type: "string" } },
+          { name: "emoji", in: "path", required: true, schema: { type: "string" } },
           { name: "author", in: "query", required: true, schema: { type: "string" } },
         ],
         responses: {
-          "200": { description: "Reaction removed", content: jsonContent(reactionsResponseSchema) },
-          "400": { description: "Bad request", content: jsonContent(errorSchema) },
-          "404": { description: "Comment not found", content: jsonContent(errorSchema) },
+          200: { description: "Reaction removed", content: jsonContent(reactionsResponseSchema) },
+          400: { description: "Bad request", content: jsonContent(errorSchema) },
+          404: { description: "Comment not found", content: jsonContent(errorSchema) },
         },
       },
     },
   },
 
   tags: [
-    { name: "health",    description: "Server health" },
+    { name: "health", description: "Server health" },
     { name: "documents", description: "Document management" },
-    { name: "comments",  description: "Comment and reply management" },
+    { name: "comments", description: "Comment and reply management" },
     { name: "reactions", description: "Emoji reactions on comments" },
   ],
 };
