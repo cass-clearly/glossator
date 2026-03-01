@@ -96,6 +96,15 @@ You must:
 5. **The Architect decides** when reviewers contradict each other
 6. **Ship** when all four approve — no further human review required unless explicitly flagged
 
+### Pi Integration
+
+The council workflow is automated via pi skills and prompt templates:
+
+- **Skill:** `.pi/skills/council-review/SKILL.md` — Load this to run the full review loop. It handles spawning reviewers, collecting verdicts, fixing feedback, and iterating. Uses Ralph Wiggum for loop control.
+- **Prompt template:** `.pi/prompts/new-work.md` — Use `/new-work <description>` to kick off the full Plan → Implement → Council Review → Merge workflow.
+
+When running via `pi -p`, the agent will see this CLAUDE.md and the available skills/templates automatically. Use `/new-work` for new features or `council-review` skill directly for reviewing existing PRs.
+
 ---
 
 ## Git Workflow (Required for All Meaningful Work)
