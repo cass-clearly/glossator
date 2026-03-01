@@ -387,8 +387,6 @@ app.delete("/comments/:id", asyncHandler(async (req, res) => {
 
 // ── Reaction endpoints ───────────────────────────────────────────────
 
-const ALLOWED_EMOJIS = new Set(["👍", "❤️", "👀", "🎉", "🤔", "😂", "➕"]);
-
 app.post("/comments/:id/reactions", asyncHandler(async (req, res) => {
   const { emoji, author } = req.body;
   if (!emoji || !author) {

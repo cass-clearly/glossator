@@ -25,6 +25,14 @@ function registerWebhookRoutes(app, pool, asyncHandler) {
     const { url, secret, events } = req.body;
 
     if (!url) return res.status(400).json(errorResponse("url is required"));
+    try {
+      const parsed = new URL(url);
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+        return res.status(400).json(errorResponse("url must use http or https"));
+      }
+    } catch {
+      return res.status(400).json(errorResponse("url must be a valid HTTP or HTTPS URL"));
+    }
     if (!secret) return res.status(400).json(errorResponse("secret is required"));
     if (!Array.isArray(events) || events.length === 0) {
       return res.status(400).json(errorResponse("events must be a non-empty array"));
@@ -56,7 +64,7 @@ function registerWebhookRoutes(app, pool, asyncHandler) {
     const { rows } = await pool.query("SELECT * FROM webhooks WHERE id = $1", [req.params.id]);
     if (rows.length === 0) return res.status(404).json(errorResponse("Webhook not found"));
 
-    const { url, events, active } = req.body;
+    const { url, events, active, secret } = req.body;
 
     if (events !== undefined) {
       if (!Array.isArray(events) || events.length === 0) {
@@ -68,18 +76,31 @@ function registerWebhookRoutes(app, pool, asyncHandler) {
       }
     }
 
-    if (url !== undefined) {
-      await pool.query("UPDATE webhooks SET url = $1 WHERE id = $2", [url, req.params.id]);
-    }
-    if (events !== undefined) {
-      await pool.query("UPDATE webhooks SET events = $1 WHERE id = $2", [events, req.params.id]);
-    }
-    if (active !== undefined) {
-      await pool.query("UPDATE webhooks SET active = $1 WHERE id = $2", [active, req.params.id]);
+    const fields = {};
+    if (url !== undefined) fields.url = url;
+    if (events !== undefined) fields.events = events;
+    if (active !== undefined) fields.active = active;
+    if (secret !== undefined) fields.secret = secret;
+
+    if (Object.keys(fields).length === 0) {
+      return res.json(formatWebhook(rows[0]));
     }
 
-    const updated = await pool.query("SELECT * FROM webhooks WHERE id = $1", [req.params.id]);
-    res.json(formatWebhook(updated.rows[0]));
+    const setClauses = [];
+    const values = [];
+    let paramIndex = 1;
+    for (const [col, val] of Object.entries(fields)) {
+      setClauses.push(`${col} = $${paramIndex}`);
+      values.push(val);
+      paramIndex++;
+    }
+    values.push(req.params.id);
+
+    const { rows: updated } = await pool.query(
+      `UPDATE webhooks SET ${setClauses.join(", ")} WHERE id = $${paramIndex} RETURNING *`,
+      values
+    );
+    res.json(formatWebhook(updated[0]));
   }));
 
   app.delete("/webhooks/:id", asyncHandler(async (req, res) => {

@@ -40,48 +40,6 @@ async function retryWithBackoff(fn, { maxAttempts = 3, baseDelay = 1000 } = {}) 
   }
 }
 
-// ── Slack / Discord formatting ──────────────────────────────────────
-
-function formatSlackPayload(event, data) {
-  const comment = data.comment;
-  const action = event === "comment.created" ? "New comment"
-    : event === "comment.resolved" ? "Comment resolved"
-    : "Comment deleted";
-
-  return {
-    text: `${action} by ${comment.author}`,
-    blocks: [
-      {
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: `*${action}* by *${comment.author}*\n>${comment.body}`,
-        },
-      },
-    ],
-  };
-}
-
-function formatDiscordPayload(event, data) {
-  const comment = data.comment;
-  const action = event === "comment.created" ? "New comment"
-    : event === "comment.resolved" ? "Comment resolved"
-    : "Comment deleted";
-
-  return {
-    embeds: [
-      {
-        title: action,
-        description: comment.body,
-        fields: [
-          { name: "Author", value: comment.author, inline: true },
-          { name: "Document", value: comment.document, inline: true },
-        ],
-      },
-    ],
-  };
-}
-
 // ── Event trigger ───────────────────────────────────────────────────
 
 function triggerEvent(pool, eventType, data) {
@@ -103,15 +61,13 @@ async function _dispatchWebhooks(pool, eventType, data) {
     data,
   };
 
-  const deliveries = webhooks.map((webhook) => {
-    let finalPayload = payload;
-    if (webhook.url.includes("hooks.slack.com")) {
-      finalPayload = formatSlackPayload(eventType, data);
-    } else if (webhook.url.includes("discord.com/api/webhooks")) {
-      finalPayload = formatDiscordPayload(eventType, data);
+  const deliveries = webhooks.map(async (webhook) => {
+    try {
+      const res = await retryWithBackoff(() => deliverWebhook(webhook.url, webhook.secret, payload));
+      console.log(`Webhook ${webhook.id} [${eventType}]: delivered (${res.status})`);
+    } catch (err) {
+      console.error(`Webhook ${webhook.id} [${eventType}]: failed — ${err.message}`);
     }
-
-    return retryWithBackoff(() => deliverWebhook(webhook.url, webhook.secret, finalPayload));
   });
 
   await Promise.allSettled(deliveries);
@@ -121,8 +77,6 @@ module.exports = {
   signPayload,
   deliverWebhook,
   retryWithBackoff,
-  formatSlackPayload,
-  formatDiscordPayload,
   triggerEvent,
   _dispatchWebhooks,
 };

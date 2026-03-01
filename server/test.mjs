@@ -135,7 +135,6 @@ describe("validate-color", async () => {
 describe("webhooks", async () => {
   const {
     signPayload, deliverWebhook, retryWithBackoff,
-    formatSlackPayload, formatDiscordPayload,
   } = await import("./webhooks.js");
 
   it("signPayload produces valid HMAC-SHA256 hex", () => {
@@ -222,39 +221,7 @@ describe("webhooks", async () => {
     }
   });
 
-  it("formatSlackPayload formats comment.created", () => {
-    const result = formatSlackPayload("comment.created", {
-      comment: { author: "Alice", body: "Hello world", document: "doc_1" },
-    });
-    assert.equal(result.text, "New comment by Alice");
-    assert.ok(result.blocks[0].text.text.includes("Alice"));
-    assert.ok(result.blocks[0].text.text.includes("Hello world"));
-  });
 
-  it("formatSlackPayload formats comment.resolved", () => {
-    const result = formatSlackPayload("comment.resolved", {
-      comment: { author: "Bob", body: "Done", document: "doc_1" },
-    });
-    assert.equal(result.text, "Comment resolved by Bob");
-  });
-
-  it("formatSlackPayload formats comment.deleted", () => {
-    const result = formatSlackPayload("comment.deleted", {
-      comment: { author: "Charlie", body: "Bye", document: "doc_1" },
-    });
-    assert.equal(result.text, "Comment deleted by Charlie");
-  });
-
-  it("formatDiscordPayload includes embeds with fields", () => {
-    const result = formatDiscordPayload("comment.created", {
-      comment: { author: "Alice", body: "Hello world", document: "doc_1" },
-    });
-    assert.equal(result.embeds.length, 1);
-    assert.equal(result.embeds[0].title, "New comment");
-    assert.equal(result.embeds[0].description, "Hello world");
-    assert.equal(result.embeds[0].fields[0].value, "Alice");
-    assert.equal(result.embeds[0].fields[1].value, "doc_1");
-  });
 });
 
 // ── Integration tests ───────────────────────────────────────────────

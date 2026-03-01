@@ -175,7 +175,7 @@ Stripe-inspired resource pattern. All responses include an `object` field. **Ful
 | `PATCH` | `/webhooks/:id` | Update a webhook (`url`, `events`, `active`) |
 | `DELETE` | `/webhooks/:id` | Delete a webhook |
 
-Events: `comment.created`, `comment.resolved`, `comment.deleted`. Payloads are signed with HMAC-SHA256 using the webhook's secret. Slack and Discord URLs are auto-detected for platform-specific formatting.
+Events: `comment.created`, `comment.resolved`, `comment.deleted`. Payloads are signed with HMAC-SHA256 using the webhook's secret.
 
 Status is a thread-level concept — only root comments have status (`"open"` or `"closed"`). Replies always have `status: null`. The `?status=` filter matches root comments and includes all their replies. Query params can be combined (e.g. `?document=<id>&status=open&expand=document`).
 
@@ -257,18 +257,6 @@ Set a default highlight color for all new comments on a page using the `data-def
 ```
 
 Accepts any preset name or hex code. Users can still override the color per-comment using the color picker in the sidebar.
-
-### Webhooks
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/webhooks` | List all webhooks |
-| `POST` | `/webhooks` | Register a webhook for comment events |
-| `GET` | `/webhooks/:id` | Retrieve a webhook |
-| `PATCH` | `/webhooks/:id` | Update URL, events, or active status |
-| `DELETE` | `/webhooks/:id` | Delete a webhook |
-
-Events: `comment.created`, `comment.resolved`, `comment.deleted`. Payloads are signed with HMAC-SHA256. Slack and Discord URLs are auto-formatted.
 
 ## Features
 
