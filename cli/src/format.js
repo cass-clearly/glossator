@@ -1,7 +1,3 @@
-function formatHealth(data) {
-  return `Status: ${data.status}`;
-}
-
 function formatDocument(doc) {
   const lines = [
     `ID:      ${doc.id}`,
@@ -9,15 +5,6 @@ function formatDocument(doc) {
     `Created: ${doc.created_at}`,
   ];
   return lines.join("\n");
-}
-
-function formatDocumentList(list) {
-  if (list.data.length === 0) return "No documents found.";
-  const rows = list.data.map(
-    (d) => `${d.id}  ${d.uri}  ${d.created_at}`
-  );
-  rows.push(`\n${list.data.length} document(s)`);
-  return rows.join("\n");
 }
 
 function formatComment(comment) {
@@ -39,16 +26,6 @@ function formatComment(comment) {
   }
   lines.push(`Created:  ${comment.created_at}`);
   return lines.join("\n");
-}
-
-function formatCommentList(list) {
-  if (list.data.length === 0) return "No comments found.";
-  const rows = list.data.map((c) => {
-    const status = c.status ? `[${c.status}]` : "[reply]";
-    return `${c.id}  ${status}  ${c.author}: ${c.body}`;
-  });
-  rows.push(`\n${list.data.length} comment(s)`);
-  return rows.join("\n");
 }
 
 function formatReactions(data) {
@@ -84,7 +61,8 @@ function genericFormat(data) {
       }
       return JSON.stringify(item);
     });
-    rows.push(`\n${data.data.length} item(s)`);
+    const itemType = data.data[0]?.object ?? "item";
+    rows.push(`\n${data.data.length} ${itemType}(s)`);
     return rows.join("\n");
   }
 
@@ -105,11 +83,8 @@ function genericFormat(data) {
 }
 
 module.exports = {
-  formatHealth,
   formatDocument,
-  formatDocumentList,
   formatComment,
-  formatCommentList,
   formatReactions,
   genericFormat,
 };
