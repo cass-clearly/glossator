@@ -63,6 +63,47 @@ function formatReactions(data) {
   return lines.join("\n");
 }
 
+/**
+ * Generic formatter used by the spec-driven command builder.
+ * Inspects the response shape and delegates to the appropriate formatter.
+ */
+function genericFormat(data) {
+  if (data === null || data === undefined) return "";
+  if (typeof data !== "object") return String(data);
+
+  // List response
+  if (data.object === "list") {
+    if (!data.data || data.data.length === 0) return "No results found.";
+    const rows = data.data.map((item) => {
+      if (item.object === "document") {
+        return `${item.id}  ${item.uri}  ${item.created_at}`;
+      }
+      if (item.object === "comment") {
+        const status = item.status ? `[${item.status}]` : "[reply]";
+        return `${item.id}  ${status}  ${item.author}: ${item.body}`;
+      }
+      return JSON.stringify(item);
+    });
+    rows.push(`\n${data.data.length} item(s)`);
+    return rows.join("\n");
+  }
+
+  if (data.object === "document") return formatDocument(data);
+  if (data.object === "comment")  return formatComment(data);
+
+  // Reaction response: { comment_id, reactions }
+  if (Object.prototype.hasOwnProperty.call(data, "comment_id")) {
+    return formatReactions(data);
+  }
+
+  // Health / unknown: small objects with a status field
+  if (data.status !== undefined && Object.keys(data).length <= 2) {
+    return `Status: ${data.status}`;
+  }
+
+  return JSON.stringify(data, null, 2);
+}
+
 module.exports = {
   formatHealth,
   formatDocument,
@@ -70,4 +111,5 @@ module.exports = {
   formatComment,
   formatCommentList,
   formatReactions,
+  genericFormat,
 };

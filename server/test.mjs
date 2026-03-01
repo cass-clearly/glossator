@@ -1294,4 +1294,51 @@ describe("API", async () => {
       assert.equal(res.status, 404);
     });
   });
+
+  // ── OpenAPI spec ───────────────────────────────────────────────
+
+  describe("GET /openapi.json", () => {
+    it("returns valid OpenAPI 3.0 spec", async () => {
+      const res = await fetch(`${BASE}/openapi.json`);
+      const json = await res.json();
+      assert.equal(res.status, 200);
+      assert.equal(json.openapi, "3.0.3");
+      assert.equal(json.info.title, "Remarq API");
+      assert.ok(typeof json.paths === "object");
+    });
+
+    it("includes all expected paths", async () => {
+      const res = await fetch(`${BASE}/openapi.json`);
+      const json = await res.json();
+      assert.ok(json.paths["/health"]);
+      assert.ok(json.paths["/documents"]);
+      assert.ok(json.paths["/documents/{id}"]);
+      assert.ok(json.paths["/comments"]);
+      assert.ok(json.paths["/comments/{id}"]);
+      assert.ok(json.paths["/comments/{id}/reactions"]);
+      assert.ok(json.paths["/comments/{id}/reactions/{emoji}"]);
+    });
+
+    it("includes x-cli extensions on operations", async () => {
+      const res = await fetch(`${BASE}/openapi.json`);
+      const json = await res.json();
+      assert.ok(json.paths["/health"].get["x-cli"]);
+      assert.equal(json.paths["/health"].get["x-cli"].command, "health");
+      assert.ok(json.paths["/documents"].get["x-cli"]);
+      assert.ok(json.paths["/comments"].post["x-cli"]);
+      // POST /comments has two x-cli entries (create + reply)
+      assert.ok(Array.isArray(json.paths["/comments"].post["x-cli"]));
+      assert.equal(json.paths["/comments"].post["x-cli"].length, 2);
+    });
+  });
+
+  describe("GET /api-docs", () => {
+    it("returns HTML page linking to spec", async () => {
+      const res = await fetch(`${BASE}/api-docs`);
+      const text = await res.text();
+      assert.equal(res.status, 200);
+      assert.ok(text.includes("/openapi.json"));
+      assert.ok(text.includes("Remarq API"));
+    });
+  });
 });

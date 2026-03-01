@@ -69,6 +69,13 @@ remarq reactions remove <comment-id> --emoji "👍" --author "name"
 | `--json` | Output raw JSON instead of text      |
 | `--help` | Show help                            |
 
+## How it works (spec-driven)
+
+On startup the CLI fetches `REMARQ_URL/openapi.json` and dynamically builds all
+commands from the `x-cli` vendor extensions embedded in each operation.  New
+server endpoints automatically appear as CLI commands — no CLI code changes
+needed.
+
 ## Testing
 
 ```bash
