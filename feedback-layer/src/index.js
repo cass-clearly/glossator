@@ -45,6 +45,7 @@ import { initAuthorUI } from "./ui.js";
 import { showToast } from "./toast.js";
 import { resolveColor } from "./utils/color.js";
 import { injectPrintHideStyles } from "./utils/print-hide.js";
+import { connectWs } from "./ws.js";
 
 let _root = null; // content root element
 let _docUri = null; // canonical URI for this document
@@ -55,6 +56,8 @@ let _pendingSelector = null; // selector awaiting comment submission
 let _tooltip = null; // the "Annotate" tooltip element
 let _anchoredIds = new Set(); // Track successfully anchored comments
 const _commentRanges = new Map(); // Map comment ID to its range for position sorting
+let _wsConnection = null; // WebSocket connection handle
+let _apiUrl = null; // API base URL for establishing WS connection later
 
 function init() {
   const scriptTag = document.currentScript || document.querySelector('script[src*="feedback-layer"]');
@@ -107,6 +110,7 @@ function init() {
       _docUri = config.documentUri || window.location.origin + window.location.pathname;
       _docId = config.documentId || null;
       _defaultColor = resolveColor(config.defaultColor) || null;
+      _apiUrl = config.apiUrl || window.location.origin;
 
       // Set theme attribute on <html> for CSS variable scoping
       document.documentElement.dataset.remarqTheme = config.theme;
@@ -137,7 +141,26 @@ function init() {
       await waitForMermaid();
 
       // Load existing comments
-      loadComments();
+      await loadComments();
+
+      // Real-time updates via WebSocket
+      {
+        const wsDocId = _docId || (_comments.length > 0 ? _comments[0].document : null);
+        if (wsDocId) {
+          _wsConnection = connectWs({
+            apiBaseUrl: _apiUrl,
+            documentId: wsDocId,
+            onEvent: handleWsEvent,
+          });
+        }
+      }
+
+      // Close WebSocket on page unload
+      window.addEventListener("beforeunload", () => {
+        if (_wsConnection) {
+          _wsConnection.close();
+        }
+      });
 
       // AI revision UI
       initAuthorUI(config, () => _comments);
@@ -294,9 +317,20 @@ async function handleCommentSubmit({ comment, commenter, color }) {
     if (range) {
       highlightRange(range, ann.id, ann.color);
       _anchoredIds.add(ann.id);
+      _commentRanges.set(ann.id, range);
     }
 
     renderComments(_comments, _anchoredIds, _commentRanges);
+
+    // If this is the first comment and we don't have a WS connection yet,
+    // establish one using the document ID from the response
+    if (!_wsConnection && _apiUrl && ann.document) {
+      _wsConnection = connectWs({
+        apiBaseUrl: _apiUrl,
+        documentId: ann.document,
+        onEvent: handleWsEvent,
+      });
+    }
 
     // Clear selection
     window.getSelection().removeAllRanges();
@@ -308,6 +342,38 @@ async function handleCommentSubmit({ comment, commenter, color }) {
   _pendingSelector = null;
 }
 
+/**
+ * Re-anchor a comment's highlight after it's been updated.
+ * Removes old highlight, re-anchors, and updates tracking sets/maps.
+ */
+async function reanchorComment(comment) {
+  if (comment.parent) return; // Skip replies
+
+  removeHighlights(comment.id);
+  _commentRanges.delete(comment.id);
+
+  if (comment.status !== "closed") {
+    try {
+      const range = await rangeFromSelector(
+        { exact: comment.quote, prefix: comment.prefix, suffix: comment.suffix },
+        _root,
+      );
+      if (range) {
+        highlightRange(range, comment.id, comment.color);
+        _anchoredIds.add(comment.id);
+        _commentRanges.set(comment.id, range);
+      } else {
+        _anchoredIds.delete(comment.id);
+      }
+    } catch (e) {
+      console.warn(`[feedback-layer] Could not anchor comment ${comment.id}:`, e);
+      _anchoredIds.delete(comment.id);
+    }
+  } else {
+    _anchoredIds.delete(comment.id);
+  }
+}
+
 async function handleResolve(commentId, resolved) {
   try {
     const status = resolved ? "closed" : "open";
@@ -315,21 +381,7 @@ async function handleResolve(commentId, resolved) {
     const idx = _comments.findIndex((a) => a.id === commentId);
     if (idx !== -1) _comments[idx] = updated;
 
-    if (resolved) {
-      removeHighlights(commentId);
-    } else {
-      // Re-anchor the highlight when reopening
-      const ann = updated;
-      const range = await rangeFromSelector({ exact: ann.quote, prefix: ann.prefix, suffix: ann.suffix }, _root);
-      if (range) {
-        highlightRange(range, ann.id, ann.color);
-        _anchoredIds.add(ann.id);
-      } else {
-        // Text no longer exists, remove from anchored set
-        _anchoredIds.delete(ann.id);
-      }
-    }
-
+    await reanchorComment(updated);
     renderComments(_comments, _anchoredIds, _commentRanges);
   } catch (err) {
     console.error("[feedback-layer] Failed to resolve comment:", err);
@@ -364,16 +416,7 @@ async function handleEdit(commentId, comment, color) {
 
     // Re-anchor highlight with new color if color changed
     if (color !== undefined) {
-      removeHighlights(commentId);
-      const ann = updated;
-      if (ann.status !== "closed") {
-        const range = await rangeFromSelector({ exact: ann.quote, prefix: ann.prefix, suffix: ann.suffix }, _root);
-        if (range) {
-          highlightRange(range, ann.id, ann.color);
-          _anchoredIds.add(ann.id);
-          _commentRanges.set(ann.id, range);
-        }
-      }
+      await reanchorComment(updated);
     }
 
     renderComments(_comments, _anchoredIds, _commentRanges);
@@ -390,17 +433,7 @@ async function handleColorChange(commentId, color) {
     if (idx !== -1) _comments[idx] = updated;
 
     // Re-anchor highlight with new color
-    removeHighlights(commentId);
-    const ann = updated;
-    if (ann.status !== "closed") {
-      const range = await rangeFromSelector({ exact: ann.quote, prefix: ann.prefix, suffix: ann.suffix }, _root);
-      if (range) {
-        highlightRange(range, ann.id, ann.color);
-        _anchoredIds.add(ann.id);
-        _commentRanges.set(ann.id, range);
-      }
-    }
-
+    await reanchorComment(updated);
     renderComments(_comments, _anchoredIds, _commentRanges);
   } catch (err) {
     console.error("[feedback-layer] Failed to change color:", err);
@@ -431,6 +464,64 @@ async function handleReaction(commentId, emoji) {
   } catch (err) {
     console.error("[feedback-layer] Failed to toggle reaction:", err);
     showToast(`Failed to update reaction: ${err.message}`, "error");
+  }
+}
+
+async function handleCommentCreated(comment) {
+  // Avoid duplicates (e.g. from our own POST)
+  if (_comments.some((c) => c.id === comment.id)) return;
+  _comments.push(comment);
+
+  if (!comment.parent) {
+    const range = await rangeFromSelector(
+      { exact: comment.quote, prefix: comment.prefix, suffix: comment.suffix },
+      _root,
+    );
+    if (range) {
+      highlightRange(range, comment.id, comment.color);
+      _anchoredIds.add(comment.id);
+      _commentRanges.set(comment.id, range);
+    }
+  }
+
+  renderComments(_comments, _anchoredIds, _commentRanges);
+}
+
+async function handleCommentUpdated(comment) {
+  const idx = _comments.findIndex((c) => c.id === comment.id);
+  if (idx === -1) return;
+  _comments[idx] = comment;
+
+  await reanchorComment(comment);
+  renderComments(_comments, _anchoredIds, _commentRanges);
+}
+
+async function handleCommentDeleted(comment) {
+  if (!_comments.some((c) => c.id === comment.id)) return;
+  removeHighlights(comment.id);
+  _anchoredIds.delete(comment.id);
+  _commentRanges.delete(comment.id);
+  _comments = _comments.filter((c) => c.id !== comment.id && c.parent !== comment.id);
+  renderComments(_comments, _anchoredIds, _commentRanges);
+}
+
+const wsEventHandlers = {
+  "comment:created": handleCommentCreated,
+  "comment:updated": handleCommentUpdated,
+  "comment:deleted": handleCommentDeleted,
+};
+
+async function handleWsEvent(event) {
+  const { type, comment } = event;
+  if (!comment) return;
+
+  const handler = wsEventHandlers[type];
+  if (handler) {
+    try {
+      await handler(comment);
+    } catch (e) {
+      console.warn(`[feedback-layer] WebSocket ${type} failed for ${comment.id}:`, e);
+    }
   }
 }
 
