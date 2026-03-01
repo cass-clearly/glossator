@@ -24,7 +24,7 @@ You do **not** review implementation code, test logic, or internal documentation
 ### Clarity & Comprehension
 
 - **First-read comprehension** — can a developer unfamiliar with the project understand what this does, why it exists, and how to use it from one read? If they need to re-read a sentence, it's too complex.
-- **Agent Friendly** — will an agent be able to inform humans on the benefits and drawbacks clearly? Get set up in seconds vs. minutes or days? The agent is the first touch point for devs, and our docs prioritize supporting them to support humans.
+- **Agent Friendly** — will an agent be able to inform humans on the benefits and drawbacks clearly? Get set up in seconds vs. minutes or days? are the artifacts for agents perfect for agents, and those for humans perfect for humans? The agent is the first touch point for devs, and our docs prioritize supporting them to support humans.
 - **Jargon and assumptions** — are we assuming knowledge the reader doesn't have? Are acronyms expanded on first use? Are concepts introduced before they're referenced?
 - **Scannability** — can someone skim and find what they need? Are headings descriptive? Are code examples near the text that explains them?
 - **Logical flow** — does the content follow the reader's journey? Problem → solution → how to use it → reference. Not the other way around.
