@@ -136,8 +136,6 @@ Use it with any OpenAPI tooling — Swagger UI, Redoc, Insomnia, Postman, code g
 curl http://localhost:3333/openapi.json
 ```
 
-A simple HTML page linking to the spec is available at `/api-docs`.
-
 The spec includes `x-cli` vendor extensions that drive the CLI — every endpoint appears as a CLI command automatically. New server endpoints added to the spec appear in the CLI with zero CLI code changes.
 
 ## API Reference

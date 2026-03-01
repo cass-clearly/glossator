@@ -1332,13 +1332,5 @@ describe("API", async () => {
     });
   });
 
-  describe("GET /api-docs", () => {
-    it("returns HTML page linking to spec", async () => {
-      const res = await fetch(`${BASE}/api-docs`);
-      const text = await res.text();
-      assert.equal(res.status, 200);
-      assert.ok(text.includes("/openapi.json"));
-      assert.ok(text.includes("Remarq API"));
-    });
-  });
+
 });

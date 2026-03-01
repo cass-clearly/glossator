@@ -145,18 +145,8 @@ async function findOrCreateDocument(uri) {
 // ── OpenAPI spec ─────────────────────────────────────────────────────
 
 app.get("/openapi.json", (_req, res) => {
+  res.set("Cache-Control", "public, max-age=3600");
   res.json(openApiSpec);
-});
-
-app.get("/api-docs", (_req, res) => {
-  res.send(
-    `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">` +
-    `<title>Remarq API Docs</title></head><body>` +
-    `<h1>Remarq API Documentation</h1>` +
-    `<p>OpenAPI 3.0 specification: <a href="/openapi.json">/openapi.json</a></p>` +
-    `<p>Load the spec in any OpenAPI viewer (Swagger UI, Redoc, Insomnia, Postman, etc.).</p>` +
-    `</body></html>`
-  );
 });
 
 // ── Health check ────────────────────────────────────────────────────
