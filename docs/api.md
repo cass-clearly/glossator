@@ -794,7 +794,7 @@ Register a new webhook.
 | `secret` | string | Yes | HMAC-SHA256 signing secret |
 | `events` | string[] | Yes | Events to subscribe to |
 
-**Response:** `201` with webhook object.
+**Response:** `201` with webhook object. Returns `409` if a webhook with the same URL already exists.
 
 ### `GET /webhooks/:id`
 
@@ -814,7 +814,7 @@ Update a webhook. All fields are optional.
 | `events` | string[] | New event subscriptions |
 | `active` | boolean | Enable or disable the webhook |
 
-**Response:** Updated webhook object. Returns `404` if not found.
+**Response:** Updated webhook object. Returns `404` if not found. Returns `409` if the new URL is already used by another webhook.
 
 ### `DELETE /webhooks/:id`
 

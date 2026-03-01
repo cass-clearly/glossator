@@ -57,13 +57,21 @@ function registerWebhookRoutes(app, pool, asyncHandler) {
       return res.status(409).json(errorResponse("A webhook with this URL already exists"));
     }
 
-    const webhook = await insertWithId("whk", async (id) => {
-      const { rows } = await pool.query(
-        "INSERT INTO webhooks (id, url, secret, events) VALUES ($1, $2, $3, $4) RETURNING *",
-        [id, url, secret, events]
-      );
-      return rows[0];
-    });
+    let webhook;
+    try {
+      webhook = await insertWithId("whk", async (id) => {
+        const { rows } = await pool.query(
+          "INSERT INTO webhooks (id, url, secret, events) VALUES ($1, $2, $3, $4) RETURNING *",
+          [id, url, secret, events]
+        );
+        return rows[0];
+      });
+    } catch (err) {
+      if (err.code === "23505") {
+        return res.status(409).json(errorResponse("A webhook with this URL already exists"));
+      }
+      throw err;
+    }
 
     res.status(201).json(formatWebhook(webhook));
   }));
