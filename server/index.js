@@ -7,7 +7,9 @@ const { normalizeUri } = require("./normalize-uri.js");
 const { sanitize } = require("./sanitize.js");
 const { validateColor } = require("./validate-color.js");
 const { PRESET_NAMES } = require("../shared/color-constants.js");
+const { ALLOWED_REACTION_EMOJIS } = require("../shared/emoji-constants.js");
 const path = require("path");
+const openApiSpec = require("./openapi.js");
 
 const app = express();
 app.use(cors());
@@ -139,6 +141,13 @@ async function findOrCreateDocument(uri) {
     throw err;
   }
 }
+
+// ── OpenAPI spec ─────────────────────────────────────────────────────
+
+app.get("/openapi.json", (_req, res) => {
+  res.set("Cache-Control", "public, max-age=3600");
+  res.json(openApiSpec);
+});
 
 // ── Health check ────────────────────────────────────────────────────
 
@@ -364,6 +373,9 @@ app.post("/comments/:id/reactions", asyncHandler(async (req, res) => {
   }
   if (typeof emoji !== "string" || emoji.length === 0 || emoji.length > 32) {
     return res.status(400).json(errorResponse("invalid emoji"));
+  }
+  if (!ALLOWED_REACTION_EMOJIS.includes(emoji)) {
+    return res.status(400).json(errorResponse(`emoji not allowed. Allowed: ${ALLOWED_REACTION_EMOJIS.join(" ")}`));
   }
 
   const cleanAuthor = sanitize(author);

@@ -560,15 +560,8 @@ function buildCard(ann, isReply, isOrphaned = false) {
   return card;
 }
 
-const REACTION_EMOJI = {
-  "👍": "Like",
-  "❤️": "Love",
-  "👀": "Seen",
-  "🎉": "Celebrate",
-  "🤔": "Question",
-  "😂": "Funny",
-  "➕": "Plus One",
-};
+import { ALLOWED_REACTIONS } from "./utils/emoji.js";
+const REACTION_EMOJI = ALLOWED_REACTIONS;
 const EMOJI_SET = Object.keys(REACTION_EMOJI);
 
 function buildReactionBar(container, ann) {

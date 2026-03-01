@@ -122,6 +122,22 @@ npm install --prefix server
 DATABASE_URL=postgres://user:pass@localhost:5432/remarq node server/index.js
 ```
 
+## OpenAPI Spec
+
+The server exposes a machine-readable OpenAPI 3.0 spec at:
+
+```
+GET /openapi.json
+```
+
+Use it with any OpenAPI tooling — Swagger UI, Redoc, Insomnia, Postman, code generators, or your own AI agent:
+
+```bash
+curl http://localhost:3333/openapi.json
+```
+
+The spec includes `x-cli` vendor extensions that drive the CLI — every endpoint appears as a CLI command automatically. New server endpoints added to the spec appear in the CLI with zero CLI code changes.
+
 ## API Reference
 
 Stripe-inspired resource pattern. All responses include an `object` field. **Full documentation with request/response schemas, error codes, and curl examples: [docs/api.md](docs/api.md)**
