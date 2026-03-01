@@ -101,9 +101,9 @@ You must:
 The council workflow is automated via pi skills and prompt templates:
 
 - **Skill:** `.pi/skills/council-review/SKILL.md` — Load this to run the full review loop. It handles spawning reviewers, collecting verdicts, fixing feedback, and iterating. Uses Ralph Wiggum for loop control.
-- **Prompt template:** `.pi/prompts/new-work.md` — Use `/new-work <description>` to kick off the full Plan → Implement → Council Review → Merge workflow.
+- **Prompt template:** `.pi/prompts/new-work.md` — When running via `pi -p`, use the pi prompt template command `/new-work <description>` to kick off the full Plan → Implement → Council Review → Merge workflow.
 
-When running via `pi -p`, the agent will see this CLAUDE.md and the available skills/templates automatically. Use `/new-work` for new features or `council-review` skill directly for reviewing existing PRs.
+When running via `pi -p`, the agent will see this CLAUDE.md and the available skills/templates automatically. Use the `/new-work` prompt template for new features or `council-review` skill directly for reviewing existing PRs.
 
 ---
 
