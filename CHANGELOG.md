@@ -8,6 +8,10 @@
 - Visual formatting hints below comment and reply textareas
 - XSS protection for comment markdown (blocks `javascript:`, `data:`, and `vbscript:` URL schemes)
 
+### Fixed
+
+- Duplicate comments appearing in sidebar when WebSocket echo arrives before HTTP response (#132)
+
 ## v2.2.0 (2026-03-01)
 
 ### Docs
