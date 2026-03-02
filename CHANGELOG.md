@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## v2.3.0 (2026-03-01)
+
 ### Added
 
 - Markdown formatting in comments: `**bold**`/`__bold__`, `*italic*`/`_italic_`, `` `code` ``, and `[links](url)` (#67)
