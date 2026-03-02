@@ -51,11 +51,13 @@ export function renderMarkdown(text) {
     return `\x01${index}\x02`;
   });
 
-  // Bold (**text**)
+  // Bold (**text** or __text__)
   html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  html = html.replace(/__(.+?)__/g, "<strong>$1</strong>");
 
-  // Italic (*text*) — only match single asterisks not preceded/followed by another
+  // Italic (*text* or _text_) — only match single delimiters not preceded/followed by another
   html = html.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, "<em>$1</em>");
+  html = html.replace(/(?<!_)_(?!_)(.+?)(?<!_)_(?!_)/g, "<em>$1</em>");
 
   // Links [text](url) — URL has already been HTML-escaped, so decode for validation.
   // Allow one level of balanced parentheses in URLs (e.g. Wikipedia links).

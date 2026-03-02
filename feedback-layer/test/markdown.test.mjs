@@ -24,6 +24,20 @@ describe("renderMarkdown", async () => {
     assert.equal(renderMarkdown("*italic*"), "<em>italic</em>");
   });
 
+  it("renders bold text with underscores", () => {
+    assert.equal(renderMarkdown("__bold__"), "<strong>bold</strong>");
+  });
+
+  it("renders italic text with underscores", () => {
+    assert.equal(renderMarkdown("_italic_"), "<em>italic</em>");
+  });
+
+  it("matches underscore italic mid-word (known limitation)", () => {
+    // Unlike GFM, we don't enforce word boundaries for underscores.
+    // snake_case with single underscores will be italicized.
+    assert.equal(renderMarkdown("some_var_name"), "some<em>var</em>name");
+  });
+
   it("renders inline code", () => {
     assert.equal(renderMarkdown("`code`"), "<code>code</code>");
   });
