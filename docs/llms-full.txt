@@ -371,25 +371,25 @@ Deleting a comment cascades to all replies.
 
 ### Reactions
 
-Comments support emoji reactions (👍, ❤️, 👀, 🎉, 🤔, 😂, ➕). The `reactions` field in comment objects is an object mapping emoji to arrays of author names:
+Comments support emoji reactions (👍, ❤️, 👀, 🎉, 🤔, 😂, ➕). The `reactions` field in comment objects is an array of `{ emoji, count, authors }` objects:
 
 ```json
 {
   "id": "cmt_abc123",
-  "reactions": {
-    "👍": ["Alice", "Bob"],
-    "❤️": ["Charlie"]
-  }
+  "reactions": [
+    { "emoji": "👍", "count": 2, "authors": ["Alice", "Bob"] },
+    { "emoji": "❤️", "count": 1, "authors": ["Charlie"] }
+  ]
 }
 ```
 
 #### POST /comments/:id/reactions
 
-Add a reaction. Request body: `{ "emoji": "👍", "author": "Alice" }`. Returns 201 with the reaction object. Allowed emojis: 👍, ❤️, 😂, 🤔, 😕, 🎉, ➕. Returns 400 for disallowed emoji. Idempotent — adding the same reaction twice is a no-op.
+Add a reaction. Request body: `{ "emoji": "👍", "author": "Alice" }`. Returns 201 with the updated reactions list for the comment. Allowed emojis: 👍, ❤️, 👀, 🎉, 🤔, 😂, ➕. Returns 400 for disallowed emoji. Idempotent — adding the same reaction twice is a no-op.
 
 #### DELETE /comments/:id/reactions/:emoji
 
-Remove a reaction. Query parameter: `author` (required). Returns 200 with the deleted reaction. Returns 404 if not found.
+Remove a reaction. Query parameter: `author` (required). Returns 200 with the updated reactions list for the comment. Returns 404 if comment not found.
 
 Reactions are also included in the `reactions` field of comment objects returned by `GET /comments`.
 
