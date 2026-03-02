@@ -164,6 +164,10 @@ export function openSidebar() {
   _sidebar.classList.remove("fb-sidebar-collapsed");
   document.querySelector(".fb-sidebar-tab").classList.add("fb-sidebar-tab-hidden");
   _attachKeyboardHandler();
+  // Intentionally no auto-focus of first thread here (#194).
+  // Auto-focusing called _setActiveThread(0) → scrollToHighlight(), which
+  // scrolled the main document to the first comment, losing the user's
+  // scroll position. Users can navigate threads with j/k keys or clicking.
 }
 
 export function closeSidebar() {
