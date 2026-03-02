@@ -370,6 +370,7 @@ ws.onmessage = (event) => {
 - **Customizable highlight colors** — color-code feedback by reviewer, priority, or type. Scan a page and instantly see what needs attention.
 - **Dark mode** — comfortable reviewing at any time of day. Auto-detects OS preference or force via `data-theme`.
 - **Keyboard shortcuts** — power through reviews without touching your mouse. Full accessibility support (`s` to toggle sidebar, `j`/`k` to navigate, `Enter` to reply).
+- **Markdown in comments** — format feedback with `**bold**`, `*italic*`, `` `code` ``, and `[links](url)`. XSS-safe with sanitized link validation. Formatting hints appear below the textarea.
 - **Emoji reactions** — quick thumbs-up or 🤔 without cluttering the thread. Gauge consensus at a glance.
 - **Toast notifications** — non-blocking confirmations that don't interrupt your flow. No more jarring alert() dialogs.
 - **Orphaned comments stay visible** — when document text changes, orphaned comments surface at the bottom so nothing gets lost.
