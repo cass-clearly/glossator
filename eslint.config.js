@@ -2,7 +2,7 @@ const js = require("@eslint/js");
 
 module.exports = [
   // Ignore build output, dependencies, and vendored files
-  { ignores: ["**/node_modules/**", "**/dist/**", "serve/**", "feedback-layer/vendor/**"] },
+  { ignores: ["**/node_modules/**", "**/dist/**", "serve/**", "feedback-layer/vendor/**", ".claude/**"] },
 
   // Base recommended rules for all files
   js.configs.recommended,

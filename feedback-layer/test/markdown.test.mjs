@@ -31,7 +31,7 @@ describe("renderMarkdown", async () => {
   it("renders links", () => {
     assert.equal(
       renderMarkdown("[click here](https://example.com)"),
-      '<a href="https://example.com" rel="noopener noreferrer" target="_blank">click here</a>'
+      '<a href="https://example.com" rel="noopener noreferrer" target="_blank">click here</a>',
     );
   });
 

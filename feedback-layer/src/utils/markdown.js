@@ -68,12 +68,13 @@ export function renderMarkdown(text) {
       .replace(/&#39;/g, "'");
 
     if (!isSafeUrl(url)) {
-      return linkText;  // Strip the link, keep the text
+      return linkText; // Strip the link, keep the text
     }
     return `<a href="${rawUrl}" rel="noopener noreferrer" target="_blank">${linkText}</a>`;
   });
 
   // Restore code spans
+  // eslint-disable-next-line no-control-regex -- intentional \x01/\x02 placeholders
   html = html.replace(/\x01(\d+)\x02/g, (_match, index) => codeSpans[index]);
 
   // Preserve line breaks
