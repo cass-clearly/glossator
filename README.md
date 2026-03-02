@@ -422,6 +422,10 @@ The following keyboard shortcuts are available (they are disabled when focus is 
 
 Press the `⌨` button in the sidebar header to see shortcuts at any time.
 
+## Migrating from Other Tools
+
+Switching from Hypothesis, Docdrop, or another W3C Web Annotation tool? See the **[Migration Guide](docs/migration.md)** for data model mappings, edge case documentation, and ready-to-run migration scripts.
+
 ## The Bottom Line
 
 Your team's feedback shouldn't rot in a Google Docs sidebar. Build the agent loop. Close the feedback cycle. Ship faster.
