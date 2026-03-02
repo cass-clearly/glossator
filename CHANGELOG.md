@@ -4,7 +4,7 @@
 
 ### Added
 
-- Markdown formatting in comments: `**bold**`, `*italic*`, `` `code` ``, and `[links](url)`
+- Markdown formatting in comments: `**bold**`, `*italic*`, `` `code` ``, and `[links](url)` (#67)
 - Visual formatting hints below comment and reply textareas
 - XSS protection for comment markdown (blocks `javascript:`, `data:`, and `vbscript:` URL schemes)
 
