@@ -310,7 +310,10 @@ async function handleCommentSubmit({ comment, commenter, color }) {
       color: commentColor,
     });
 
-    _comments.push(ann);
+    // Guard against WS echo that may have arrived during await
+    if (!_comments.some((c) => c.id === ann.id)) {
+      _comments.push(ann);
+    }
 
     // Anchor and highlight the new comment
     const range = await rangeFromSelector({ exact: ann.quote, prefix: ann.prefix, suffix: ann.suffix }, _root);
@@ -398,7 +401,10 @@ async function handleReply({ parent_id, comment, commenter }) {
       author: commenter,
       parent: parent_id,
     });
-    _comments.push(reply);
+    // Guard against WS echo that may have arrived during await
+    if (!_comments.some((c) => c.id === reply.id)) {
+      _comments.push(reply);
+    }
     renderComments(_comments, _anchoredIds, _commentRanges);
   } catch (err) {
     console.error("[feedback-layer] Failed to create reply:", err);
@@ -468,7 +474,7 @@ async function handleReaction(commentId, emoji) {
 }
 
 async function handleCommentCreated(comment) {
-  // Avoid duplicates (e.g. from our own POST)
+  // Avoid duplicates (e.g. WS echo of our own POST)
   if (_comments.some((c) => c.id === comment.id)) return;
   _comments.push(comment);
 
