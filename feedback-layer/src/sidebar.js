@@ -1135,18 +1135,18 @@ function injectStyles() {
       margin-bottom: 6px;
     }
     .fb-cmt-body code {
-      background: #f3f4f6;
+      background: var(--remarq-bg-secondary);
       padding: 1px 4px;
       border-radius: 3px;
       font-size: 12px;
       font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
     }
     .fb-cmt-body a {
-      color: #7c3aed;
+      color: var(--remarq-accent);
       text-decoration: underline;
     }
     .fb-cmt-body a:hover {
-      color: #6d28d9;
+      color: var(--remarq-accent-hover);
     }
     .fb-cmt-meta {
       display: flex;
