@@ -320,6 +320,30 @@ This format works well because:
 
 You can enrich the prompt further by including the full document text alongside the comments.
 
+### Writing markdown feedback
+
+Comment bodies support markdown formatting: `**bold**`, `*italic*`, `` `code` ``, and `[links](url)`. Agents can use this to write structured, scannable feedback that humans can act on quickly.
+
+**Patterns that work well:**
+
+- **Bold** for action items or severity: `**Action required:** Fix the auth flow`
+- **Inline code** for specific identifiers: ``Update `apiKey` to use env var``
+- **Links** to reference specs or issues: `See [RFC 7231](https://tools.ietf.org/html/rfc7231)`
+- **Combined** for rich feedback: `**Bug:** \`fetchUser()\` returns \`null\` on 404. See [error handling spec](https://example.com/spec#errors).`
+
+**Example agent comment:**
+
+```json
+{
+  "body": "**Action required:** The `validateInput()` function doesn't handle empty strings. See [validation spec](https://example.com/spec#validation) for expected behavior.",
+  "author": "code-review-agent",
+  "uri": "https://example.com/docs/proposal.html",
+  "quote": "function validateInput(input) {"
+}
+```
+
+All markdown is rendered safely — input is HTML-escaped before transforms are applied, and `javascript:`, `data:`, and `vbscript:` URL schemes are blocked. Agents don't need to worry about XSS when constructing markdown comments.
+
 ### Batch processing across documents
 
 To process feedback across all documents at once:
