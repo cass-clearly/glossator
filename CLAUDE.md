@@ -71,7 +71,7 @@ Each member has a detailed persona file in `council/`. Read the full file before
 | 🏛️ The Architect      | `council/architect.md`      | 7, 10, 11 + all on deadlock | Coherence, shipping, tiebreaker                            |
 | 📣 The Marketing Guru | `council/marketing-guru.md` | 2, 7, 9, 15                 | Public-facing content: README, docs, marketing, changelogs |
 
-> **📣 The Marketing Guru** is a conditional reviewer — only spawned when a PR touches public-facing files (`README.md`, `docs/`, `site/`, changelogs, release notes, API documentation). On pure-code PRs, skip this reviewer entirely.
+> **📣 The Marketing Guru** reviews every PR. Every change is an opportunity to ensure documentation, changelogs, and public-facing materials reflect what's shipping. The Marketing Guru checks that new features are discoverable, the changelog is current, and the brand narrative stays consistent — Google Docs is the villain we're conquering.
 
 ### How to Spawn Council Members
 
@@ -92,7 +92,7 @@ You must:
 
 ### Council Process
 
-1. **Spawn the core four** council members in parallel against the plan or PR. **If the PR touches public-facing files** (`README.md`, `docs/`, `site/`, changelogs, release notes), also spawn **The Marketing Guru** as a fifth reviewer.
+1. **Spawn all five** council members in parallel against the plan or PR. The Marketing Guru reviews every PR to ensure public-facing materials stay current.
 2. **Collect feedback** — each posts a comment with approve or request-changes
 3. **If any request changes:** address the feedback, push, re-spawn all reviewers
 4. **Repeat until all spawned reviewers approve** in the same round
