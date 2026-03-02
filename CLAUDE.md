@@ -63,13 +63,13 @@ The goal is the best global outcome, not for any one member to be right.
 
 Each member has a detailed persona file in `council/`. Read the full file before spawning each reviewer.
 
-| Role                  | File                        | Principles                  | Focus                                                      |
-| --------------------- | --------------------------- | --------------------------- | ---------------------------------------------------------- |
-| 🔍 The Minimalist     | `council/minimalist.md`     | 1, 2, 4, 9, 14              | Scope, simplicity, delete-first                            |
-| 🔨 The Craftsperson   | `council/craftsperson.md`   | 3, 5, 6, 12                 | TDD, refactoring, code quality                             |
-| 🛡️ The Steward        | `council/steward.md`        | 8, 9, 13, 15                | API stability, production readiness, failure modes         |
-| 🏛️ The Architect      | `council/architect.md`      | 7, 10, 11 + all on deadlock | Coherence, shipping, tiebreaker                            |
-| 📣 The Marketing Guru | `council/marketing-guru.md` | 2, 7, 9, 15                 | Public-facing content: README, docs, marketing, changelogs |
+| Role                  | File                        | Principles                  | Focus                                                   |
+| --------------------- | --------------------------- | --------------------------- | ------------------------------------------------------- |
+| 🔍 The Minimalist     | `council/minimalist.md`     | 1, 2, 4, 9, 14              | Scope, simplicity, delete-first                         |
+| 🔨 The Craftsperson   | `council/craftsperson.md`   | 3, 5, 6, 12                 | TDD, refactoring, code quality                          |
+| 🛡️ The Steward        | `council/steward.md`        | 8, 9, 13, 15                | API stability, production readiness, failure modes      |
+| 🏛️ The Architect      | `council/architect.md`      | 7, 10, 11 + all on deadlock | Coherence, shipping, tiebreaker                         |
+| 📣 The Marketing Guru | `council/marketing-guru.md` | 2, 7, 9, 15                 | Every PR: changelog, docs, brand consistency, marketing |
 
 > **📣 The Marketing Guru** reviews every PR. Every change is an opportunity to ensure documentation, changelogs, and public-facing materials reflect what's shipping. The Marketing Guru checks that new features are discoverable, the changelog is current, and the brand narrative stays consistent — Google Docs is the villain we're conquering.
 
@@ -132,7 +132,7 @@ Before writing any code, write a brief plan:
 - What are the API changes (if any)?
 - What's the test strategy?
 
-Spawn all Council members against the plan (core four + Marketing Guru if the plan involves public-facing content). Address feedback. Do not start implementation until the Council approves the plan.
+Spawn all five Council members against the plan. Address feedback. Do not start implementation until the Council approves the plan.
 
 ### 3. Implement with TDD
 
@@ -172,7 +172,7 @@ CI runs automatically on push: lint → format check → build → tests with co
 
 ### 7. Council Review (only after CI green)
 
-Spawn all applicable Council members against the PR (core four + Marketing Guru if public-facing files changed). Each posts a review. Address all requested changes. Re-spawn all reviewers. CI must pass again before the next review round. Repeat until all approve.
+Spawn all five Council members against the PR. Each posts a review. Address all requested changes. Re-spawn all reviewers. CI must pass again before the next review round. Repeat until all approve.
 
 The Council approves. Human review is not required unless the Council explicitly flags it.
 
