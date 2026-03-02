@@ -384,12 +384,12 @@ ws.onmessage = (event) => {
 
 Comments support basic markdown formatting — no configuration needed. Formatting hints appear below the comment textarea so reviewers discover the syntax naturally.
 
-| Syntax              | Renders as       |
-| ------------------- | ---------------- |
-| `**bold text**`     | **bold text**    |
-| `*italic text*`     | _italic text_    |
-| `` `inline code` `` | `inline code`    |
-| `[link text](url)`  | [link text](url) |
+| Syntax                   | Renders as       |
+| ------------------------ | ---------------- |
+| `**bold**` or `__bold__` | **bold text**    |
+| `*italic*` or `_italic_` | _italic text_    |
+| `` `inline code` ``      | `inline code`    |
+| `[link text](url)`       | [link text](url) |
 
 Line breaks in the input are preserved. All input is HTML-escaped before rendering — markdown transforms are applied to the escaped output, so there's no XSS risk. Links with `javascript:`, `data:`, or `vbscript:` URL schemes are stripped automatically.
 

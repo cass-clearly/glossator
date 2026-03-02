@@ -374,7 +374,7 @@ Create a new comment or reply.
 
 **Required Fields:**
 
-- `body` (string) — Comment text. Supports markdown: `**bold**`, `*italic*`, `` `code` ``, and `[link](url)`. All input is HTML-escaped before rendering. URLs with `javascript:`, `data:`, or `vbscript:` schemes are blocked.
+- `body` (string) — Comment text. Supports markdown: `**bold**`/`__bold__`, `*italic*`/`_italic_`, `` `code` ``, and `[link](url)`. All input is HTML-escaped before rendering. URLs with `javascript:`, `data:`, or `vbscript:` schemes are blocked.
 - `author` (string) — Author name
 - `uri` OR `document` (string) — Document URI or ID
 - `quote` (string) — Required for top-level comments; not required for replies
