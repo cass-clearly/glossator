@@ -164,11 +164,6 @@ export function openSidebar() {
   _sidebar.classList.remove("fb-sidebar-collapsed");
   document.querySelector(".fb-sidebar-tab").classList.add("fb-sidebar-tab-hidden");
   _attachKeyboardHandler();
-  // Focus first thread card if available
-  const firstCard = _listEl?.querySelector(".fb-thread .fb-cmt-card");
-  if (firstCard) {
-    _setActiveThread(0);
-  }
 }
 
 export function closeSidebar() {
@@ -419,7 +414,7 @@ export function showCommentForm(quote) {
     _pendingQuote = null;
   });
 
-  // Scroll form into view
+  // Scroll form into view within the sidebar
   _formEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
