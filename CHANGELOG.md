@@ -11,6 +11,7 @@
 ### Fixed
 
 - Duplicate comments appearing in sidebar when WebSocket echo arrives before HTTP response (#132)
+- Page no longer scrolls to top when opening comment box (#194)
 
 ## v2.2.0 (2026-03-01)
 
