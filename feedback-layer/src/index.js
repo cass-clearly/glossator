@@ -483,7 +483,6 @@ async function handleReaction(commentId, emoji) {
 
 async function handleCommentCreated(comment) {
   if (!addCommentIfNew(comment)) return;
-  _comments.push(comment);
 
   if (!comment.parent) {
     const range = await rangeFromSelector(
