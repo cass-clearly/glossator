@@ -5,6 +5,7 @@
 import { setActiveHighlight, scrollToHighlight } from "./highlights.js";
 import { openModal } from "./ui.js";
 import { escapeHtml } from "./utils/escape-html.js";
+import { renderMarkdown } from "./utils/markdown.js";
 import { threadComments } from "./utils/thread-comments.js";
 import { truncate } from "./utils/truncate.js";
 import { timeAgo } from "./utils/time-ago.js";
@@ -361,6 +362,7 @@ export function showCommentForm(quote) {
     <div class="fb-form-card">
       <div class="fb-form-quote">"${escapeHtml(truncate(quote, 120))}"</div>
       <textarea class="fb-form-textarea" placeholder="Write your comment..." rows="3"></textarea>
+      <div class="fb-fmt-hints">**bold** *italic* \`code\` [link](url)</div>
       <div class="fb-color-picker">
         <label class="fb-color-label">Color</label>
         <div class="fb-color-swatches">
@@ -528,7 +530,7 @@ function buildCard(ann, isReply, isOrphaned = false) {
 
   card.innerHTML = `
     ${orphanedQuoteHtml}
-    <div class="fb-cmt-body">${escapeHtml(ann.body)}</div>
+    <div class="fb-cmt-body">${renderMarkdown(ann.body)}</div>
     <div class="fb-cmt-meta">
       <span class="fb-cmt-author">${escapeHtml(ann.author)}</span>
       <span class="fb-cmt-time">${timeAgo(ann.created_at)}</span>
@@ -673,6 +675,7 @@ function showReplyForm(parentId, threadEl, replyBtn) {
   form.className = "fb-reply-form";
   form.innerHTML = `
     <textarea class="fb-form-textarea" placeholder="Write a reply..." rows="2"></textarea>
+    <div class="fb-fmt-hints">**bold** *italic* \`code\` [link](url)</div>
     <div class="fb-form-actions">
       <button class="fb-btn fb-btn-primary fb-reply-submit">Reply</button>
       <button class="fb-btn fb-btn-cancel fb-reply-cancel">Cancel</button>
@@ -773,7 +776,7 @@ function showEditForm(ann, card) {
   });
 
   commentEl.querySelector(".fb-edit-cancel").addEventListener("click", () => {
-    commentEl.textContent = originalText;
+    commentEl.innerHTML = renderMarkdown(originalText);
   });
 }
 
@@ -1131,6 +1134,20 @@ function injectStyles() {
       line-height: 1.5;
       margin-bottom: 6px;
     }
+    .fb-cmt-body code {
+      background: var(--remarq-bg-secondary);
+      padding: 1px 4px;
+      border-radius: 3px;
+      font-size: 12px;
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+    }
+    .fb-cmt-body a {
+      color: var(--remarq-accent);
+      text-decoration: underline;
+    }
+    .fb-cmt-body a:hover {
+      color: var(--remarq-accent-hover);
+    }
     .fb-cmt-meta {
       display: flex;
       align-items: center;
@@ -1365,6 +1382,12 @@ function injectStyles() {
     .fb-form-textarea:focus {
       outline: none;
       border-color: var(--remarq-accent);
+    }
+    .fb-fmt-hints {
+      font-size: 11px;
+      color: #aaa;
+      margin-top: 4px;
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
     }
     .fb-form-actions {
       display: flex;

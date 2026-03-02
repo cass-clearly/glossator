@@ -59,6 +59,20 @@ const _commentRanges = new Map(); // Map comment ID to its range for position so
 let _wsConnection = null; // WebSocket connection handle
 let _apiUrl = null; // API base URL for establishing WS connection later
 
+/**
+ * Add a comment to _comments if no comment with the same ID exists.
+ * Guards against WebSocket echo race conditions where both the HTTP
+ * response handler and the WS event handler try to add the same comment.
+ *
+ * @param {object} comment - The comment object (must have an `id` property)
+ * @returns {boolean} true if the comment was added, false if it was a duplicate
+ */
+function addCommentIfNew(comment) {
+  if (_comments.some((c) => c.id === comment.id)) return false;
+  _comments.push(comment);
+  return true;
+}
+
 function init() {
   const scriptTag = document.currentScript || document.querySelector('script[src*="feedback-layer"]');
 
@@ -310,7 +324,7 @@ async function handleCommentSubmit({ comment, commenter, color }) {
       color: commentColor,
     });
 
-    _comments.push(ann);
+    addCommentIfNew(ann);
 
     // Anchor and highlight the new comment
     const range = await rangeFromSelector({ exact: ann.quote, prefix: ann.prefix, suffix: ann.suffix }, _root);
@@ -398,7 +412,7 @@ async function handleReply({ parent_id, comment, commenter }) {
       author: commenter,
       parent: parent_id,
     });
-    _comments.push(reply);
+    addCommentIfNew(reply);
     renderComments(_comments, _anchoredIds, _commentRanges);
   } catch (err) {
     console.error("[feedback-layer] Failed to create reply:", err);
@@ -468,9 +482,7 @@ async function handleReaction(commentId, emoji) {
 }
 
 async function handleCommentCreated(comment) {
-  // Avoid duplicates (e.g. from our own POST)
-  if (_comments.some((c) => c.id === comment.id)) return;
-  _comments.push(comment);
+  if (!addCommentIfNew(comment)) return;
 
   if (!comment.parent) {
     const range = await rangeFromSelector(

@@ -187,7 +187,7 @@ Status is a thread-level concept — only root comments have status (`"open"` or
   "quote": "selected text",
   "prefix": "text before",
   "suffix": "text after",
-  "body": "This needs work",
+  "body": "**Issue:** This section needs `refactoring`. See [spec](https://example.com/spec).",
   "author": "Alice",
   "parent": null,
   "color": "red"
@@ -370,6 +370,7 @@ ws.onmessage = (event) => {
 - **Customizable highlight colors** — color-code feedback by reviewer, priority, or type. Scan a page and instantly see what needs attention.
 - **Dark mode** — comfortable reviewing at any time of day. Auto-detects OS preference or force via `data-theme`.
 - **Keyboard shortcuts** — power through reviews without touching your mouse. Full accessibility support (`s` to toggle sidebar, `j`/`k` to navigate, `Enter` to reply).
+- **[Markdown in comments](#markdown-support)** — format feedback with `**bold**`, `*italic*`, `` `code` ``, and `[links](url)`. XSS-safe with sanitized link validation. Formatting hints appear below the textarea.
 - **Emoji reactions** — quick thumbs-up or 🤔 without cluttering the thread. Gauge consensus at a glance.
 - **Toast notifications** — non-blocking confirmations that don't interrupt your flow. No more jarring alert() dialogs.
 - **Orphaned comments stay visible** — when document text changes, orphaned comments surface at the bottom so nothing gets lost.
@@ -378,6 +379,28 @@ ws.onmessage = (event) => {
 - **Security hardening** — protected against clickjacking, MIME sniffing, and common web attacks out of the box (helmet.js).
 - **One script tag** — drop-in integration for any HTML page. Not trapped in a proprietary editor.
 - **Agent-ready API** — structured feedback your AI can consume and act on. Every comment anchored to exact text, threaded, with status tracking.
+
+## Markdown Support
+
+Comments support basic markdown formatting — no configuration needed. Formatting hints appear below the comment textarea so reviewers discover the syntax naturally.
+
+| Syntax                   | Renders as       |
+| ------------------------ | ---------------- |
+| `**bold**` or `__bold__` | **bold text**    |
+| `*italic*` or `_italic_` | _italic text_    |
+| `` `inline code` ``      | `inline code`    |
+| `[link text](url)`       | [link text](url) |
+
+Line breaks in the input are preserved. All input is HTML-escaped before rendering — markdown transforms are applied to the escaped output, so there's no XSS risk. Links with `javascript:`, `data:`, or `vbscript:` URL schemes are stripped automatically.
+
+Agents can send markdown in the `body` field of `POST /comments` to write structured, actionable feedback:
+
+```json
+{
+  "body": "**Action required:** Update `apiKey` to match [API spec](https://example.com/spec#auth).",
+  "author": "lint-agent"
+}
+```
 
 ## Documentation
 
