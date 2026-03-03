@@ -8,6 +8,27 @@ import { escapeHtml } from "./utils/escape-html.js";
 import { renderMarkdown } from "./utils/markdown.js";
 import { threadComments } from "./utils/thread-comments.js";
 import { truncate } from "./utils/truncate.js";
+
+/**
+ * Scroll an element into view within the sidebar without affecting main page scroll.
+ * Uses the sidebar's scrollable container instead of the native scrollIntoView,
+ * which can move the main page on some browsers.
+ */
+function sidebarScrollTo(el) {
+  const scrollParent = el.closest(".fb-sidebar-content") || el.closest(".fb-sidebar") || el.parentElement;
+  if (!scrollParent || scrollParent.scrollHeight <= scrollParent.clientHeight) return;
+  const elRect = el.getBoundingClientRect();
+  const parentRect = scrollParent.getBoundingClientRect();
+  const elTop = elRect.top - parentRect.top + scrollParent.scrollTop;
+  const elBottom = elTop + el.offsetHeight;
+  const viewTop = scrollParent.scrollTop;
+  const viewBottom = viewTop + scrollParent.clientHeight;
+  if (elTop < viewTop) {
+    scrollParent.scrollTo({ top: elTop, behavior: "smooth" });
+  } else if (elBottom > viewBottom) {
+    scrollParent.scrollTo({ top: elBottom - scrollParent.clientHeight, behavior: "smooth" });
+  }
+}
 import { timeAgo } from "./utils/time-ago.js";
 import { initToastContainer } from "./toast.js";
 import { wrapIndex } from "./utils/keyboard-nav.js";
@@ -200,7 +221,7 @@ function _setActiveThread(index) {
   _listEl.querySelectorAll(".fb-cmt-card").forEach((c) => c.classList.remove("fb-cmt-active"));
   const card = cards[index];
   card.classList.add("fb-cmt-active");
-  card.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  sidebarScrollTo(card);
 
   // Also activate the highlight in the document (skip for orphaned comments)
   const thread = card.closest(".fb-thread");
@@ -419,7 +440,7 @@ export function showCommentForm(quote) {
   });
 
   // Scroll form into view within the sidebar
-  _formEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  sidebarScrollTo(_formEl);
 }
 
 /**
@@ -787,7 +808,7 @@ export function focusCommentCard(commentId) {
   if (card) {
     _listEl.querySelectorAll(".fb-cmt-card").forEach((c) => c.classList.remove("fb-cmt-active"));
     card.classList.add("fb-cmt-active");
-    card.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    sidebarScrollTo(card);
   }
 }
 
