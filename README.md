@@ -122,6 +122,14 @@ npm install --prefix server
 DATABASE_URL=postgres://user:pass@localhost:5432/remarq node server/index.js
 ```
 
+### Environment Variables
+
+| Variable          | Default                                    | Description                                                                                          |
+| ----------------- | ------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`    | `postgresql://postgres@localhost/postgres` | PostgreSQL connection string                                                                         |
+| `PORT`            | `3333`                                     | HTTP server listen port                                                                              |
+| `ALLOWED_ORIGINS` | `http://localhost:3333`                    | Comma-separated list of origins allowed by CORS (e.g. `https://example.com,https://app.example.com`) |
+
 ## OpenAPI Spec
 
 The server exposes a machine-readable OpenAPI 3.0 spec at:

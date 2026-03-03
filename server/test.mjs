@@ -299,6 +299,24 @@ describe("API", async () => {
     });
   });
 
+  // ── CORS ──────────────────────────────────────────────────────
+
+  describe("CORS", () => {
+    it("returns Access-Control-Allow-Origin for allowed origin", async () => {
+      const res = await fetch(`${BASE}/health`, {
+        headers: { Origin: "http://localhost:3333" },
+      });
+      assert.equal(res.headers.get("access-control-allow-origin"), "http://localhost:3333");
+    });
+
+    it("supports credentials", async () => {
+      const res = await fetch(`${BASE}/health`, {
+        headers: { Origin: "http://localhost:3333" },
+      });
+      assert.equal(res.headers.get("access-control-allow-credentials"), "true");
+    });
+  });
+
   // ── Documents ─────────────────────────────────────────────────
 
   describe("GET /documents", () => {

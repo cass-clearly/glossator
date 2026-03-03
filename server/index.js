@@ -17,7 +17,8 @@ const path = require("path");
 const openApiSpec = require("./openapi.js");
 
 const app = express();
-app.use(cors());
+const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(",") : ["http://localhost:3333"];
+app.use(cors({ origin: allowedOrigins, credentials: true }));
 app.use(
   helmet({
     contentSecurityPolicy: false,
