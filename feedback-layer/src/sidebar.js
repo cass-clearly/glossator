@@ -8,6 +8,10 @@ import { escapeHtml } from "./utils/escape-html.js";
 import { renderMarkdown } from "./utils/markdown.js";
 import { threadComments } from "./utils/thread-comments.js";
 import { truncate } from "./utils/truncate.js";
+import { timeAgo } from "./utils/time-ago.js";
+import { initToastContainer } from "./toast.js";
+import { wrapIndex } from "./utils/keyboard-nav.js";
+import { COLOR_PRESETS, DEFAULT_COLOR, resolveColor } from "./utils/color.js";
 
 /**
  * Scroll an element into view within the sidebar without affecting main page scroll.
@@ -29,10 +33,6 @@ function sidebarScrollTo(el) {
     scrollParent.scrollTo({ top: elBottom - scrollParent.clientHeight, behavior: "smooth" });
   }
 }
-import { timeAgo } from "./utils/time-ago.js";
-import { initToastContainer } from "./toast.js";
-import { wrapIndex } from "./utils/keyboard-nav.js";
-import { COLOR_PRESETS, DEFAULT_COLOR, resolveColor } from "./utils/color.js";
 
 const SIDEBAR_WIDTH = 320;
 const COMMENTER_KEY = "feedback-layer-commenter";

@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Clicking a highlight no longer scrolls the main page to the top — sidebar now scrolls internally (#221)
+
+### Security
+
+- CORS now restricted to trusted origins via `ALLOWED_ORIGINS` env var (previously allowed all origins)
+
+### Docs
+
+- Added Environment Variables table to README
+
 ## v2.3.0 (2026-03-01)
 
 ### Added
