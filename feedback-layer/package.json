@@ -36,7 +36,8 @@
   "homepage": "https://github.com/cass-clearly/remarq#readme",
   "dependencies": {
     "@apache-annotator/dom": "^0.2.0",
-    "@apache-annotator/selector": "^0.2.0"
+    "@apache-annotator/selector": "^0.2.0",
+    "dompurify": "^3.3.1"
   },
   "devDependencies": {
     "esbuild": "^0.24.0"
