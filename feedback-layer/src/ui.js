@@ -4,7 +4,6 @@
  */
 
 import { buildPrompt } from "./prompt-builder.js";
-import { escapeHtml } from "./utils/escape-html.js";
 
 const STYLES = `
   .hf-overlay {
@@ -150,7 +149,9 @@ export function openModal() {
   // Header
   const header = document.createElement("div");
   header.className = "hf-modal-header";
-  header.innerHTML = `<h2>Send Feedback to Claude</h2>`;
+  const h2 = document.createElement("h2");
+  h2.textContent = "Send Feedback to Claude";
+  header.appendChild(h2);
   const closeBtn = document.createElement("button");
   closeBtn.className = "hf-modal-close";
   closeBtn.textContent = "\u00d7";
@@ -173,7 +174,10 @@ export function openModal() {
   document.body.appendChild(overlay);
 
   if (comments.length === 0) {
-    body.innerHTML = `<div class="hf-status hf-status-info">No comments yet. Ask reviewers to highlight text and add comments first.</div>`;
+    const info = document.createElement("div");
+    info.className = "hf-status hf-status-info";
+    info.textContent = "No comments yet. Ask reviewers to highlight text and add comments first.";
+    body.appendChild(info);
     return;
   }
 
@@ -181,12 +185,16 @@ export function openModal() {
 
   const prompt = buildPrompt(docHtml, comments);
 
-  body.innerHTML = `
-    <div class="hf-status hf-status-success">
-      ${comments.length} comment(s) found &mdash; prompt ready (${prompt.length.toLocaleString()} chars)
-    </div>
-    <textarea class="hf-prompt-area" readonly>${escapeHtml(prompt)}</textarea>
-  `;
+  const status = document.createElement("div");
+  status.className = "hf-status hf-status-success";
+  status.textContent = `${comments.length} comment(s) found \u2014 prompt ready (${prompt.length.toLocaleString()} chars)`;
+  body.appendChild(status);
+
+  const textarea = document.createElement("textarea");
+  textarea.className = "hf-prompt-area";
+  textarea.readOnly = true;
+  textarea.value = prompt;
+  body.appendChild(textarea);
 
   // Copy button
   const copyBtn = document.createElement("button");
