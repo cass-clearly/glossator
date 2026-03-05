@@ -4,8 +4,8 @@
 
 import { setActiveHighlight, scrollToHighlight } from "./highlights.js";
 import { openModal } from "./ui.js";
-import { escapeHtml } from "./utils/escape-html.js";
 import { renderMarkdown } from "./utils/markdown.js";
+import { sanitizeHtml } from "./utils/sanitize.js";
 import { threadComments } from "./utils/thread-comments.js";
 import { truncate } from "./utils/truncate.js";
 import { timeAgo } from "./utils/time-ago.js";
@@ -122,8 +122,7 @@ export function createSidebar({
     <div class="fb-sidebar-content">
       <div class="fb-name-section">
         <label class="fb-label">Your name</label>
-        <input type="text" class="fb-name-input" placeholder="Enter your name..."
-               value="${escapeHtml(getCommenter())}">
+        <input type="text" class="fb-name-input" placeholder="Enter your name...">
       </div>
       <div class="fb-filter-section">
         <label class="fb-filter-toggle">
@@ -152,8 +151,9 @@ export function createSidebar({
   _listEl.setAttribute("role", "list");
   _formEl = _sidebar.querySelector(".fb-form-section");
 
-  // Name input
+  // Set commenter name via DOM property (avoids innerHTML with user data)
   const nameInput = _sidebar.querySelector(".fb-name-input");
+  nameInput.value = getCommenter();
   nameInput.addEventListener("input", () => {
     localStorage.setItem(COMMENTER_KEY, nameInput.value.trim());
   });
@@ -380,7 +380,7 @@ export function showCommentForm(quote) {
 
   _formEl.innerHTML = `
     <div class="fb-form-card">
-      <div class="fb-form-quote">"${escapeHtml(truncate(quote, 120))}"</div>
+      <div class="fb-form-quote"></div>
       <textarea class="fb-form-textarea" placeholder="Write your comment..." rows="3"></textarea>
       <div class="fb-fmt-hints">**bold** *italic* \`code\` [link](url)</div>
       <div class="fb-color-picker">
@@ -395,6 +395,9 @@ export function showCommentForm(quote) {
       </div>
     </div>
   `;
+
+  // Set user-supplied quote via textContent (safe from XSS)
+  _formEl.querySelector(".fb-form-quote").textContent = `\u201C${truncate(quote, 120)}\u201D`;
 
   let selectedColor = initialColor;
 
@@ -455,7 +458,7 @@ export function renderComments(comments, anchoredIds = new Set(), commentRanges 
   _lastComments = comments;
   _lastAnchoredIds = anchoredIds;
   _activeThreadIndex = -1;
-  _listEl.innerHTML = "";
+  _listEl.replaceChildren();
 
   const { topLevel, repliesByParent } = threadComments(comments);
 
@@ -485,12 +488,18 @@ export function renderComments(comments, anchoredIds = new Set(), commentRanges 
   const visibleTopLevel = _showResolved ? sortedTopLevel : sortedTopLevel.filter((a) => a.status !== "closed");
 
   if (sortedTopLevel.length === 0) {
-    _listEl.innerHTML = `<div class="fb-empty">No comments yet. Select text to add one.</div>`;
+    const empty = document.createElement("div");
+    empty.className = "fb-empty";
+    empty.textContent = "No comments yet. Select text to add one.";
+    _listEl.appendChild(empty);
     return;
   }
 
   if (visibleTopLevel.length === 0) {
-    _listEl.innerHTML = `<div class="fb-empty">All ${sortedTopLevel.length} comment(s) resolved. Check "Show closed" to see them.</div>`;
+    const empty = document.createElement("div");
+    empty.className = "fb-empty";
+    empty.textContent = `All ${sortedTopLevel.length} comment(s) resolved. Check \u201CShow closed\u201D to see them.`;
+    _listEl.appendChild(empty);
     return;
   }
 
@@ -543,26 +552,63 @@ function buildCard(ann, isReply, isOrphaned = false) {
     (isOrphaned ? " fb-cmt-orphaned" : "");
   card.dataset.id = ann.id;
 
-  const orphanedQuoteHtml =
-    isOrphaned && ann.quote
-      ? `<div class="fb-cmt-orphaned-quote">Content Deleted: "${escapeHtml(truncate(ann.quote, 120))}"</div>`
-      : "";
+  // Orphaned quote — user text set via textContent
+  if (isOrphaned && ann.quote) {
+    const quoteEl = document.createElement("div");
+    quoteEl.className = "fb-cmt-orphaned-quote";
+    quoteEl.textContent = `Content Deleted: \u201C${truncate(ann.quote, 120)}\u201D`;
+    card.appendChild(quoteEl);
+  }
 
-  card.innerHTML = `
-    ${orphanedQuoteHtml}
-    <div class="fb-cmt-body">${renderMarkdown(ann.body)}</div>
-    <div class="fb-cmt-meta">
-      <span class="fb-cmt-author">${escapeHtml(ann.author)}</span>
-      <span class="fb-cmt-time">${timeAgo(ann.created_at)}</span>
-      <button class="fb-cmt-edit" title="Edit">&#x270E;</button>
-      ${!isReply ? `<button class="fb-cmt-resolve" title="${isClosed ? "Reopen" : "Resolve"}">${isClosed ? "&#x21a9;" : "&#x2713;"}</button>` : ""}
-      <button class="fb-cmt-delete" title="Delete">&times;</button>
-    </div>
-    <div class="fb-reactions"></div>
-  `;
+  // Comment body — markdown rendered HTML sanitized via DOMPurify
+  const bodyEl = document.createElement("div");
+  bodyEl.className = "fb-cmt-body";
+  bodyEl.innerHTML = sanitizeHtml(renderMarkdown(ann.body));
+  card.appendChild(bodyEl);
+
+  // Meta row
+  const metaEl = document.createElement("div");
+  metaEl.className = "fb-cmt-meta";
+
+  const authorEl = document.createElement("span");
+  authorEl.className = "fb-cmt-author";
+  authorEl.textContent = ann.author;
+  metaEl.appendChild(authorEl);
+
+  const timeEl = document.createElement("span");
+  timeEl.className = "fb-cmt-time";
+  timeEl.textContent = timeAgo(ann.created_at);
+  metaEl.appendChild(timeEl);
+
+  const editBtn = document.createElement("button");
+  editBtn.className = "fb-cmt-edit";
+  editBtn.title = "Edit";
+  editBtn.textContent = "\u270E";
+  metaEl.appendChild(editBtn);
+
+  let resolveBtn = null;
+  if (!isReply) {
+    resolveBtn = document.createElement("button");
+    resolveBtn.className = "fb-cmt-resolve";
+    resolveBtn.title = isClosed ? "Reopen" : "Resolve";
+    resolveBtn.textContent = isClosed ? "\u21A9" : "\u2713";
+    metaEl.appendChild(resolveBtn);
+  }
+
+  const deleteBtn = document.createElement("button");
+  deleteBtn.className = "fb-cmt-delete";
+  deleteBtn.title = "Delete";
+  deleteBtn.textContent = "\u00D7";
+  metaEl.appendChild(deleteBtn);
+
+  card.appendChild(metaEl);
+
+  // Reactions container
+  const reactionsEl = document.createElement("div");
+  reactionsEl.className = "fb-reactions";
+  card.appendChild(reactionsEl);
 
   // Build reaction bar
-  const reactionsEl = card.querySelector(".fb-reactions");
   buildReactionBar(reactionsEl, ann);
 
   if (!isReply) {
@@ -583,18 +629,18 @@ function buildCard(ann, isReply, isOrphaned = false) {
       card.classList.add("fb-cmt-active");
     });
 
-    card.querySelector(".fb-cmt-resolve").addEventListener("click", (e) => {
+    resolveBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       if (_onResolve) _onResolve(ann.id, !isClosed);
     });
   }
 
-  card.querySelector(".fb-cmt-edit").addEventListener("click", (e) => {
+  editBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     showEditForm(ann, card);
   });
 
-  card.querySelector(".fb-cmt-delete").addEventListener("click", (e) => {
+  deleteBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     if (_onDelete) _onDelete(ann.id);
   });
@@ -619,7 +665,11 @@ function buildReactionBar(container, ann) {
       badge.classList.add("fb-reaction-mine");
     }
     const label = REACTION_EMOJI[r.emoji];
-    badge.innerHTML = `${r.emoji}<span class="fb-reaction-count">${r.count}</span>`;
+    badge.append(document.createTextNode(r.emoji));
+    const countSpan = document.createElement("span");
+    countSpan.className = "fb-reaction-count";
+    countSpan.textContent = r.count;
+    badge.appendChild(countSpan);
     badge.title = (label ? label + ": " : "") + r.authors.join(", ");
     badge.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -756,7 +806,7 @@ function showEditForm(ann, card) {
     </div>`
         : ""
     }
-    <textarea class="fb-form-textarea" rows="3">${escapeHtml(originalText)}</textarea>
+    <textarea class="fb-form-textarea" rows="3"></textarea>
     <div class="fb-form-actions" style="margin-top: 6px;">
       <button class="fb-btn fb-btn-primary fb-edit-save">Save</button>
       <button class="fb-btn fb-btn-cancel fb-edit-cancel">Cancel</button>
@@ -776,7 +826,9 @@ function showEditForm(ann, card) {
     });
   });
 
+  // Set textarea value via DOM property (avoids innerHTML with user data)
   const textarea = commentEl.querySelector("textarea");
+  textarea.value = originalText;
   textarea.focus();
   textarea.setSelectionRange(textarea.value.length, textarea.value.length);
 
@@ -796,7 +848,7 @@ function showEditForm(ann, card) {
   });
 
   commentEl.querySelector(".fb-edit-cancel").addEventListener("click", () => {
-    commentEl.innerHTML = renderMarkdown(originalText);
+    commentEl.innerHTML = sanitizeHtml(renderMarkdown(originalText));
   });
 }
 

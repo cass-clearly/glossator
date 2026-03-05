@@ -36,7 +36,7 @@ export function showToast(message, type = "success") {
   if (type === "error") {
     const dismiss = document.createElement("button");
     dismiss.className = "fb-toast-dismiss";
-    dismiss.innerHTML = "&times;";
+    dismiss.textContent = "\u00D7";
     dismiss.addEventListener("click", () => removeToast(toast));
     toast.appendChild(dismiss);
   }
