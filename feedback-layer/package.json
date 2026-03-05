@@ -40,6 +40,7 @@
     "dompurify": "^3.3.1"
   },
   "devDependencies": {
-    "esbuild": "^0.24.0"
+    "esbuild": "^0.24.0",
+    "jsdom": "^28.1.0"
   }
 }
