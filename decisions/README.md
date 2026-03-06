@@ -15,12 +15,12 @@ See [ADR-000-template.md](ADR-000-template.md) for the template.
 
 ## Statuses
 
-| Status | Meaning |
-|---|---|
-| Proposed | Under discussion, not yet accepted |
-| Accepted | Active and in effect |
+| Status     | Meaning                              |
+| ---------- | ------------------------------------ |
+| Proposed   | Under discussion, not yet accepted   |
+| Accepted   | Active and in effect                 |
 | Superseded | Replaced by a newer ADR (link to it) |
-| Deprecated | No longer relevant |
+| Deprecated | No longer relevant                   |
 
 ## When to Write an ADR
 
