@@ -7,7 +7,7 @@ description: Run the council review loop on a PR. Spawns all 5 reviewers (Archit
 
 Spawns all five council members, collects verdicts, fixes feedback, repeats until unanimous or the Architect calls it. Uses Ralph Wiggum for iteration control — write `.ralph/<name>.md` before calling `ralph_start`.
 
-See CLAUDE.md "The Council" section for member details, persona files in `council/`, and spawn template in "How to Spawn Council Members."
+See CLAUDE.md "The Council" section for member details, persona files in `agents/council/`, and spawn template in "How to Spawn Council Members."
 
 ## Workflow
 
