@@ -160,6 +160,15 @@ describe("MCP tools", () => {
       assert.equal(requests[0].query.status, "closed");
       assert.equal(requests[0].query.expand, "document");
     });
+
+    it("returns error on API failure", async () => {
+      const { createTools } = await import("../src/index.js");
+      const badClient = new RemarqClient("http://127.0.0.1:1");
+      const badTools = createTools(badClient);
+      const result = await badTools.list_comments({});
+      assert.equal(result.isError, true);
+      assert.match(result.content[0].text, /Failed to list comments/);
+    });
   });
 
   describe("create_comment", () => {
@@ -259,10 +268,17 @@ describe("MCP tools", () => {
   });
 
   describe("createServer", () => {
-    it("creates an MCP server instance", async () => {
+    it("registers all five tools", async () => {
       const { createServer } = await import("../src/index.js");
       const server = createServer(BASE);
-      assert.ok(server);
+      const toolNames = Object.keys(server._registeredTools).sort();
+      assert.deepEqual(toolNames, [
+        "check_connection",
+        "create_comment",
+        "list_comments",
+        "reply_to_comment",
+        "resolve_comment",
+      ]);
     });
   });
 });

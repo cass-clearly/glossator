@@ -50,7 +50,7 @@ npm install --prefix mcp-server
 
 | Variable     | Default                 | Description            |
 | ------------ | ----------------------- | ---------------------- |
-| `REMARQ_URL` | `http://localhost:3000` | Remarq server base URL |
+| `REMARQ_URL` | `http://localhost:3333` | Remarq server base URL |
 
 ## Tools
 

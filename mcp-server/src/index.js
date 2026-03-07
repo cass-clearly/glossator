@@ -30,14 +30,21 @@ export function createTools(client) {
     },
 
     list_comments: async ({ uri, status, include_document } = {}) => {
-      const query = {};
-      if (uri) query.uri = uri;
-      if (status) query.status = status;
-      if (include_document) query.expand = "document";
-      const { data } = await client.request("GET", "/comments", { query });
-      return {
-        content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
-      };
+      try {
+        const query = {};
+        if (uri) query.uri = uri;
+        if (status) query.status = status;
+        if (include_document) query.expand = "document";
+        const { data } = await client.request("GET", "/comments", { query });
+        return {
+          content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
+        };
+      } catch (err) {
+        return {
+          content: [{ type: "text", text: `Failed to list comments: ${err.message}` }],
+          isError: true,
+        };
+      }
     },
 
     create_comment: async ({ uri, quote, body, author, prefix, suffix }) => {
@@ -94,7 +101,7 @@ export function createTools(client) {
 export function createServer(baseUrl) {
   const client = new RemarqClient(baseUrl);
   const tools = createTools(client);
-  const server = new McpServer({ name: "remarq", version: "1.0.0" });
+  const server = new McpServer({ name: "remarq", version: "2.3.0" });
 
   server.registerTool(
     "check_connection",
@@ -161,7 +168,7 @@ export function createServer(baseUrl) {
 /* c8 ignore start */
 const isMain = process.argv[1] && import.meta.url === `file://${process.argv[1]}`;
 if (isMain) {
-  const baseUrl = process.env.REMARQ_URL || "http://localhost:3000";
+  const baseUrl = process.env.REMARQ_URL || "http://localhost:3333";
   const server = createServer(baseUrl);
   const transport = new StdioServerTransport();
   await server.connect(transport);
