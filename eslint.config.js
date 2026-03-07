@@ -1,5 +1,23 @@
 const js = require("@eslint/js");
 
+const sharedRules = {
+  "no-var": "error",
+  "prefer-const": "error",
+  "no-unused-vars": ["error", { argsIgnorePattern: "^_", caughtErrorsIgnorePattern: "^_" }],
+  eqeqeq: ["error", "always"],
+  "no-implicit-coercion": "error",
+  "no-throw-literal": "error",
+  "no-self-compare": "error",
+  curly: ["error", "multi-line"],
+  "no-else-return": "error",
+  "no-lonely-if": "error",
+  "no-unneeded-ternary": "error",
+  "object-shorthand": "error",
+  "no-useless-return": "error",
+  "no-useless-rename": "error",
+  "no-useless-concat": "error",
+};
+
 module.exports = [
   // Ignore build output, dependencies, and vendored files
   { ignores: ["**/node_modules/**", "**/dist/**", "serve/**", "feedback-layer/vendor/**", ".claude/**"] },
@@ -33,33 +51,14 @@ module.exports = [
       },
     },
     rules: {
-      // --- Correctness ---
-      "no-var": "error",
-      "prefer-const": "error",
-      "no-unused-vars": ["error", { argsIgnorePattern: "^_", caughtErrorsIgnorePattern: "^_" }],
-      eqeqeq: ["error", "always"],
-      "no-implicit-coercion": "error",
-      "no-throw-literal": "error",
+      ...sharedRules,
       "no-promise-executor-return": "error",
       "no-template-curly-in-string": "warn",
-      "no-self-compare": "error",
       "no-constructor-return": "error",
-
-      // --- Async safety ---
       "no-async-promise-executor": "error",
       "require-atomic-updates": "error",
       "no-await-in-loop": "warn",
-
-      // --- Code clarity ---
-      curly: ["error", "multi-line"],
-      "no-else-return": "error",
-      "no-lonely-if": "error",
-      "no-unneeded-ternary": "error",
       "prefer-template": "error",
-      "object-shorthand": "error",
-      "no-useless-return": "error",
-      "no-useless-rename": "error",
-      "no-useless-concat": "error",
     },
   },
 
@@ -90,7 +89,6 @@ module.exports = [
       ecmaVersion: 2024,
       sourceType: "module",
       globals: {
-        // Browser globals
         console: "readonly",
         document: "readonly",
         window: "readonly",
@@ -113,23 +111,26 @@ module.exports = [
         WebSocket: "readonly",
       },
     },
-    rules: {
-      "no-var": "error",
-      "prefer-const": "error",
-      "no-unused-vars": ["error", { argsIgnorePattern: "^_", caughtErrorsIgnorePattern: "^_" }],
-      eqeqeq: ["error", "always"],
-      "no-implicit-coercion": "error",
-      "no-throw-literal": "error",
-      "no-self-compare": "error",
-      curly: ["error", "multi-line"],
-      "no-else-return": "error",
-      "no-lonely-if": "error",
-      "no-unneeded-ternary": "error",
-      "object-shorthand": "error",
-      "no-useless-return": "error",
-      "no-useless-rename": "error",
-      "no-useless-concat": "error",
+    rules: { ...sharedRules },
+  },
+
+  // MCP server (ESM, Node)
+  {
+    files: ["mcp-server/src/**/*.js"],
+    languageOptions: {
+      ecmaVersion: 2024,
+      sourceType: "module",
+      globals: {
+        console: "readonly",
+        process: "readonly",
+        Buffer: "readonly",
+        setTimeout: "readonly",
+        clearTimeout: "readonly",
+        URL: "readonly",
+        URLSearchParams: "readonly",
+      },
     },
+    rules: { ...sharedRules },
   },
 
   // ESM test files (.mjs)
@@ -156,21 +157,7 @@ module.exports = [
       },
     },
     rules: {
-      "no-var": "error",
-      "prefer-const": "error",
-      "no-unused-vars": ["error", { argsIgnorePattern: "^_", caughtErrorsIgnorePattern: "^_" }],
-      eqeqeq: ["error", "always"],
-      "no-implicit-coercion": "error",
-      "no-throw-literal": "error",
-      "no-self-compare": "error",
-      curly: ["error", "multi-line"],
-      "no-else-return": "error",
-      "no-lonely-if": "error",
-      "no-unneeded-ternary": "error",
-      "object-shorthand": "error",
-      "no-useless-return": "error",
-      "no-useless-rename": "error",
-      "no-useless-concat": "error",
+      ...sharedRules,
       // Relaxed in tests
       "no-promise-executor-return": "off",
       "no-await-in-loop": "off",

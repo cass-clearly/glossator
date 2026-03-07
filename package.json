@@ -7,7 +7,7 @@
   "scripts": {
     "prepare": "git config core.hooksPath .githooks",
     "start": "node server/index.js",
-    "postinstall": "npm install --prefix server",
+    "postinstall": "npm install --prefix server && npm install --prefix mcp-server",
     "build": "npm install --prefix feedback-layer && node feedback-layer/build.js && cp feedback-layer/dist/feedback-layer.js serve/feedback-layer.js",
     "test:server": "c8 --check-coverage --lines 80 node --test server/test.mjs",
     "test:client": "c8 --check-coverage --lines 80 --include=feedback-layer/src/utils/** --include=feedback-layer/src/prompt-builder.js node --test feedback-layer/test/test.mjs feedback-layer/test/markdown.test.mjs",
@@ -15,7 +15,8 @@
     "format:check": "prettier --check .",
     "format": "prettier --write .",
     "check": "npm run lint && npm run format:check && npm test",
-    "test": "npm run test:server && npm run test:client"
+    "test:mcp": "c8 --check-coverage --lines 80 --include=mcp-server/src/** node --test mcp-server/test/test.mjs",
+    "test": "npm run test:server && npm run test:client && npm run test:mcp"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

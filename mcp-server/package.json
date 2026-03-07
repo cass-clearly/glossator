@@ -1,0 +1,12 @@
+{
+  "name": "@remarq/mcp-server",
+  "version": "2.3.0",
+  "private": true,
+  "description": "MCP server exposing Remarq commenting tools for AI agents",
+  "type": "module",
+  "main": "src/index.js",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "zod": "^3.24.4"
+  }
+}
