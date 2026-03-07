@@ -538,13 +538,24 @@ docker compose -f docker-compose.remarq.yml up --build</pre>
 
           <!-- MCP -->
           <div class="setup-panel" id="panel-mcp" role="tabpanel" aria-hidden="true" aria-labelledby="tab-mcp">
-            <p class="setup-note" style="margin-top: 0">
-              <strong>Coming soon.</strong> The Remarq MCP server will give AI agents native tool access to list
-              comments, create comments, reply, and resolve &mdash; no REST calls needed.
-            </p>
+            <div class="code-block">
+              <button class="copy-btn" aria-label="Copy to clipboard">Copy</button>
+              <pre><span class="comment">// .mcp.json — Claude Code, Cursor, etc.</span>
+{
+  "mcpServers": {
+    "remarq": {
+      "command": "node",
+      "args": ["mcp-server/src/index.js"],
+      "env": {
+        "REMARQ_URL": "http://localhost:3333"
+      }
+    }
+  }
+}</pre>
+            </div>
             <p class="setup-note">
-              Until then, agents can use the
-              <a href="https://github.com/cass-clearly/remarq#api-reference">REST API</a> directly.
+              AI agents get <code>list_comments</code>, <code>create_comment</code>, <code>reply_to_comment</code>, and
+              <code>resolve_comment</code> as native tools.
             </p>
           </div>
 
