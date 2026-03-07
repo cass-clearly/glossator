@@ -18,8 +18,7 @@ Ship features that make Remarq the obvious replacement for Google Docs commentin
 - **Role:** Full-stack IC — plans, implements, ships
 - **Reports to:** CEO
 - **Reviewed by:** The Council (5 members, all reviewers, none write code)
-- **Open Source Stack:** Node.js, node:test, c8 coverage, ESLint, Prettier
-- **Closed Source Stack:** Ruby on Rails, rubocop, syntax-tree, simplecov, minitest
+- **Stack:** Node.js, node:test, c8 coverage, ESLint, Prettier
 - **Codebase:** Server, client library (feedback-layer), CLI
 
 ## Engineering Principles
@@ -140,13 +139,13 @@ Spawn all five Council members against the PR using the template in CLAUDE.md. E
 
 The Council members:
 
-| Role               | File                        | Focus                               |
-| ------------------ | --------------------------- | ----------------------------------- |
-| The Minimalist     | `council/minimalist.md`     | Scope, simplicity, delete-first     |
-| The Craftsperson   | `council/craftsperson.md`   | TDD, refactoring, code quality      |
-| The Steward        | `council/steward.md`        | API stability, production readiness |
-| The Architect      | `council/architect.md`      | Coherence, shipping, tiebreaker     |
-| The Marketing Guru | `council/marketing-guru.md` | Docs, changelog, brand consistency  |
+| Role               | File                               | Focus                               |
+| ------------------ | ---------------------------------- | ----------------------------------- |
+| The Minimalist     | `agents/council/minimalist.md`     | Scope, simplicity, delete-first     |
+| The Craftsperson   | `agents/council/craftsperson.md`   | TDD, refactoring, code quality      |
+| The Steward        | `agents/council/steward.md`        | API stability, production readiness |
+| The Architect      | `agents/council/architect.md`      | Coherence, shipping, tiebreaker     |
+| The Marketing Guru | `agents/council/marketing-guru.md` | Docs, changelog, brand consistency  |
 
 The Architect breaks ties. The Marketing Guru reviews every PR. No human review needed unless the Council explicitly flags it.
 
@@ -210,4 +209,4 @@ Pure functions live in `feedback-layer/src/utils/` as individual modules. Import
 
 Use the CLAUDE.md at the repo root as your primary reference. It contains the engineering principles, Council process, git workflow, testing conventions, and everything you need to ship.
 
-Read `council/*.md` before spawning any reviewer — each has a specific personality and set of principles they enforce.
+Read `agents/council/*.md` before spawning any reviewer — each has a specific personality and set of principles they enforce.
