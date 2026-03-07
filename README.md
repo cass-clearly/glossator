@@ -46,7 +46,7 @@ echo "POSTGRES_PASSWORD=remarq" > .env
 docker compose -f docker-compose.remarq.yml up --build
 ```
 
-Backend runs on port 3333. Visit **http://localhost:3333** for the demo.
+Backend runs on port 3333. Visit **http://localhost:3333/demo.html** for the live demo.
 
 ### 2. Add to any HTML page
 
