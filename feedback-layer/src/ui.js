@@ -5,116 +5,7 @@
 
 import { buildPrompt } from "./prompt-builder.js";
 import { escapeHtml } from "./utils/escape-html.js";
-
-const STYLES = `
-  .hf-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 10001;
-    background: rgba(0,0,0,0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .hf-modal {
-    background: var(--remarq-bg-surface);
-    border-radius: 12px;
-    width: 90%;
-    max-width: 800px;
-    max-height: 85vh;
-    display: flex;
-    flex-direction: column;
-    box-shadow: 0 20px 60px var(--remarq-shadow-strong);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    color: var(--remarq-text);
-  }
-
-  .hf-modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 16px 20px;
-    border-bottom: 1px solid var(--remarq-border-subtle);
-  }
-
-  .hf-modal-header h2 {
-    margin: 0;
-    font-size: 18px;
-    color: var(--remarq-text);
-  }
-
-  .hf-modal-close {
-    background: none;
-    border: none;
-    font-size: 24px;
-    cursor: pointer;
-    color: var(--remarq-text-muted);
-    padding: 0 4px;
-  }
-
-  .hf-modal-body {
-    padding: 20px;
-    overflow-y: auto;
-    flex: 1;
-  }
-
-  .hf-modal-footer {
-    padding: 12px 20px;
-    border-top: 1px solid var(--remarq-border-subtle);
-    display: flex;
-    gap: 8px;
-    justify-content: flex-end;
-  }
-
-  .hf-btn {
-    border: none;
-    border-radius: 6px;
-    padding: 8px 16px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background 0.2s;
-    font-family: inherit;
-  }
-
-  .hf-btn-primary {
-    background: var(--remarq-accent);
-    color: white;
-  }
-  .hf-btn-primary:hover { background: var(--remarq-accent-hover); }
-
-  .hf-btn-secondary {
-    background: var(--remarq-bg-secondary);
-    color: var(--remarq-text-secondary);
-  }
-  .hf-btn-secondary:hover { background: var(--remarq-border-subtle); }
-
-  .hf-prompt-area {
-    width: 100%;
-    min-height: 300px;
-    border: 1px solid var(--remarq-border-input);
-    border-radius: 6px;
-    padding: 12px;
-    font-family: "SF Mono", Monaco, "Cascadia Code", monospace;
-    font-size: 12px;
-    resize: vertical;
-    box-sizing: border-box;
-    background: var(--remarq-bg);
-    color: var(--remarq-text);
-  }
-
-  .hf-status {
-    padding: 12px;
-    border-radius: 6px;
-    margin-bottom: 12px;
-    font-size: 14px;
-  }
-
-  .hf-status-info { background: var(--remarq-info-bg); color: var(--remarq-info-text); }
-  .hf-status-success { background: var(--remarq-success-bg); color: var(--remarq-success-text); }
-  .hf-status-error { background: var(--remarq-error-bg); color: var(--remarq-error-text); }
-`;
+import { createInlineStyles } from "./styles.js";
 
 let _getComments = null;
 let _config = null;
@@ -129,13 +20,7 @@ export function initAuthorUI(config, getComments) {
   _config = config;
   _getComments = getComments;
 
-  injectStyles();
-}
-
-function injectStyles() {
-  const style = document.createElement("style");
-  style.textContent = STYLES;
-  document.head.appendChild(style);
+  createInlineStyles();
 }
 
 export function openModal() {
