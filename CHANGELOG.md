@@ -4,6 +4,7 @@
 
 ### Added
 
+- Live demo page at `/demo.html` — highlight text, leave a comment, watch an AI agent respond in real time
 - MCP server for native AI agent tool access via Model Context Protocol — Claude Code, Claude Desktop, Cursor, and any MCP client get `list_comments`, `create_comment`, `reply_to_comment`, `resolve_comment`, and `check_connection` as tools
 - Extracted shared HTTP client (`shared/client.js`) from CLI for reuse across MCP server and CLI
 - Agent loop reference implementation — closes the human-AI feedback cycle end-to-end. Human leaves a comment, agent receives webhook, generates a revision with Claude, replies, and resolves. Drop-in starting point for building your own agent integration. See `agent-loop/`
