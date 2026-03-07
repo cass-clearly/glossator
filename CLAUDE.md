@@ -63,8 +63,8 @@ The goal is the best global outcome, not for any one member to be right.
 
 Each member has a detailed persona file in `agents/council/`. Read the full file before spawning each reviewer.
 
-| Role                  | File                        | Principles                  | Focus                                                   |
-| --------------------- | --------------------------- | --------------------------- | ------------------------------------------------------- |
+| Role                  | File                               | Principles                  | Focus                                                   |
+| --------------------- | ---------------------------------- | --------------------------- | ------------------------------------------------------- |
 | 🔍 The Minimalist     | `agents/council/minimalist.md`     | 1, 2, 4, 9, 14              | Scope, simplicity, delete-first                         |
 | 🔨 The Craftsperson   | `agents/council/craftsperson.md`   | 3, 5, 6, 12                 | TDD, refactoring, code quality                          |
 | 🛡️ The Steward        | `agents/council/steward.md`        | 8, 9, 13, 15                | API stability, production readiness, failure modes      |

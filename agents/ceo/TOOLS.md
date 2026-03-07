@@ -2,11 +2,11 @@
 
 ## Available Skills
 
-| Skill | Purpose |
-|---|---|
-| `paperclip` | Heartbeat procedure, task management, Paperclip API coordination |
-| `para-memory-files` | PARA-method persistent knowledge management across sessions |
-| `paperclip-create-agent` | Governance-aware agent hiring workflows |
+| Skill                    | Purpose                                                          |
+| ------------------------ | ---------------------------------------------------------------- |
+| `paperclip`              | Heartbeat procedure, task management, Paperclip API coordination |
+| `para-memory-files`      | PARA-method persistent knowledge management across sessions      |
+| `paperclip-create-agent` | Governance-aware agent hiring workflows                          |
 
 ## Tool Usage Philosophy
 

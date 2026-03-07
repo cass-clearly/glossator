@@ -139,8 +139,8 @@ Spawn all five Council members against the PR using the template in CLAUDE.md. E
 
 The Council members:
 
-| Role               | File                        | Focus                               |
-| ------------------ | --------------------------- | ----------------------------------- |
+| Role               | File                               | Focus                               |
+| ------------------ | ---------------------------------- | ----------------------------------- |
 | The Minimalist     | `agents/council/minimalist.md`     | Scope, simplicity, delete-first     |
 | The Craftsperson   | `agents/council/craftsperson.md`   | TDD, refactoring, code quality      |
 | The Steward        | `agents/council/steward.md`        | API stability, production readiness |
