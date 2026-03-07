@@ -9,6 +9,10 @@
 - Agent loop reference implementation — closes the human-AI feedback cycle end-to-end. Human leaves a comment, agent receives webhook, generates a revision with Claude, replies, and resolves. Drop-in starting point for building your own agent integration. See `agent-loop/`
 - ADR-001: Agent loop as standalone directory pattern
 
+### Changed
+
+- Landing page rewritten with agent-first positioning: new 3-step workflow (Comment → Agent Revises → Resolved), tabbed Quick Start, and removal of external CSS dependency
+
 ### Fixed
 
 - Clicking a highlight no longer scrolls the main page to the top — sidebar now scrolls internally (#221)
@@ -16,10 +20,6 @@
 ### Security
 
 - CORS now restricted to trusted origins via `ALLOWED_ORIGINS` env var (previously allowed all origins)
-
-### Changed
-
-- Landing page rewrite: agent-first positioning, hand-crafted CSS (no Tailwind CDN), tabbed Quick Start (Script Tag / Docker / MCP)
 
 ### Docs
 

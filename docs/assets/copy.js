@@ -15,7 +15,8 @@ document.querySelectorAll(".copy-btn").forEach((btn) => {
         btn.textContent = "Copy";
         btn.classList.remove("copied");
       }, 1500);
-    } catch {
+    } catch (err) {
+      console.warn("Copy failed:", err);
       btn.textContent = "Failed";
       setTimeout(() => {
         btn.textContent = "Copy";

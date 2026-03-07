@@ -517,6 +517,7 @@
 &lt;script
   src="https://your-server.com/feedback-layer.js"
   data-api-url="https://your-server.com"
+  data-content-selector="article"
 &gt;&lt;/script&gt;</pre>
             </div>
             <p class="setup-note">That's it. Reviewers can highlight text and comment immediately.</p>
@@ -527,32 +528,23 @@
             <div class="code-block">
               <button class="copy-btn" aria-label="Copy to clipboard">Copy</button>
               <pre><span class="comment"># Start Remarq with PostgreSQL</span>
-curl -O https://raw.githubusercontent.com/cass-clearly/remarq/main/docker-compose.remarq.yml
-echo "POSTGRES_PASSWORD=$(openssl rand -base64 32)" &gt; .env
-docker compose -f docker-compose.remarq.yml up -d</pre>
+git clone https://github.com/cass-clearly/remarq.git
+cd remarq
+echo "POSTGRES_PASSWORD=remarq" &gt; .env
+docker compose -f docker-compose.remarq.yml up --build</pre>
             </div>
             <p class="setup-note">Server starts on port 3333. Add the script tag above pointing to your server.</p>
           </div>
 
           <!-- MCP -->
           <div class="setup-panel" id="panel-mcp" role="tabpanel" aria-hidden="true" aria-labelledby="tab-mcp">
-            <div class="code-block">
-              <button class="copy-btn" aria-label="Copy to clipboard">Copy</button>
-              <pre><span class="comment">// claude_desktop_config.json or .cursor/mcp.json</span>
-{
-  "mcpServers": {
-    "remarq": {
-      "command": "node",
-      "args": ["./mcp-server/src/index.js"],
-      "env": {
-        "REMARQ_URL": "http://localhost:3333"
-      }
-    }
-  }
-}</pre>
-            </div>
+            <p class="setup-note" style="margin-top: 0">
+              <strong>Coming soon.</strong> The Remarq MCP server will give AI agents native tool access to list
+              comments, create comments, reply, and resolve &mdash; no REST calls needed.
+            </p>
             <p class="setup-note">
-              Your AI agent gets native tool access: list comments, create comments, reply, resolve.
+              Until then, agents can use the
+              <a href="https://github.com/cass-clearly/remarq#api-reference">REST API</a> directly.
             </p>
           </div>
 
@@ -571,26 +563,49 @@ docker compose -f docker-compose.remarq.yml up -d</pre>
           <a href="https://github.com/cass-clearly/remarq#api-reference">API Docs</a>
           <a href="https://github.com/cass-clearly/remarq/blob/main/LICENSE">AGPL-3.0 + Commercial</a>
         </div>
-        <p>Remarq &mdash; structured feedback for the age of AI agents.</p>
+        <p>Open source. Self-hosted. Google Docs can keep its broken comment threads.</p>
       </div>
     </footer>
 
     <script src="assets/copy.js"></script>
     <script>
       /* Tab switching for Quick Start panels */
-      document.querySelector(".setup-tabs").addEventListener("click", (e) => {
-        const tab = e.target.closest("[role='tab']");
-        if (!tab) return;
+      const tabs = Array.from(document.querySelectorAll(".setup-tab"));
+      const panels = document.querySelectorAll(".setup-panel");
 
-        document.querySelectorAll(".setup-tab").forEach((t) => {
+      function activateTab(tab) {
+        tabs.forEach((t) => {
           t.setAttribute("aria-selected", "false");
+          t.setAttribute("tabindex", "-1");
         });
         tab.setAttribute("aria-selected", "true");
+        tab.setAttribute("tabindex", "0");
+        tab.focus();
 
-        document.querySelectorAll(".setup-panel").forEach((p) => {
-          p.setAttribute("aria-hidden", "true");
-        });
+        panels.forEach((p) => p.setAttribute("aria-hidden", "true"));
         document.getElementById(tab.getAttribute("aria-controls")).setAttribute("aria-hidden", "false");
+      }
+
+      /* Set initial tabindex state */
+      tabs.forEach((t, i) => t.setAttribute("tabindex", i === 0 ? "0" : "-1"));
+
+      document.querySelector(".setup-tabs").addEventListener("click", (e) => {
+        const tab = e.target.closest("[role='tab']");
+        if (tab) activateTab(tab);
+      });
+
+      document.querySelector(".setup-tabs").addEventListener("keydown", (e) => {
+        const idx = tabs.indexOf(e.target);
+        if (idx === -1) return;
+        let next;
+        if (e.key === "ArrowRight") next = tabs[(idx + 1) % tabs.length];
+        else if (e.key === "ArrowLeft") next = tabs[(idx - 1 + tabs.length) % tabs.length];
+        else if (e.key === "Home") next = tabs[0];
+        else if (e.key === "End") next = tabs[tabs.length - 1];
+        if (next) {
+          e.preventDefault();
+          activateTab(next);
+        }
       });
     </script>
   </body>
