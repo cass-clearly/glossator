@@ -73,6 +73,10 @@ Each member has a detailed persona file in `agents/council/`. Read the full file
 
 > **📣 The Marketing Guru** reviews every PR. Every change is an opportunity to ensure documentation, changelogs, and public-facing materials reflect what's shipping. The Marketing Guru checks that new features are discoverable, the changelog is current, and the brand narrative stays consistent — Google Docs is the villain we're conquering.
 
+### Architecture Decision Records
+
+The Architect maintains ADRs in `decisions/`. When the council makes a significant architectural decision, the Architect creates an ADR in the same PR. See `decisions/README.md` for format and guidelines. Existing ADRs should be consulted before proposing changes that might contradict settled decisions.
+
 ### How to Spawn Council Members
 
 For each council member, spawn a fresh agent with this template:
@@ -181,6 +185,26 @@ The Council approves. Human review is not required unless the Council explicitly
 ```
 gh pr merge --squash --delete-branch
 ```
+
+---
+
+## Coding Standards
+
+These rules apply to all Claude Code and Pi sessions working on this codebase.
+
+**Run tests before committing.** No exceptions. `npm test` must pass before `git commit`. Don't commit broken code and "fix it in the next commit."
+
+**Check CI status before starting review.** Never review code on a red CI. Fix CI first, then review. Reviewing failing code wastes everyone's time.
+
+**Read files before editing.** Always read the full file (or relevant section) before making changes. Don't edit based on assumptions about file contents.
+
+**No excessive apologies.** When something breaks or a mistake is made, fix it. Don't waste tokens on apologies — spend them on solutions.
+
+**Max 3 retries.** If an approach fails 3 times, stop and reassess. Try a fundamentally different approach, or ask for help. Don't keep bashing the same wall.
+
+**Think before critical actions.** Before any destructive operation (deleting files, force-pushing, dropping tables, resetting state), pause and verify: is this the right target? Is there a backup? Can this be undone?
+
+**Batch independent tool calls.** When multiple tool calls have no dependencies between them, make them all in the same batch. Don't serialize independent work.
 
 ---
 
