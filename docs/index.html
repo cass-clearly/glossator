@@ -274,6 +274,61 @@
         font-size: 1.5rem;
       }
 
+      /* -- Social proof -- */
+      .proof {
+        padding: 5rem 1.5rem;
+        background: var(--color-bg);
+      }
+
+      .proof-inner {
+        max-width: var(--max-width);
+        margin: 0 auto;
+      }
+
+      .proof-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 2rem;
+      }
+
+      .proof-card {
+        background: var(--color-step-bg);
+        border: 1px solid var(--color-border);
+        border-radius: 12px;
+        padding: 2rem;
+        text-align: center;
+      }
+
+      .proof-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.5rem;
+        height: 2.5rem;
+        margin-bottom: 1rem;
+        color: var(--color-accent);
+      }
+
+      .proof-card h3 {
+        font-size: 1.125rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+      }
+
+      .proof-card p {
+        color: var(--color-muted);
+        font-size: 0.9375rem;
+      }
+
+      .proof-card a {
+        color: var(--color-accent);
+        text-decoration: none;
+      }
+
+      .proof-card a:hover {
+        text-decoration: underline;
+      }
+
       /* -- Quick Start -- */
       .setup {
         padding: 5rem 1.5rem;
@@ -451,6 +506,10 @@
         .step-arrow {
           display: flex;
         }
+
+        .proof-grid {
+          grid-template-columns: repeat(3, 1fr);
+        }
       }
     </style>
   </head>
@@ -515,6 +574,87 @@
               <div class="step-number">3</div>
               <h3>Resolved</h3>
               <p>Comments are resolved programmatically. The feedback loop closes. No manual synthesis.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Social proof -->
+      <section class="proof">
+        <div class="proof-inner">
+          <h2 class="section-heading">What you get</h2>
+          <div class="proof-grid">
+            <div class="proof-card">
+              <div class="proof-icon" aria-hidden="true">
+                <svg
+                  width="28"
+                  height="28"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
+                  <path d="M2 12h20" />
+                  <path
+                    d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"
+                  />
+                </svg>
+              </div>
+              <h3>Open Source</h3>
+              <p>
+                AGPL-3.0 licensed. Self-host on your infrastructure. Full source on
+                <a href="https://github.com/cass-clearly/remarq" target="_blank" rel="noopener">GitHub</a>.
+              </p>
+            </div>
+            <div class="proof-card">
+              <div class="proof-icon" aria-hidden="true">
+                <svg
+                  width="28"
+                  height="28"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path
+                    d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"
+                  />
+                  <polyline points="7.5 4.21 12 6.81 16.5 4.21" />
+                  <polyline points="7.5 19.79 7.5 14.6 3 12" />
+                  <polyline points="21 12 16.5 14.6 16.5 19.79" />
+                  <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+                  <line x1="12" y1="22.08" x2="12" y2="12" />
+                </svg>
+              </div>
+              <h3>Agent-Ready</h3>
+              <p>
+                REST API, WebSocket events, and MCP server. Your AI agent reads feedback as structured data and resolves
+                it programmatically.
+              </p>
+            </div>
+            <div class="proof-card">
+              <div class="proof-icon" aria-hidden="true">
+                <svg
+                  width="28"
+                  height="28"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="16 18 22 12 16 6" />
+                  <polyline points="8 6 2 12 8 18" />
+                </svg>
+              </div>
+              <h3>Zero Friction</h3>
+              <p>One script tag. No accounts. No vendor lock-in. Works on any HTML page you control.</p>
             </div>
           </div>
         </div>

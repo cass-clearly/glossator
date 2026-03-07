@@ -4,6 +4,7 @@
 
 ### Added
 
+- Social proof section on landing page — three cards highlighting open source, agent-ready API, and zero-friction setup
 - Live demo page at `/demo.html` — highlight text, leave a comment, watch an AI agent respond in real time
 - MCP server for native AI agent tool access via Model Context Protocol — Claude Code, Claude Desktop, Cursor, and any MCP client get `list_comments`, `create_comment`, `reply_to_comment`, `resolve_comment`, and `check_connection` as tools
 - Extracted shared HTTP client (`shared/client.js`) from CLI for reuse across MCP server and CLI
