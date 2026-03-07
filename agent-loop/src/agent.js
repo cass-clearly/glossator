@@ -18,6 +18,7 @@ export function createAgent({ remarqClient, callClaude, agentAuthor, log }) {
 
       // Reply guard
       if (comment.parent) {
+        log("debug", `[${cid}] Skipping reply — has parent ${comment.parent}`);
         return;
       }
 

@@ -35,8 +35,8 @@ Four modules, each with a single responsibility:
 ## Setup
 
 ```bash
-# From the repo root
-npm install
+# Install agent-loop dependencies
+cd agent-loop && npm install
 
 # Required environment variables
 export WEBHOOK_SECRET="your-webhook-secret"
@@ -44,20 +44,21 @@ export ANTHROPIC_API_KEY="sk-ant-..."
 export REMARQ_URL="http://localhost:3333"  # optional, defaults to http://localhost:3333
 
 # Start the agent
-node agent-loop/src/server.js
+node src/server.js
 ```
 
 ## Environment Variables
 
-| Variable            | Default                 | Description                         |
-| ------------------- | ----------------------- | ----------------------------------- |
-| `WEBHOOK_SECRET`    | _(required)_            | Shared secret for HMAC verification |
-| `ANTHROPIC_API_KEY` | _(required)_            | Anthropic API key for Claude        |
-| `REMARQ_URL`        | `http://localhost:3333` | Remarq server URL                   |
-| `AGENT_AUTHOR`      | `Remarq Agent`          | Author name on reply comments       |
-| `PORT`              | `4000`                  | Port the agent listens on           |
+| Variable            | Default                    | Description                         |
+| ------------------- | -------------------------- | ----------------------------------- |
+| `WEBHOOK_SECRET`    | _(required)_               | Shared secret for HMAC verification |
+| `ANTHROPIC_API_KEY` | _(required)_               | Anthropic API key for Claude        |
+| `REMARQ_URL`        | `http://localhost:3333`    | Remarq server URL                   |
+| `AGENT_AUTHOR`      | `Remarq Agent`             | Author name on reply comments       |
+| `PORT`              | `4000`                     | Port the agent listens on           |
+| `CLAUDE_MODEL`      | `claude-sonnet-4-20250514` | Claude model to use                 |
 
-**Note:** The Claude model (`claude-sonnet-4-20250514`) and timeout (60s) are hard-coded. To change them, edit `server.js`.
+**Note:** The Claude timeout (60s) is hard-coded. To change it, edit `server.js`.
 
 ## Register the Webhook
 
@@ -105,3 +106,5 @@ This is a reference implementation. The key integration points are:
 3. **Prompt construction** — format the comment context for your LLM of choice
 
 Replace Claude with any LLM. Replace the HTTP server with a Lambda. The pattern is the same.
+
+For more patterns (batch processing, multi-reviewer workflows, prompt construction tips), see the [Best Practices Guide](../docs/best-practices.md). Full API documentation is in the [README](../README.md#api-reference).

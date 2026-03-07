@@ -82,47 +82,6 @@ module.exports = [
     },
   },
 
-  // ESM files: agent-loop source (Node.js)
-  {
-    files: ["agent-loop/src/**/*.js"],
-    languageOptions: {
-      ecmaVersion: 2024,
-      sourceType: "module",
-      globals: {
-        console: "readonly",
-        process: "readonly",
-        Buffer: "readonly",
-        setTimeout: "readonly",
-        clearTimeout: "readonly",
-        URL: "readonly",
-        URLSearchParams: "readonly",
-        fetch: "readonly",
-        AbortSignal: "readonly",
-      },
-    },
-    rules: {
-      "no-var": "error",
-      "prefer-const": "error",
-      "no-unused-vars": ["error", { argsIgnorePattern: "^_", caughtErrorsIgnorePattern: "^_" }],
-      eqeqeq: ["error", "always"],
-      "no-implicit-coercion": "error",
-      "no-throw-literal": "error",
-      "no-promise-executor-return": "error",
-      "no-self-compare": "error",
-      "no-async-promise-executor": "error",
-      "no-await-in-loop": "warn",
-      curly: ["error", "multi-line"],
-      "no-else-return": "error",
-      "no-lonely-if": "error",
-      "no-unneeded-ternary": "error",
-      "prefer-template": "error",
-      "object-shorthand": "error",
-      "no-useless-return": "error",
-      "no-useless-rename": "error",
-      "no-useless-concat": "error",
-    },
-  },
-
   // ESM files: feedback-layer source (browser)
   {
     files: ["feedback-layer/src/**/*.js"],
@@ -172,6 +131,33 @@ module.exports = [
       },
     },
     rules: { ...sharedRules },
+  },
+
+  // Agent loop (ESM, Node)
+  {
+    files: ["agent-loop/src/**/*.js"],
+    languageOptions: {
+      ecmaVersion: 2024,
+      sourceType: "module",
+      globals: {
+        console: "readonly",
+        process: "readonly",
+        Buffer: "readonly",
+        setTimeout: "readonly",
+        clearTimeout: "readonly",
+        URL: "readonly",
+        URLSearchParams: "readonly",
+        fetch: "readonly",
+        AbortSignal: "readonly",
+      },
+    },
+    rules: {
+      ...sharedRules,
+      "prefer-template": "error",
+      "no-async-promise-executor": "error",
+      "no-await-in-loop": "warn",
+      "no-promise-executor-return": "error",
+    },
   },
 
   // ESM test files (.mjs)

@@ -49,7 +49,7 @@ describe("server", () => {
     processedComments = [];
     const { createApp } = await import("../src/server.js");
     const app = createApp({
-      processComment(comment) {
+      async processComment(comment) {
         processedComments.push(comment);
       },
     });
@@ -123,5 +123,23 @@ describe("server", () => {
     const json = await res.json();
     assert.equal(json.status, "ok");
     assert.equal(json.remarqUrl, "http://localhost:3333");
+  });
+
+  it("returns 404 for unknown routes", async () => {
+    const res = await request(port, { method: "GET", path: "/unknown" });
+    assert.equal(res.status, 404);
+    const json = await res.json();
+    assert.equal(json.error, "Not found");
+  });
+
+  it("returns 400 when body is not valid JSON", async () => {
+    const body = "not json at all";
+    const res = await request(port, {
+      body,
+      headers: { "X-Remarq-Signature": sign(body) },
+    });
+    assert.equal(res.status, 400);
+    const json = await res.json();
+    assert.equal(json.error, "Invalid JSON");
   });
 });

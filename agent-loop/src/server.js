@@ -8,19 +8,35 @@ const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const AGENT_AUTHOR = process.env.AGENT_AUTHOR || "Remarq Agent";
 const PORT = Number(process.env.PORT) || 4000;
-const CLAUDE_MODEL = "claude-sonnet-4-20250514";
+const CLAUDE_MODEL = process.env.CLAUDE_MODEL || "claude-sonnet-4-20250514";
 const CLAUDE_TIMEOUT_MS = 60000;
 
+// Intentional duplication of server/webhooks.js signPayload — agent-loop is a
+// standalone reference impl meant to be copied, so it avoids cross-module imports.
 function signPayload(secret, body) {
   return crypto.createHmac("sha256", secret).update(body).digest("hex");
 }
 
+const MAX_BODY_BYTES = 1024 * 1024; // 1 MB
+
 function readBody(req) {
   return new Promise((resolve, reject) => {
     const chunks = [];
-    req.on("data", (chunk) => chunks.push(chunk));
+    let size = 0;
+    req.on("data", (chunk) => {
+      size += chunk.length;
+      if (size > MAX_BODY_BYTES) {
+        req.destroy();
+        reject(new Error("Request body too large"));
+        return;
+      }
+      chunks.push(chunk);
+    });
     req.on("end", () => resolve(Buffer.concat(chunks).toString()));
     req.on("error", reject);
+    req.on("close", () => {
+      if (!req.complete) reject(new Error("Request aborted"));
+    });
   });
 }
 
@@ -43,9 +59,16 @@ export function createApp(agent) {
         return json(res, 401, { error: "Missing signature" });
       }
 
-      const body = await readBody(req);
+      let body;
+      try {
+        body = await readBody(req);
+      } catch {
+        return json(res, 413, { error: "Request body too large" });
+      }
       const expected = signPayload(WEBHOOK_SECRET, body);
-      if (signature !== expected) {
+      const sigBuf = Buffer.from(signature, "hex");
+      const expectedBuf = Buffer.from(expected, "hex");
+      if (sigBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(sigBuf, expectedBuf)) {
         return json(res, 401, { error: "Invalid signature" });
       }
 
@@ -64,12 +87,10 @@ export function createApp(agent) {
       // Return 200 immediately, process async
       json(res, 200, { ok: true });
 
-      // Fire and forget
-      try {
-        agent.processComment(comment);
-      } catch (err) {
+      // Fire and forget — .catch() handles async errors without blocking the response
+      agent.processComment(comment).catch((err) => {
         console.error(`[agent-loop] Error processing comment ${comment.id}:`, err.message);
-      }
+      });
       return;
     }
 

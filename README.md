@@ -76,7 +76,7 @@ This is the superpower. Every other annotation tool treats comments as a human-t
 
 ```bash
 cd agent-loop && npm install
-REMARQ_URL=http://localhost:3333 WEBHOOK_SECRET=secret ANTHROPIC_API_KEY=your-key node src/server.js
+REMARQ_URL=http://localhost:3333 WEBHOOK_SECRET=your-webhook-secret ANTHROPIC_API_KEY=sk-ant-your-key node src/server.js
 ```
 
 The agent loop listens for `comment.created` webhooks. When a reviewer leaves feedback, the agent reads it, calls Claude, posts a reply, and resolves the comment. See [`agent-loop/README.md`](agent-loop/README.md) for full setup.
@@ -397,7 +397,7 @@ ws.onmessage = (event) => {
 - **One script tag** — drop-in integration for any HTML page. Not trapped in a proprietary editor.
 - **Agent-ready API** — structured feedback your AI can consume and act on. Every comment anchored to exact text, threaded, with status tracking.
 - **[MCP server](mcp-server/README.md)** — native AI agent tool access via Model Context Protocol. Claude Code, Claude Desktop, Cursor, and any MCP client can `list_comments`, `create_comment`, `reply_to_comment`, and `resolve_comment` as tools — no REST API knowledge required.
-- **Agent loop** — reference implementation that closes the human-AI feedback cycle end-to-end. Comment triggers webhook → agent reads feedback → generates revision → replies → resolves. See [`agent-loop/`](agent-loop/).
+- **Agent loop** — reference implementation that closes the feedback cycle: comment → webhook → Claude → reply → resolved. See [`agent-loop/`](agent-loop/).
 
 ## Markdown Support
 

@@ -142,6 +142,14 @@ describe("agent", () => {
     assert.ok(logMessages.some((m) => m.level === "error" && m.msg.includes("Connection refused")));
   });
 
+  it("executes steps in order: fetch, reply, resolve", async () => {
+    const agent = makeAgent();
+    await agent.processComment(makeComment());
+
+    const methods = remarqCalls.map((c) => c.method);
+    assert.deepEqual(methods, ["getOpenComments", "createComment", "resolveComment"]);
+  });
+
   it("logs error and does not post reply when Claude API fails", async () => {
     let claudeCalled = false;
     const agent = makeAgent({
