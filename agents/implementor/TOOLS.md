@@ -2,22 +2,22 @@
 
 ## Available Skills
 
-| Skill | Purpose |
-|---|---|
-| `paperclip` | Heartbeat procedure, task management, Paperclip API coordination |
+| Skill            | Purpose                                                            |
+| ---------------- | ------------------------------------------------------------------ |
+| `paperclip`      | Heartbeat procedure, task management, Paperclip API coordination   |
 | `council-review` | Council review loop — spawn 5 reviewers, collect verdicts, iterate |
 
 ## Development Tools
 
-| Tool | Command | When |
-|---|---|---|
-| All tests | `npm test` | Before every PR, after every change |
-| Server tests | `npm run test:server` | When working on server code |
-| Client tests | `npm run test:client` | When working on feedback-layer |
-| Full check | `npm run check` | Lint + format + build + tests — run before pushing |
-| Lint | `npm run lint` | Catch real bugs (strict equality, unused vars, async) |
-| Format | `npm run format` | Auto-fix formatting with Prettier |
-| Format check | `npm run format:check` | Verify formatting without fixing |
+| Tool         | Command                | When                                                  |
+| ------------ | ---------------------- | ----------------------------------------------------- |
+| All tests    | `npm test`             | Before every PR, after every change                   |
+| Server tests | `npm run test:server`  | When working on server code                           |
+| Client tests | `npm run test:client`  | When working on feedback-layer                        |
+| Full check   | `npm run check`        | Lint + format + build + tests — run before pushing    |
+| Lint         | `npm run lint`         | Catch real bugs (strict equality, unused vars, async) |
+| Format       | `npm run format`       | Auto-fix formatting with Prettier                     |
+| Format check | `npm run format:check` | Verify formatting without fixing                      |
 
 ## Git Workflow
 
