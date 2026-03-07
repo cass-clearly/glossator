@@ -7,7 +7,7 @@
   <meta name="description" content="Try Remarq live. Highlight any text, leave a comment, and watch an AI agent respond in real time.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after {
       box-sizing: border-box;
@@ -20,11 +20,10 @@
       --color-text: #1a1a2e;
       --color-muted: #64748b;
       --color-accent: #7c3aed;
-      --color-accent-hover: #6d28d9;
       --color-accent-light: #f5f3ff;
       --color-border: #e2e8f0;
       --font-sans: "Inter", system-ui, -apple-system, sans-serif;
-      --font-serif: "Lora", Georgia, "Times New Roman", serif;
+      --font-serif: Georgia, "Times New Roman", serif;
     }
 
     html {
@@ -149,14 +148,6 @@
       color: #2d2d3f;
     }
 
-    article em {
-      font-style: italic;
-    }
-
-    article strong {
-      font-weight: 600;
-    }
-
     article blockquote {
       border-left: 3px solid var(--color-accent);
       margin: 1.75rem 0;
@@ -223,11 +214,6 @@
       }
     }
 
-    @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after {
-        transition-duration: 0.01ms !important;
-      }
-    }
   </style>
 </head>
 <body>
@@ -341,10 +327,17 @@
   - data-content-selector: Targets the <article> element for annotation
   - data-document-id: Fixed ID so all visitors share one comment thread
 
-  Known cut: Shared document ID means comments accumulate over time.
-  Future mitigation: periodic cleanup via DELETE /comments API or
-  scoped ephemeral IDs per session. Not built until it matters.
+  Scope: This demo page is intended for local/dev use (Quick Start).
+  The shared document ID means comments accumulate indefinitely with
+  no rate limiting or cleanup. On a publicly deployed instance, this
+  would allow unbounded comment creation and agent loop invocations.
+
+  Known cut: No cleanup mechanism yet. Future mitigation: periodic
+  cleanup via DELETE /comments API, scoped ephemeral IDs per session,
+  or rate limiting. Not built until it matters.
 -->
+<noscript><p style="text-align:center; padding:1rem; background:#fef3cd; color:#856404;">JavaScript is required for the interactive demo.</p></noscript>
+
 <script
   src="/feedback-layer.js"
   data-content-selector="article"

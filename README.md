@@ -96,13 +96,14 @@ The agent loop listens for `comment.created` webhooks. When a reviewer leaves fe
 
 Configure via `data-` attributes on the script tag:
 
-| Attribute               | Default            | Description                                                                                                              |
-| ----------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------ |
-| `data-api-url`          | `""` (same origin) | URL of the Remarq backend                                                                                                |
-| `data-content-selector` | `body`             | CSS selector for the annotatable content area                                                                            |
-| `data-document-uri`     | current page URL   | Override the URI used to store/fetch annotations                                                                         |
-| `data-theme`            | `"auto"`           | Color theme: `"auto"` (follows OS), `"dark"`, or `"light"`                                                               |
-| `data-default-color`    | `null` (yellow)    | Default highlight color for new comments. Accepts a preset name (`red`, `blue`, etc.) or a 6-digit hex code (`#ff6b6b`). |
+| Attribute               | Default            | Description                                                                                                               |
+| ----------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| `data-api-url`          | `""` (same origin) | URL of the Remarq backend                                                                                                 |
+| `data-content-selector` | `body`             | CSS selector for the annotatable content area                                                                             |
+| `data-document-uri`     | current page URL   | Override the URI used to store/fetch annotations                                                                          |
+| `data-document-id`      | none               | Stable document ID — when set, comments are keyed by this ID instead of the page URI. Useful for pages with dynamic URLs. |
+| `data-theme`            | `"auto"`           | Color theme: `"auto"` (follows OS), `"dark"`, or `"light"`                                                                |
+| `data-default-color`    | `null` (yellow)    | Default highlight color for new comments. Accepts a preset name (`red`, `blue`, etc.) or a 6-digit hex code (`#ff6b6b`).  |
 
 ## Production
 
