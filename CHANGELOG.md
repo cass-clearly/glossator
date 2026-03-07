@@ -6,6 +6,8 @@
 
 - MCP server for native AI agent tool access via Model Context Protocol — Claude Code, Claude Desktop, Cursor, and any MCP client get `list_comments`, `create_comment`, `reply_to_comment`, `resolve_comment`, and `check_connection` as tools
 - Extracted shared HTTP client (`shared/client.js`) from CLI for reuse across MCP server and CLI
+- Agent loop reference implementation — webhook-driven agent that receives `comment.created` events, calls Claude, posts a reply, and resolves the comment automatically
+- ADR-001: Agent loop as standalone directory pattern
 
 ### Fixed
 
@@ -18,6 +20,8 @@
 ### Docs
 
 - Added Environment Variables table to README
+- Added webhook agent integration pattern to best-practices guide
+- Added agent-loop README with setup, architecture, and environment variables
 
 ## v2.3.0 (2026-03-01)
 

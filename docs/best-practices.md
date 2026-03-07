@@ -178,6 +178,8 @@ Without this, Remarq uses the current page URL (pathname). Setting it explicitly
 
 Remarq's API is designed for AI agents to consume. Here are patterns for building the feedback loop.
 
+> **Working example:** The [`agent-loop/`](../agent-loop/) directory contains a complete, runnable reference implementation. It listens for `comment.created` webhooks, calls Claude, posts a reply, and resolves the comment — the full closed loop. Start there if you want to see the pattern in action before building your own.
+
 ### The core loop
 
 1. Fetch open comments for a document

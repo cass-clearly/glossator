@@ -1,0 +1,11 @@
+{
+  "name": "@remarq/agent-loop",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Reference agent that closes the human-AI feedback loop via Remarq webhooks.",
+  "main": "src/server.js",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0"
+  }
+}
