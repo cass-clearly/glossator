@@ -72,6 +72,15 @@ curl "http://localhost:3333/comments?status=open&document=DOC_ID"
 
 This is the superpower. Every other annotation tool treats comments as a human-to-human channel. Remarq treats them as **an API for your agent to consume.**
 
+### 4. Close the loop automatically (optional)
+
+```bash
+cd agent-loop && npm install
+REMARQ_URL=http://localhost:3333 WEBHOOK_SECRET=your-webhook-secret ANTHROPIC_API_KEY=sk-ant-your-key node src/server.js
+```
+
+The agent loop listens for `comment.created` webhooks. When a reviewer leaves feedback, the agent reads it, calls Claude, posts a reply, and resolves the comment. See [`agent-loop/README.md`](agent-loop/README.md) for full setup.
+
 ## Why Remarq
 
 |                       | Google Docs                                                 | Remarq                                           |
@@ -183,7 +192,7 @@ Stripe-inspired resource pattern. All responses include an `object` field. **Ful
 | `PATCH`  | `/webhooks/:id` | Update a webhook (`url`, `events`, `active`)              |
 | `DELETE` | `/webhooks/:id` | Delete a webhook                                          |
 
-Events: `comment.created`, `comment.resolved`, `comment.deleted`. Payloads are signed with HMAC-SHA256 using the webhook's secret.
+Events: `comment.created`, `comment.resolved`, `comment.deleted`. Payloads are signed with HMAC-SHA256 using the webhook's secret. See [`agent-loop/`](agent-loop/) for a working reference implementation that processes `comment.created` events with Claude.
 
 Status is a thread-level concept — only root comments have status (`"open"` or `"closed"`). Replies always have `status: null`. The `?status=` filter matches root comments and includes all their replies. Query params can be combined (e.g. `?document=<id>&status=open&expand=document`).
 
@@ -388,6 +397,7 @@ ws.onmessage = (event) => {
 - **One script tag** — drop-in integration for any HTML page. Not trapped in a proprietary editor.
 - **Agent-ready API** — structured feedback your AI can consume and act on. Every comment anchored to exact text, threaded, with status tracking.
 - **[MCP server](mcp-server/README.md)** — native AI agent tool access via Model Context Protocol. Claude Code, Claude Desktop, Cursor, and any MCP client can `list_comments`, `create_comment`, `reply_to_comment`, and `resolve_comment` as tools — no REST API knowledge required.
+- **Agent loop** — reference implementation that closes the feedback cycle: comment → webhook → Claude → reply → resolved. See [`agent-loop/`](agent-loop/).
 
 ## Markdown Support
 

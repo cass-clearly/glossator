@@ -133,6 +133,33 @@ module.exports = [
     rules: { ...sharedRules },
   },
 
+  // Agent loop (ESM, Node)
+  {
+    files: ["agent-loop/src/**/*.js"],
+    languageOptions: {
+      ecmaVersion: 2024,
+      sourceType: "module",
+      globals: {
+        console: "readonly",
+        process: "readonly",
+        Buffer: "readonly",
+        setTimeout: "readonly",
+        clearTimeout: "readonly",
+        URL: "readonly",
+        URLSearchParams: "readonly",
+        fetch: "readonly",
+        AbortSignal: "readonly",
+      },
+    },
+    rules: {
+      ...sharedRules,
+      "prefer-template": "error",
+      "no-async-promise-executor": "error",
+      "no-await-in-loop": "warn",
+      "no-promise-executor-return": "error",
+    },
+  },
+
   // ESM test files (.mjs)
   {
     files: ["**/*.mjs"],

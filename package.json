@@ -16,7 +16,8 @@
     "format": "prettier --write .",
     "check": "npm run lint && npm run format:check && npm test",
     "test:mcp": "c8 --check-coverage --lines 80 --include=mcp-server/src/** node --test mcp-server/test/test.mjs",
-    "test": "npm run test:server && npm run test:client && npm run test:mcp"
+    "test:agent-loop": "c8 --check-coverage --lines 80 --include=agent-loop/src/** node --test 'agent-loop/test/*.test.mjs'",
+    "test": "npm run test:server && npm run test:client && npm run test:mcp && npm run test:agent-loop"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
