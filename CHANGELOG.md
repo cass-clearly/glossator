@@ -17,6 +17,10 @@
 
 - CORS now restricted to trusted origins via `ALLOWED_ORIGINS` env var (previously allowed all origins)
 
+### Changed
+
+- Landing page rewrite: agent-first positioning, hand-crafted CSS (no Tailwind CDN), tabbed Quick Start (Script Tag / Docker / MCP)
+
 ### Docs
 
 - Added Environment Variables table to README

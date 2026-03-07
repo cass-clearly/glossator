@@ -160,6 +160,25 @@ module.exports = [
     },
   },
 
+  // Docs assets (browser scripts, no module system)
+  {
+    files: ["docs/**/*.js"],
+    languageOptions: {
+      ecmaVersion: 2024,
+      sourceType: "script",
+      globals: {
+        document: "readonly",
+        navigator: "readonly",
+        setTimeout: "readonly",
+        console: "readonly",
+      },
+    },
+    rules: {
+      "no-var": "error",
+      "prefer-const": "error",
+    },
+  },
+
   // ESM test files (.mjs)
   {
     files: ["**/*.mjs"],
