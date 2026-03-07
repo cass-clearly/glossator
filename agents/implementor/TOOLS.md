@@ -40,5 +40,5 @@ gh pr merge --squash --delete-branch
 
 1. **Tests first.** Run the test suite before and after every change. If tests break, you broke them — fix them before anything else.
 2. **CI is the gatekeeper.** Don't request Council review until CI is green. Reviewing broken code wastes everyone's time.
-3. **Read the council personas.** Before spawning reviewers, read `council/*.md`. Each reviewer has specific principles they enforce. Know what they'll look for.
+3. **Read the council personas.** Before spawning reviewers, read `agents/council/*.md`. Each reviewer has specific principles they enforce. Know what they'll look for.
 4. **Small commits, clear messages.** Each commit should be independently understandable. Never force-push main.
