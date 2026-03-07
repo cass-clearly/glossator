@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Added
+
+- MCP server for native AI agent tool access via Model Context Protocol — Claude Code, Claude Desktop, Cursor, and any MCP client get `list_comments`, `create_comment`, `reply_to_comment`, `resolve_comment`, and `check_connection` as tools
+- Extracted shared HTTP client (`shared/client.js`) from CLI for reuse across MCP server and CLI
+
 ### Fixed
 
 - Clicking a highlight no longer scrolls the main page to the top — sidebar now scrolls internally (#221)

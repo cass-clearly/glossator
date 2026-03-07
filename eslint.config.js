@@ -132,6 +132,41 @@ module.exports = [
     },
   },
 
+  // MCP server (ESM, Node)
+  {
+    files: ["mcp-server/src/**/*.js"],
+    languageOptions: {
+      ecmaVersion: 2024,
+      sourceType: "module",
+      globals: {
+        console: "readonly",
+        process: "readonly",
+        Buffer: "readonly",
+        setTimeout: "readonly",
+        clearTimeout: "readonly",
+        URL: "readonly",
+        URLSearchParams: "readonly",
+      },
+    },
+    rules: {
+      "no-var": "error",
+      "prefer-const": "error",
+      "no-unused-vars": ["error", { argsIgnorePattern: "^_", caughtErrorsIgnorePattern: "^_" }],
+      eqeqeq: ["error", "always"],
+      "no-implicit-coercion": "error",
+      "no-throw-literal": "error",
+      "no-self-compare": "error",
+      curly: ["error", "multi-line"],
+      "no-else-return": "error",
+      "no-lonely-if": "error",
+      "no-unneeded-ternary": "error",
+      "object-shorthand": "error",
+      "no-useless-return": "error",
+      "no-useless-rename": "error",
+      "no-useless-concat": "error",
+    },
+  },
+
   // ESM test files (.mjs)
   {
     files: ["**/*.mjs"],

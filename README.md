@@ -387,6 +387,7 @@ ws.onmessage = (event) => {
 - **Security hardening** — protected against clickjacking, MIME sniffing, and common web attacks out of the box (helmet.js).
 - **One script tag** — drop-in integration for any HTML page. Not trapped in a proprietary editor.
 - **Agent-ready API** — structured feedback your AI can consume and act on. Every comment anchored to exact text, threaded, with status tracking.
+- **[MCP server](mcp-server/README.md)** — native AI agent tool access via Model Context Protocol. Claude Code, Claude Desktop, Cursor, and any MCP client can `list_comments`, `create_comment`, `reply_to_comment`, and `resolve_comment` as tools — no REST API knowledge required.
 
 ## Markdown Support
 
