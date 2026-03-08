@@ -1,6 +1,6 @@
 "use strict";
 
-const { ALLOWED_REACTION_EMOJIS } = require("../shared/emoji-constants.js");
+const { ALLOWED_REACTION_EMOJIS } = require("./emoji-constants.js");
 
 /**
  * Remarq OpenAPI 3.0 specification.

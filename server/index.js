@@ -9,8 +9,8 @@ const { insertWithId } = require("./generate-id.js");
 const { normalizeUri } = require("./normalize-uri.js");
 const { sanitize } = require("./sanitize.js");
 const { validateColor } = require("./validate-color.js");
-const { PRESET_NAMES } = require("../shared/color-constants.js");
-const { ALLOWED_REACTION_EMOJIS } = require("../shared/emoji-constants.js");
+const { PRESET_NAMES } = require("./color-constants.js");
+const { ALLOWED_REACTION_EMOJIS } = require("./emoji-constants.js");
 const { triggerEvent } = require("./webhooks.js");
 const { registerWebhookRoutes } = require("./webhook-routes.js");
 const path = require("path");
@@ -538,7 +538,7 @@ registerWebhookRoutes(app, pool, asyncHandler);
 
 // ── Static files ────────────────────────────────────────────────────
 
-app.use(express.static(path.join(__dirname, "..", "serve")));
+app.use(express.static(path.join(__dirname, "serve")));
 
 // ── Error handling ──────────────────────────────────────────────────
 
