@@ -70,9 +70,7 @@ describe("createGitHubClient", () => {
     });
 
     it("returns empty array when no files match", async () => {
-      const octokit = makeMockOctokit([
-        { filename: "app.js", status: "modified", patch: "diff" },
-      ]);
+      const octokit = makeMockOctokit([{ filename: "app.js", status: "modified", patch: "diff" }]);
       const client = createGitHubClient(octokit, "owner", "repo", 1, ["**/*.md"]);
 
       const files = await client.getChangedFiles();
@@ -96,9 +94,7 @@ describe("createGitHubClient", () => {
     });
 
     it("returns empty string for unknown file", async () => {
-      const octokit = makeMockOctokit([
-        { filename: "README.md", status: "modified", patch: "diff" },
-      ]);
+      const octokit = makeMockOctokit([{ filename: "README.md", status: "modified", patch: "diff" }]);
       const client = createGitHubClient(octokit, "owner", "repo", 1, ["**/*.md"]);
       await client.getChangedFiles();
 
@@ -107,9 +103,7 @@ describe("createGitHubClient", () => {
     });
 
     it("returns empty string when patch is null", async () => {
-      const octokit = makeMockOctokit([
-        { filename: "binary.md", status: "modified", patch: undefined },
-      ]);
+      const octokit = makeMockOctokit([{ filename: "binary.md", status: "modified", patch: undefined }]);
       const client = createGitHubClient(octokit, "owner", "repo", 1, ["**/*.md"]);
       await client.getChangedFiles();
 
