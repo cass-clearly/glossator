@@ -1,0 +1,20 @@
+# Smithery configuration for Remarq MCP Server
+# https://smithery.ai/docs/config#smitheryyaml
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    properties:
+      remarqUrl:
+        type: string
+        default: "http://localhost:3333"
+        description: "URL of your running Remarq server"
+    required: []
+  commandFunction: |-
+    (config) => ({
+      command: "node",
+      args: ["src/index.js"],
+      env: {
+        REMARQ_URL: config.remarqUrl ?? "http://localhost:3333"
+      }
+    })

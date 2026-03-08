@@ -2,9 +2,30 @@
   "name": "@remarq/mcp-server",
   "version": "2.3.0",
   "private": true,
-  "description": "MCP server exposing Remarq commenting tools for AI agents",
+  "description": "MCP server exposing Remarq commenting tools for AI agents — create, list, reply to, and resolve text-anchored comments on any document via the Model Context Protocol",
   "type": "module",
   "main": "src/index.js",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "remarq",
+    "annotations",
+    "comments",
+    "document-review",
+    "ai-agents",
+    "feedback",
+    "collaboration"
+  ],
+  "homepage": "https://github.com/cass-clearly/remarq/tree/main/mcp-server",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cass-clearly/remarq.git",
+    "directory": "mcp-server"
+  },
+  "bugs": {
+    "url": "https://github.com/cass-clearly/remarq/issues"
+  },
+  "license": "AGPL-3.0-or-later",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1",
     "zod": "^3.24.4"
