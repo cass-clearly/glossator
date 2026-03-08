@@ -23,8 +23,8 @@ name: Document Review
 on:
   pull_request:
     paths:
-      - '**/*.md'
-      - 'docs/**'
+      - "**/*.md"
+      - "docs/**"
 
 permissions:
   pull-requests: write
@@ -44,18 +44,18 @@ That's it. Three inputs, one secret, zero config files.
 
 ## Inputs
 
-| Input | Required | Default | Description |
-|-------|----------|---------|-------------|
-| `anthropic-api-key` | Yes | — | Anthropic API key for Claude |
-| `github-token` | No | `${{ github.token }}` | GitHub token for posting review comments |
-| `file-patterns` | No | `**/*.md` | Comma-separated glob patterns for doc files |
+| Input               | Required | Default               | Description                                 |
+| ------------------- | -------- | --------------------- | ------------------------------------------- |
+| `anthropic-api-key` | Yes      | —                     | Anthropic API key for Claude                |
+| `github-token`      | No       | `${{ github.token }}` | GitHub token for posting review comments    |
+| `file-patterns`     | No       | `**/*.md`             | Comma-separated glob patterns for doc files |
 
 ## Outputs
 
-| Output | Description |
-|--------|-------------|
-| `comments-posted` | Number of review comments posted |
-| `files-reviewed` | Number of documentation files reviewed |
+| Output            | Description                            |
+| ----------------- | -------------------------------------- |
+| `comments-posted` | Number of review comments posted       |
+| `files-reviewed`  | Number of documentation files reviewed |
 
 ## Examples
 
@@ -65,7 +65,7 @@ That's it. Three inputs, one secret, zero config files.
 - uses: cass-clearly/remarq-action@v1
   with:
     anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
-    file-patterns: '**/*.md,**/*.html,**/*.mdx'
+    file-patterns: "**/*.md,**/*.html,**/*.mdx"
 ```
 
 ### Review only files in docs/
@@ -74,7 +74,7 @@ That's it. Three inputs, one secret, zero config files.
 - uses: cass-clearly/remarq-action@v1
   with:
     anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
-    file-patterns: 'docs/**/*.md'
+    file-patterns: "docs/**/*.md"
 ```
 
 ### Use the outputs
@@ -124,12 +124,12 @@ Post all comments as a single GitHub PR review
 
 ## Failure Behavior
 
-| Scenario | What Happens |
-|----------|--------------|
-| Anthropic API down | Action fails. PR check shows red with error message. |
-| API rate limited (429) | Action fails with retry suggestion. No auto-retry in v1. |
-| File exceeds context window | File skipped, warning logged. Other files still reviewed. |
-| No doc files changed | Action succeeds silently. 0 files, 0 comments. |
+| Scenario                         | What Happens                                                       |
+| -------------------------------- | ------------------------------------------------------------------ |
+| Anthropic API down               | Action fails. PR check shows red with error message.               |
+| API rate limited (429)           | Action fails with retry suggestion. No auto-retry in v1.           |
+| File exceeds context window      | File skipped, warning logged. Other files still reviewed.          |
+| No doc files changed             | Action succeeds silently. 0 files, 0 comments.                     |
 | GitHub token missing write scope | Action fails: "GitHub token needs pull-requests: write permission" |
 
 ## Requirements
