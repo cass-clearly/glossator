@@ -20,7 +20,7 @@ const sharedRules = {
 
 module.exports = [
   // Ignore build output, dependencies, and vendored files
-  { ignores: ["**/node_modules/**", "**/dist/**", "serve/**", "feedback-layer/vendor/**", ".claude/**"] },
+  { ignores: ["**/node_modules/**", "**/dist/**", "server/serve/**", "feedback-layer/vendor/**", ".claude/**"] },
 
   // Base recommended rules for all files
   js.configs.recommended,
