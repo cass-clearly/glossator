@@ -4,26 +4,13 @@ import { run } from "./main.js";
 
 function makeMockDeps(overrides = {}) {
   return {
-    anthropicApiKey: "sk-test-key",
-    githubToken: "ghp-test-token",
-    filePatterns: "**/*.md",
-    owner: "testowner",
-    repo: "testrepo",
-    pullNumber: 42,
-    // Returns a list of changed files in the PR
     getChangedFiles: overrides.getChangedFiles || mock.fn(async () => []),
-    // Returns the diff for a single file
     getFileDiff: overrides.getFileDiff || mock.fn(async () => ""),
-    // Reviews a diff (wraps Claude call)
     reviewDiff: overrides.reviewDiff || mock.fn(async () => ({ type: "comments", comments: [] })),
-    // Posts inline review
     postReview: overrides.postReview || mock.fn(async () => {}),
-    // Posts summary comment
     postSummaryComment: overrides.postSummaryComment || mock.fn(async () => {}),
-    // Logging
     log: overrides.log || mock.fn(),
     warn: overrides.warn || mock.fn(),
-    setFailed: overrides.setFailed || mock.fn(),
     setOutput: overrides.setOutput || mock.fn(),
   };
 }

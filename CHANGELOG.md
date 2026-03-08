@@ -4,6 +4,7 @@
 
 ### Added
 
+- GitHub Action for AI-powered documentation review on pull requests — Claude reviews changed doc files and posts inline PR comments. See [`github-action/`](github-action/)
 - Feature highlights section on landing page covering open source licensing, agent integrations (MCP for Claude Code/Desktop/Cursor, REST, WebSocket), and lightweight client setup — bridges the gap between product explanation and install CTA
 - Live demo page at `/demo.html` — highlight text, leave a comment, watch an AI agent respond in real time
 - MCP server for native AI agent tool access via Model Context Protocol — Claude Code, Claude Desktop, Cursor, and any MCP client get `list_comments`, `create_comment`, `reply_to_comment`, `resolve_comment`, and `check_connection` as tools

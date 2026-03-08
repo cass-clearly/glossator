@@ -16,6 +16,10 @@ inputs:
     description: "Comma-separated glob patterns for documentation files to review"
     required: false
     default: "**/*.md"
+  model:
+    description: "Claude model to use for reviews"
+    required: false
+    default: "claude-sonnet-4-20250514"
 
 outputs:
   comments-posted:

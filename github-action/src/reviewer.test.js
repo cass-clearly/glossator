@@ -40,7 +40,7 @@ describe("reviewDiff", () => {
     assert.strictEqual(result.comments[0].line, 5);
   });
 
-  it("passes correct parameters to Claude API", async () => {
+  it("uses default model and 60s timeout", async () => {
     const createFn = mock.fn(async () => ({
       content: [{ type: "text", text: "[]" }],
     }));
@@ -53,6 +53,21 @@ describe("reviewDiff", () => {
     assert.strictEqual(args.model, "claude-sonnet-4-20250514");
     assert.strictEqual(args.max_tokens, 4096);
     assert.ok(args.messages[0].content.includes("diff content"));
+    // Verify timeout option is passed
+    const opts = createFn.mock.calls[0].arguments[1];
+    assert.strictEqual(opts.timeout, 60_000);
+  });
+
+  it("accepts a custom model via options", async () => {
+    const createFn = mock.fn(async () => ({
+      content: [{ type: "text", text: "[]" }],
+    }));
+    const mockClient = { messages: { create: createFn } };
+
+    await reviewDiff(mockClient, "test.md", "diff", { model: "claude-haiku-4-5-20251001" });
+
+    const args = createFn.mock.calls[0].arguments[0];
+    assert.strictEqual(args.model, "claude-haiku-4-5-20251001");
   });
 
   it("returns summary fallback when Claude returns non-JSON", async () => {

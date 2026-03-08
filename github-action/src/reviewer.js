@@ -1,5 +1,8 @@
 import { parseReviewResponse } from "./review-parser.js";
 
+const DEFAULT_MODEL = "claude-sonnet-4-20250514";
+const REVIEW_TIMEOUT_MS = 60_000;
+
 const SYSTEM_PROMPT = `You are a documentation reviewer. You review diffs of documentation files and provide specific, actionable feedback.
 
 Respond with a JSON array of review comments. Each comment must have this exact structure:
@@ -31,20 +34,27 @@ ${diff}
  * @param {object} client - Anthropic SDK client
  * @param {string} filename - Name of the file being reviewed
  * @param {string} diff - The diff content
+ * @param {object} [options] - Optional settings
+ * @param {string} [options.model] - Claude model to use
  * @returns {Promise<{type: "comments", comments: Array} | {type: "summary", text: string}>}
  */
-export async function reviewDiff(client, filename, diff) {
-  const response = await client.messages.create({
-    model: "claude-sonnet-4-20250514",
-    max_tokens: 4096,
-    system: SYSTEM_PROMPT,
-    messages: [
-      {
-        role: "user",
-        content: buildReviewPrompt(filename, diff),
-      },
-    ],
-  });
+export async function reviewDiff(client, filename, diff, options = {}) {
+  const model = options.model || DEFAULT_MODEL;
+
+  const response = await client.messages.create(
+    {
+      model,
+      max_tokens: 4096,
+      system: SYSTEM_PROMPT,
+      messages: [
+        {
+          role: "user",
+          content: buildReviewPrompt(filename, diff),
+        },
+      ],
+    },
+    { timeout: REVIEW_TIMEOUT_MS },
+  );
 
   const textBlock = response.content.find((block) => block.type === "text");
   const rawText = textBlock ? textBlock.text : "";

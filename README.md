@@ -442,6 +442,33 @@ The following keyboard shortcuts are available (they are disabled when focus is 
 
 Press the `⌨` button in the sidebar header to see shortcuts at any time.
 
+## GitHub Action — Doc Review on Every PR
+
+Catch unclear writing, broken examples, and missing context before it ships. Add one workflow file:
+
+```yaml
+# .github/workflows/doc-review.yml
+name: Document Review
+on:
+  pull_request:
+    paths: ["**/*.md", "docs/**"]
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cass-clearly/remarq-action@v1
+        with:
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+```
+
+No Remarq server required. No accounts. Claude reads the diff and posts inline review comments on the PR. See [`github-action/`](github-action/) for full docs.
+
 ## The Bottom Line
 
 Your team's feedback shouldn't rot in a Google Docs sidebar. Build the agent loop. Close the feedback cycle. Ship faster.
