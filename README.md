@@ -122,7 +122,7 @@ docker compose -f docker-compose.remarq.yml up --build -d
 ### Direct (bring your own Postgres)
 
 ```bash
-npx @csalvato/remarq-server
+DATABASE_URL=postgres://user:pass@localhost:5432/remarq npx @csalvato/remarq-server
 ```
 
 Or:

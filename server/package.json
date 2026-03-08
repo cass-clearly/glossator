@@ -16,7 +16,12 @@
     "normalize-uri.js",
     "sanitize.js",
     "webhooks.js",
-    "webhook-routes.js"
+    "webhook-routes.js",
+    "validate-color.js",
+    "openapi.js",
+    "color-constants.js",
+    "emoji-constants.js",
+    "serve"
   ],
   "dependencies": {
     "cors": "^2.8.5",

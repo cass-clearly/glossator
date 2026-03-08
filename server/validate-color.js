@@ -2,7 +2,7 @@
  * Server-side color validation for highlight colors.
  */
 
-const { PRESET_NAMES, HEX_COLOR_REGEX } = require("../shared/color-constants.js");
+const { PRESET_NAMES, HEX_COLOR_REGEX } = require("./color-constants.js");
 
 const PRESET_SET = new Set(PRESET_NAMES);
 

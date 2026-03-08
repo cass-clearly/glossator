@@ -18,6 +18,8 @@
 
 ### Fixed
 
+- `npx @csalvato/remarq-server` now works — moved shared constants and static assets into the server package so all required files are included in the npm tarball
+- README quick-start npx example now includes required `DATABASE_URL` prefix
 - Clicking a highlight no longer scrolls the main page to the top — sidebar now scrolls internally (#221)
 
 ### Security

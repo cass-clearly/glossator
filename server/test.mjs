@@ -2,6 +2,8 @@ import { describe, it, before, after, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { WebSocket } from "ws";
+import fs from "node:fs";
+import path from "node:path";
 
 // ── Utility unit tests ──────────────────────────────────────────────
 
@@ -2369,5 +2371,69 @@ describe("API", async () => {
 
       ws.close();
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Package completeness — every local require must be in package.json "files"
+// ---------------------------------------------------------------------------
+describe("server package.json files field", () => {
+  /**
+   * Walk the local require() graph starting from a given file.
+   * Returns a Set of paths relative to server/ (e.g. "index.js", "validate-color.js").
+   * Only follows requires that start with "./" or "../" and resolve to .js files
+   * inside the server directory.
+   */
+  function collectLocalRequires(entryAbsolute, serverDir) {
+    const visited = new Set();
+    const queue = [entryAbsolute];
+
+    while (queue.length > 0) {
+      const file = queue.shift();
+      if (visited.has(file)) continue;
+      visited.add(file);
+
+      const source = fs.readFileSync(file, "utf8");
+      // Match require("./foo") and require("../bar") patterns
+      const requirePattern = /require\(["'](\.[^"']+)["']\)/g;
+      let m;
+      while ((m = requirePattern.exec(source)) !== null) {
+        const resolved = path.resolve(path.dirname(file), m[1]);
+        // Only track files inside the server directory
+        if (resolved.startsWith(serverDir + path.sep) && fs.existsSync(resolved)) {
+          queue.push(resolved);
+        }
+      }
+    }
+
+    // Convert absolute paths to relative-to-server paths
+    return new Set([...visited].map((f) => path.relative(serverDir, f)));
+  }
+
+  it("includes every local require of index.js in the files field", () => {
+    const serverDir = path.resolve(import.meta.dirname);
+    const pkg = JSON.parse(fs.readFileSync(path.join(serverDir, "package.json"), "utf8"));
+    const declaredFiles = new Set(pkg.files || []);
+
+    const entryFile = path.join(serverDir, "index.js");
+    const requiredFiles = collectLocalRequires(entryFile, serverDir);
+
+    const missing = [...requiredFiles].filter((f) => !declaredFiles.has(f));
+
+    assert.deepStrictEqual(
+      missing,
+      [],
+      `These files are required by server/index.js (or its dependencies) but missing from package.json "files": ${missing.join(", ")}`,
+    );
+  });
+
+  it("includes the serve/ directory for static assets", () => {
+    const serverDir = path.resolve(import.meta.dirname);
+    const pkg = JSON.parse(fs.readFileSync(path.join(serverDir, "package.json"), "utf8"));
+    const declaredFiles = pkg.files || [];
+
+    // index.js serves static files from a "serve" directory
+    const hasServeDir = declaredFiles.some((f) => f === "serve" || f === "serve/" || f.startsWith("serve/"));
+    assert.ok(hasServeDir, 'package.json "files" must include the serve/ directory for static assets');
   });
 });
