@@ -44,11 +44,12 @@ That's it. Three inputs, one secret, zero config files.
 
 ## Inputs
 
-| Input               | Required | Default               | Description                                 |
-| ------------------- | -------- | --------------------- | ------------------------------------------- |
-| `anthropic-api-key` | Yes      | —                     | Anthropic API key for Claude                |
-| `github-token`      | No       | `${{ github.token }}` | GitHub token for posting review comments    |
-| `file-patterns`     | No       | `**/*.md`             | Comma-separated glob patterns for doc files |
+| Input               | Required | Default                    | Description                                 |
+| ------------------- | -------- | -------------------------- | ------------------------------------------- |
+| `anthropic-api-key` | Yes      | —                          | Anthropic API key for Claude                |
+| `github-token`      | No       | `${{ github.token }}`      | GitHub token for posting review comments    |
+| `file-patterns`     | No       | `**/*.md`                  | Comma-separated glob patterns for doc files |
+| `model`             | No       | `claude-sonnet-4-20250514` | Claude model to use for reviews             |
 
 ## Outputs
 
@@ -124,13 +125,12 @@ Post all comments as a single GitHub PR review
 
 ## Failure Behavior
 
-| Scenario                         | What Happens                                                       |
-| -------------------------------- | ------------------------------------------------------------------ |
-| Anthropic API down               | Action fails. PR check shows red with error message.               |
-| API rate limited (429)           | Action fails with retry suggestion. No auto-retry in v1.           |
-| File exceeds context window      | File skipped, warning logged. Other files still reviewed.          |
-| No doc files changed             | Action succeeds silently. 0 files, 0 comments.                     |
-| GitHub token missing write scope | Action fails: "GitHub token needs pull-requests: write permission" |
+| Scenario                       | What Happens                                            |
+| ------------------------------ | ------------------------------------------------------- |
+| Anthropic API error            | File skipped with warning. Other files still reviewed.  |
+| Claude returns non-JSON        | Falls back to a PR-level summary comment for that file. |
+| No doc files changed           | Action succeeds silently. 0 files, 0 comments.          |
+| More than 10 doc files changed | First 10 files reviewed. Remaining files skipped.       |
 
 ## Requirements
 

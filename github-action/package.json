@@ -1,0 +1,24 @@
+{
+  "name": "remarq-action",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AI-powered documentation review for pull requests",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "test": "c8 --lines 80 --branches 70 --functions 70 node --test src/**/*.test.js",
+    "test:watch": "node --test --watch src/**/*.test.js",
+    "build": "npx @vercel/ncc build src/index.js -o dist"
+  },
+  "dependencies": {
+    "@actions/core": "^1.11.1",
+    "@actions/github": "^6.0.0",
+    "@anthropic-ai/sdk": "^0.39.0",
+    "@octokit/rest": "^21.1.1",
+    "minimatch": "^10.2.4"
+  },
+  "devDependencies": {
+    "@vercel/ncc": "^0.38.3",
+    "c8": "^10.1.3"
+  }
+}
