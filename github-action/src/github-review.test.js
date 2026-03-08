@@ -1,10 +1,6 @@
 import { describe, it, mock } from "node:test";
 import assert from "node:assert/strict";
-import {
-  buildReviewComments,
-  postReview,
-  postSummaryComment,
-} from "./github-review.js";
+import { buildReviewComments, postReview, postSummaryComment } from "./github-review.js";
 
 describe("buildReviewComments", () => {
   it("maps parsed comments to GitHub review comment format", () => {
@@ -44,9 +40,7 @@ describe("postReview", () => {
       rest: { pulls: { createReview } },
     };
 
-    const comments = [
-      { path: "README.md", line: 5, body: "**suggestion:** Fix." },
-    ];
+    const comments = [{ path: "README.md", line: 5, body: "**suggestion:** Fix." }];
 
     await postReview(mockOctokit, "owner", "repo", 42, comments);
 

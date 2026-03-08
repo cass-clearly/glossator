@@ -25,9 +25,7 @@ describe("buildReviewPrompt", () => {
 
 describe("reviewDiff", () => {
   it("returns parsed comments from Claude response", async () => {
-    const mockResponse = [
-      { line: 5, body: "Unclear phrasing.", severity: "suggestion" },
-    ];
+    const mockResponse = [{ line: 5, body: "Unclear phrasing.", severity: "suggestion" }];
     const mockClient = {
       messages: {
         create: mock.fn(async () => ({
@@ -80,10 +78,7 @@ describe("reviewDiff", () => {
       },
     };
 
-    await assert.rejects(
-      () => reviewDiff(mockClient, "README.md", "diff"),
-      { message: "API rate limited" }
-    );
+    await assert.rejects(() => reviewDiff(mockClient, "README.md", "diff"), { message: "API rate limited" });
   });
 
   it("handles empty content response", async () => {

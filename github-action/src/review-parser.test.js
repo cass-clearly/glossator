@@ -100,17 +100,15 @@ describe("parseReviewResponse", () => {
   });
 
   it("extracts JSON array embedded in surrounding text", () => {
-    const response = 'Here are the issues:\n[{"line": 1, "body": "Typo.", "severity": "suggestion"}]\nLet me know if you need more.';
+    const response =
+      'Here are the issues:\n[{"line": 1, "body": "Typo.", "severity": "suggestion"}]\nLet me know if you need more.';
     const result = parseReviewResponse(response);
     assert.strictEqual(result.type, "comments");
     assert.strictEqual(result.comments.length, 1);
   });
 
   it("returns summary when all extracted comments are invalid", () => {
-    const json = JSON.stringify([
-      { body: "Missing line." },
-      { line: "not a number", body: "" },
-    ]);
+    const json = JSON.stringify([{ body: "Missing line." }, { line: "not a number", body: "" }]);
     const result = parseReviewResponse(json);
     assert.strictEqual(result.type, "summary");
   });

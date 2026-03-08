@@ -7,16 +7,7 @@ const MAX_FILES = 10;
  * core logic is fully testable without real API calls.
  */
 export async function run(deps) {
-  const {
-    getChangedFiles,
-    getFileDiff,
-    reviewDiff,
-    postReview,
-    postSummaryComment,
-    log,
-    warn,
-    setOutput,
-  } = deps;
+  const { getChangedFiles, getFileDiff, reviewDiff, postReview, postSummaryComment, log, warn, setOutput } = deps;
 
   const changedFiles = await getChangedFiles();
 

@@ -66,8 +66,7 @@ async function main() {
 
       postReview: (comments) => postReview(octokit, owner, repo, pullNumber, comments),
 
-      postSummaryComment: (filename, text) =>
-        postSummaryComment(octokit, owner, repo, pullNumber, filename, text),
+      postSummaryComment: (filename, text) => postSummaryComment(octokit, owner, repo, pullNumber, filename, text),
 
       log: (msg) => core.info(msg),
       warn: (msg) => core.warning(msg),
