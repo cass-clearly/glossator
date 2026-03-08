@@ -89,6 +89,28 @@ That's it. Three inputs, one secret, zero config files.
 - run: echo "Reviewed ${{ steps.review.outputs.files-reviewed }} files, posted ${{ steps.review.outputs.comments-posted }} comments"
 ```
 
+## Example Review Output
+
+When Claude finds issues in your docs, review comments appear inline on the PR diff:
+
+```
+📝 github-action/README.md
+
+  Line 42:
+  > "Run `npm install` to install dependencies"
+  💡 suggestion: Missing prerequisite — readers need to know they should have
+     Node.js 20+ installed before running npm install. Add a note or link to
+     the Requirements section.
+
+  Line 87:
+  > "Set the `ANTHROPIC_API_KEY` environment variable"
+  ⚠️ warning: This contradicts the Quick Start section above, which passes the
+     key via `anthropic-api-key` input. Readers will be confused about which
+     method to use. Remove or clarify.
+```
+
+If Claude returns no issues for a file, nothing is posted — zero noise.
+
 ## What Claude Reviews For
 
 - **Clarity** — Ambiguous phrasing, jargon without explanation, unclear instructions
