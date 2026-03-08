@@ -89,6 +89,16 @@ That's it. Three inputs, one secret, zero config files.
 - run: echo "Reviewed ${{ steps.review.outputs.files-reviewed }} files, posted ${{ steps.review.outputs.comments-posted }} comments"
 ```
 
+## Example Review Output
+
+Review comments appear as standard GitHub PR inline comments, anchored to the specific diff lines where issues were found — just like comments from a human reviewer. Each comment body uses the format:
+
+> **suggestion:** Missing prerequisite — readers need to know they should have Node.js 20+ installed before running npm install. Add a note or link to the Requirements section.
+
+> **warning:** This contradicts the Quick Start section above, which passes the key via the `anthropic-api-key` input. Readers will be confused about which method to use. Remove or clarify.
+
+All comments for a PR are posted as a single review batch. If Claude finds no issues, nothing is posted — zero noise.
+
 ## What Claude Reviews For
 
 - **Clarity** — Ambiguous phrasing, jargon without explanation, unclear instructions
