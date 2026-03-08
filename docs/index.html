@@ -28,6 +28,7 @@
     <link rel="icon" href="assets/favicon.ico" sizes="any" />
     <link rel="icon" href="assets/favicon-192.png" type="image/png" sizes="192x192" />
     <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
+    <link rel="canonical" href="https://cass-clearly.github.io/remarq/" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -493,6 +494,12 @@
       }
 
       /* -- Responsive -- */
+      @media (max-width: 767px) {
+        .code-block pre {
+          font-size: 0.6875rem;
+        }
+      }
+
       @media (min-width: 768px) {
         .hero {
           padding: 9rem 1.5rem 5rem;
@@ -549,7 +556,7 @@
               >View on GitHub</a
             >
           </div>
-          <p class="hero-demo-link">Want to try it first? <a href="/demo.html">See the live demo &rarr;</a></p>
+          <p class="hero-demo-link">Want to try it first? <a href="demo.html">See the live demo &rarr;</a></p>
         </div>
       </section>
 
@@ -655,8 +662,8 @@
               </div>
               <h3>Zero Friction</h3>
               <p>
-                ~4 KB client with no backend dependency. Drop it on static sites, staging servers, or localhost. Nothing
-                to configure — it just works.
+                ~60 KB gzipped client with no backend dependency. Drop it on static sites, staging servers, or
+                localhost. Nothing to configure — it just works.
               </p>
             </div>
           </div>
@@ -686,8 +693,8 @@
               <button class="copy-btn" aria-label="Copy to clipboard">Copy</button>
               <pre><span class="comment">&lt;!-- Add to any HTML page --&gt;</span>
 &lt;script
-  src="https://your-server.com/feedback-layer.js"
-  data-api-url="https://your-server.com"
+  src="http://localhost:3333/feedback-layer.js"
+  data-api-url="http://localhost:3333"
   data-content-selector="article"
 &gt;&lt;/script&gt;</pre>
             </div>
