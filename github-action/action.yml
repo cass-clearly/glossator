@@ -1,0 +1,28 @@
+name: "Remarq Document Review"
+description: "AI-powered documentation review for pull requests. Reviews changed docs and posts inline review comments."
+branding:
+  icon: "file-text"
+  color: "purple"
+
+inputs:
+  anthropic-api-key:
+    description: "Anthropic API key for Claude"
+    required: true
+  github-token:
+    description: "GitHub token for posting review comments"
+    required: false
+    default: "${{ github.token }}"
+  file-patterns:
+    description: "Comma-separated glob patterns for documentation files to review"
+    required: false
+    default: "**/*.md"
+
+outputs:
+  comments-posted:
+    description: "Number of review comments posted"
+  files-reviewed:
+    description: "Number of documentation files reviewed"
+
+runs:
+  using: "node20"
+  main: "dist/index.js"
