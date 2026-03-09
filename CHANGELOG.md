@@ -4,6 +4,9 @@
 
 ### Added
 
+- Product Council for structured opportunity evaluation and JTBD-driven feature planning — 5 parallel evaluators (Opportunist, Advocate, Economist, Skeptic, Narrator) with CPO authority, RICE scoring with engineering feasibility input, and goal-chunk management
+- ADR-002: Product Council structure and design decisions
+
 - GitHub Action for AI-powered documentation review on pull requests — Claude reviews changed doc files and posts inline PR comments. See [`github-action/`](github-action/)
 - Feature highlights section on landing page covering open source licensing, agent integrations (MCP for Claude Code/Desktop/Cursor, REST, WebSocket), and lightweight client setup — bridges the gap between product explanation and install CTA
 - Live demo page at `/demo.html` — highlight text, leave a comment, watch an AI agent respond in real time

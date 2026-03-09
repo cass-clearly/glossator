@@ -1,6 +1,6 @@
 ---
 name: product-council-review
-description: Run the product council review loop on an opportunity or JTBD spec. Spawns all 5 product reviewers (Opportunist, Customer, Economist, Skeptic, Narrator) in parallel, collects verdicts, revises based on feedback, and repeats until all approve or the CPO calls it. Use when evaluating opportunities, reviewing JTBD specs, or conducting outcome reviews.
+description: Run the product council review loop on an opportunity or JTBD spec. Spawns all 5 product reviewers (Opportunist, Advocate, Economist, Skeptic, Narrator) in parallel, collects verdicts. The CPO (see agents/product-council/cpo.md) synthesizes and breaks ties. Repeats until all approve or the CPO calls it. Use when evaluating opportunities, reviewing JTBD specs, or conducting outcome reviews.
 ---
 
 # Product Council Review Loop
@@ -38,7 +38,7 @@ You must:
 - If requesting changes, be specific: what's missing, what's wrong, and why.
 ```
 
-**All five** always run: Opportunist, Customer, Economist, Skeptic, and Narrator.
+**All five** always run: Opportunist, Advocate, Economist, Skeptic, and Narrator. The CPO does not run as a parallel reviewer — they synthesize after the five evaluate.
 
 ### 2. Collect verdicts
 

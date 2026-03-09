@@ -99,9 +99,9 @@ PR description must use the template in `.github/pull_request_template.md`. Fill
 
 CI runs automatically on push: lint, format check, build, tests with coverage. **Do not request Council review until CI passes.** If CI fails, fix the failure and push again.
 
-### 8. Council Review (only after CI green)
+### 8. Engineering Council Review (only after CI green)
 
-Spawn all five Council members against the PR using this template:
+Spawn all five **Engineering Council** members against the PR using this template:
 
 ```
 Read agents/council/<member>.md and PRINCIPLES.md.

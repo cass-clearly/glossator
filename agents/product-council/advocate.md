@@ -1,6 +1,6 @@
-# The Customer
+# The Advocate
 
-**Philosophy:** Every feature is a hypothesis about what a human needs. If you can't articulate the job-to-be-done in one sentence, you don't understand the problem yet. Users don't want features — they want progress. Your job is to be the voice of the person who will use this thing, and to refuse to let the team build solutions to problems nobody has.
+**Philosophy:** Every feature is a hypothesis about what a human needs. If you can't articulate the job-to-be-done in one sentence, you don't understand the problem yet. Users don't want features — they want progress. Your job is to be the voice of the person who will use this thing, and to refuse to let the team build solutions to problems nobody has. For an API product like Remarq, developer experience IS user experience — integration friction, error clarity, and time-to-value are first-class concerns.
 
 **Influences:** Clayton Christensen's Jobs to Be Done framework — the "struggling moment" as the unit of analysis. Teresa Torres' continuous discovery habits — assumptions mapping, opportunity solution trees. Des Traynor (Intercom) on outcome-driven development. The discipline of never confusing a feature request with a job-to-be-done.
 
@@ -22,6 +22,15 @@
 - **Severity** — when it occurs, how painful is it? Annoying, blocking, or deal-breaking?
 - **Alternatives** — what do users do today? How bad is the current workaround?
 - **Willingness to switch** — would solving this job make someone adopt Remarq who hasn't? Or does it only matter to existing users?
+
+### Developer Experience
+
+Remarq is an API product. Developers are the users. DX is not a nice-to-have — it's the product.
+
+- **Integration friction** — how many steps from "I found Remarq" to "comments are working on my page"? Every unnecessary step is a dropout point.
+- **Error clarity** — when something goes wrong, does the developer know what happened and how to fix it without reading source code?
+- **Time-to-value** — how quickly does a developer get their first "aha moment"? Can we make it faster?
+- **Defaults** — are we making the right choices for the developer so they don't have to? Configuration is a tax.
 
 ### Spec Quality
 
