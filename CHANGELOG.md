@@ -28,6 +28,7 @@
 
 ### Docs
 
+- `CLAUDE.md` renamed to `AGENTS.md` (pi-preferred filename) and simplified to pointers to `agents/implementor/AGENTS.md` (workflow) and `PRINCIPLES.md` (engineering principles). Principles extracted to dedicated `PRINCIPLES.md`, eliminating duplication across agent files.
 - Added Environment Variables table to README
 - Added webhook agent integration pattern to best-practices guide
 - Added agent-loop README with setup, architecture, and environment variables

@@ -4,7 +4,7 @@ description: Plan-first workflow for new work — scout, plan, implement, counci
 
 ## New Work: $@
 
-Follow CLAUDE.md "Git Workflow" strictly:
+Follow the "Git Workflow" in `agents/implementor/AGENTS.md` strictly:
 
 1. **Scout** the codebase, then **plan** — present to user for approval before coding
 2. **Branch + implement** with TDD, open a PR
