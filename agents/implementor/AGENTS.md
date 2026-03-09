@@ -41,18 +41,30 @@ cd ../remarq-feature-<short-description>
 
 All steps below (plan, implement, push, PR, merge) are done from this worktree.
 
-### 2. Plan First
+### 2. Understand the JTBD Spec
+
+If this work originated from the Product Council, read the JTBD spec before doing anything (template: `agents/cpo/templates/jtbd-spec.md`):
+
+- **Job Statement** — "As an [actor], I want to [action], so that I can [outcome]." The outcome is what matters — it tells you _why_ this is being built, which lets you propose a better approach if you see one.
+- **Acceptance Criteria** — these define "done." Don't add scope; don't cut scope.
+- **What We're NOT Building** — respect the boundaries the Product Council set.
+- **RICE Score & Feasibility Summary** — understand the effort expectations. The Architect already assessed feasibility; your plan should align with that assessment.
+
+If there's no JTBD spec (e.g., a bug fix or tech debt task), proceed directly to planning.
+
+### 3. Plan First
 
 Before writing any code, write a brief plan:
 
-- What problem does this solve?
+- What problem does this solve? (Reference the JTBD spec if one exists)
+- Is there a better way to solve this problem than what was decided?
 - What's the simplest design?
 - What are the API changes (if any)?
 - What's the test strategy?
 
 Spawn all five Council members against the plan. Address feedback. Do not start implementation until the Council approves the plan.
 
-### 3. Implement with TDD
+### 4. Implement with TDD
 
 Follow red-green-refactor strictly:
 
@@ -63,7 +75,7 @@ Follow red-green-refactor strictly:
 
 Never write implementation code without a failing test first. Never skip the refactor step.
 
-### 4. Commit + Push
+### 5. Commit + Push
 
 Commit with clear messages. Push the branch:
 
@@ -71,7 +83,7 @@ Commit with clear messages. Push the branch:
 git push -u origin feature/<short-description>
 ```
 
-### 5. Open a PR
+### 6. Open a PR
 
 ```bash
 gh pr create --title "<concise title>" --body "<what changed and why>"
@@ -84,13 +96,13 @@ PR description must use the template in `.github/pull_request_template.md`. Fill
 - Include an endpoint table in the PR description
 - Update the README API reference with new endpoints
 
-### 6. Wait for CI Green
+### 7. Wait for CI Green
 
 CI runs automatically on push: lint, format check, build, tests with coverage. **Do not request Council review until CI passes.** If CI fails, fix the failure and push again.
 
-### 7. Council Review (only after CI green)
+### 8. Engineering Council Review (only after CI green)
 
-Spawn all five Council members against the PR using this template:
+Spawn all five **Engineering Council** members against the PR using this template:
 
 ```
 Read agents/council/<member>.md and PRINCIPLES.md.
@@ -119,13 +131,13 @@ The Council members:
 
 The Architect breaks ties. The Marketing Guru reviews every PR. No human review needed unless the Council explicitly flags it.
 
-### 8. Merge
+### 9. Merge
 
 ```bash
 gh pr merge --squash --delete-branch
 ```
 
-### 9. Prune worktrees
+### 10. Prune worktrees
 
 After the branch is merged and deleted, remove the worktree and prune stale worktree metadata. Run from the repo root (e.g. the main worktree), not from inside the feature worktree:
 
@@ -163,6 +175,7 @@ Pure functions live in `feedback-layer/src/utils/` as individual modules. Import
 
 - **Read before you write.** Always read a file before modifying it. Understand the existing code. Think holistically about your approach.
 - **Understand before you change.** Do not change a system until you understand why each part was designed the way it was.
+- **Minimize tokens in documentation.** When writing docs, agent instructions, or templates, keep them as concise as possible. Every token an agent reads costs time and context window. Say it once, say it clearly, reference don't duplicate.
 - **One thing at a time.** Each PR does one thing well. If it needs to be split, split it. Smaller, incremental, more focused PRs, written in TDD style (red-green-refactor) are always better.
 - **Small, reversible commits.** Never force-push main.
 - **Respond to Council feedback directly.** When a reviewer requests changes, fix the code. Don't argue unless you have better reasoning — and then argue with reasoning, not ego.
