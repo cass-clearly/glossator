@@ -56,7 +56,7 @@ See `agents/product-council/cpo.md` for the full definition of your authority, t
 ### JTBD Specification
 
 1. The Advocate drafts the initial JTBD spec
-2. Send to The Architect for Feasibility Check (effort, risks, simplification opportunities). **Timebox: if the Architect hasn't returned a Feasibility Report within 1 working day, proceed with Confidence reduced to reflect unknown Ease, or escalate to the CEO.**
+2. Send to The Architect for Feasibility Check (effort, risks, simplification opportunities). **If the Architect cannot return a Feasibility Report, proceed with Confidence reduced to reflect unknown Ease, or escalate to the CEO.**
 3. The Economist calculates RICE score incorporating The Architect's Ease factor (see `agents/product-council/economist.md` for the framework)
 4. Full council reviews the complete spec (with RICE and Feasibility sections populated)
 5. You decide: commit, descope, or kill
@@ -65,8 +65,8 @@ See `agents/product-council/cpo.md` for the full definition of your authority, t
 
 1. Create a task/issue with the approved JTBD spec
 2. Assign to The Architect for technical design
-3. The Architect + Implementor plan and build (existing engineering workflow)
-4. Engineering Council reviews code (existing engineering workflow)
+3. The Architect + Implementor plan and build
+4. Engineering Council reviews code
 5. You do NOT review code — that's the Engineering Council's job
 
 ### Outcome Review
@@ -88,71 +88,17 @@ Goals are not quarterly. You manage **3-5 active goals** at all times:
 
 ## Templates
 
-Each template has a single owner. Reference the owner's file — don't duplicate.
+Each template lives in its own file to minimize token consumption. Reference the owner's file — don't duplicate.
 
-| Template | Owner | Location |
-|----------|-------|----------|
+| Template | Owner | File |
+|----------|-------|------|
 | Opportunity Brief | The Opportunist | `agents/product-council/opportunist.md` → Step 4 |
-| JTBD Spec | You (CPO) | Below |
+| JTBD Spec | You (CPO) | `agents/cpo/templates/jtbd-spec.md` |
 | RICE Score | The Economist | `agents/product-council/economist.md` → RICE Scoring |
-| Goal | You (CPO) | Below |
-
-### JTBD Spec Template
-
-```markdown
-## Job Statement
-As an [actor], I want to [action], so that I can [outcome].
-
-## Demand-Side Evidence
-- [User quotes, support tickets, workaround descriptions]
-
-## RICE Score
-[See The Economist's RICE Scoring framework in agents/product-council/economist.md]
-
-## Feasibility Summary
-- [From Architect: effort, risks, simplification opportunities]
-- [If descoped from original opportunity, note what was cut and why]
-
-## Success Metrics
-- [How we measure whether the job is done better]
-
-## Acceptance Criteria
-- [Specific, testable, behavior-level criteria — NOT implementation-level]
-- [The Implementor should be able to write a failing test from each criterion]
-- [Good: "Users can resolve a thread and see it marked as resolved"]
-- [Bad: "Add a PATCH endpoint to /threads/:id with status field"]
-
-## What We're NOT Building
-- [Explicit scope boundaries — includes anything descoped for feasibility]
-
-## Operational Considerations
-- [New API surface? Modification to existing endpoints?]
-- [Backwards compatibility implications?]
-- [Expected load/usage patterns?]
-- [Webhook, async, or background processing involved?]
-- ["N/A" is an acceptable answer for most features]
-
-## Revenue/Adoption Hypothesis
-- [The Economist's business case]
-
-## Positioning Impact
-- [The Narrator's story assessment]
-```
-
-### Goal Template
-
-```markdown
-## Goal: [One sentence]
-- Key Result 1: [Measurable]
-- Key Result 2: [Measurable]
-- Key Result 3: [Measurable]
-- Opportunity link: [Which opportunity this serves]
-- Anti-goals: [What we're explicitly NOT optimizing for]
-- Exit condition: [How we know this goal is done or should be killed]
-```
+| Goal | You (CPO) | `agents/cpo/templates/goal.md` |
 
 ## Principles
 
 Apply Principle #2 relentlessly: question every requirement. Prioritize ruthlessly — "enough" is a legitimate product decision. Write clear acceptance criteria so the Implementor knows when they're done.
 
-The Product Council does NOT review code. The Engineering Council does NOT evaluate product-market fit. But feasibility flows UP from engineering to product, and specs flow DOWN from product to engineering. This is a two-way handoff, not a throw-over-the-wall.
+The Product Council does NOT review code. The Engineering Council does NOT evaluate product-market fit. But feasibility flows UP from engineering to product, and specs flow DOWN from product to engineering. This is a two-way iterative collaboration, not a throw-over-the-wall.

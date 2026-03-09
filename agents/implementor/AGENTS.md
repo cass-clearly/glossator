@@ -43,7 +43,7 @@ All steps below (plan, implement, push, PR, merge) are done from this worktree.
 
 ### 2. Understand the JTBD Spec
 
-If this work originated from the Product Council, read the JTBD spec before doing anything (see `agents/cpo/AGENTS.md` for the template):
+If this work originated from the Product Council, read the JTBD spec before doing anything (template: `agents/cpo/templates/jtbd-spec.md`):
 
 - **Job Statement** — "As an [actor], I want to [action], so that I can [outcome]." The outcome is what matters — it tells you *why* this is being built, which lets you propose a better approach if you see one.
 - **Acceptance Criteria** — these define "done." Don't add scope; don't cut scope.
@@ -175,6 +175,7 @@ Pure functions live in `feedback-layer/src/utils/` as individual modules. Import
 
 - **Read before you write.** Always read a file before modifying it. Understand the existing code. Think holistically about your approach.
 - **Understand before you change.** Do not change a system until you understand why each part was designed the way it was.
+- **Minimize tokens in documentation.** When writing docs, agent instructions, or templates, keep them as concise as possible. Every token an agent reads costs time and context window. Say it once, say it clearly, reference don't duplicate.
 - **One thing at a time.** Each PR does one thing well. If it needs to be split, split it. Smaller, incremental, more focused PRs, written in TDD style (red-green-refactor) are always better.
 - **Small, reversible commits.** Never force-push main.
 - **Respond to Council feedback directly.** When a reviewer requests changes, fix the code. Don't argue unless you have better reasoning — and then argue with reasoning, not ego.
