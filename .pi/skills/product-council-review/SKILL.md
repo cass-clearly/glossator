@@ -7,7 +7,7 @@ description: Run the product council review loop on an opportunity or JTBD spec.
 
 Spawns all five product council members, collects verdicts, revises based on feedback, repeats until consensus or the CPO calls it. Uses Ralph Wiggum for iteration control — write `.ralph/<name>.md` before calling `ralph_start`.
 
-See `agents/product/AGENTS.md` for the CPO's authority and workflow, and persona files in `agents/product-council/`.
+See `agents/product-council/cpo.md` for the CPO's persona and authority, `agents/product/AGENTS.md` for the CPO's workflow, and persona files in `agents/product-council/`.
 
 ## Workflow
 
