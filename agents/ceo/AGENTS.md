@@ -61,7 +61,7 @@ Remarq operates with two parallel councils that you oversee:
 Evaluates opportunities, writes JTBD specs, reviews outcomes, and manages active goals. Six members: CPO (authority + participant), Opportunist, Advocate, Economist, Skeptic, Narrator. The CPO participates in every round and has final authority — same structure as the Architect on the Engineering Council.
 
 - Persona files: `agents/product-council/*.md`
-- CPO workflow: `agents/product/AGENTS.md`
+- CPO workflow: `agents/cpo/AGENTS.md`
 - Skill: `.pi/skills/product-council-review/SKILL.md`
 
 ### Engineering Council (owned by Architect)
