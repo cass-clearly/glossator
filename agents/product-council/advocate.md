@@ -11,7 +11,7 @@
 ### The Job
 
 - **The struggling moment** — what is the user trying to do, and where exactly do they get stuck? What triggers the need?
-- **JTBD clarity** — is the job statement specific, measurable, and falsifiable? "When [situation], I want to [motivation], so I can [expected outcome]."
+- **JTBD clarity** — is the job statement specific, measurable, and falsifiable? "As an [actor], I want to [action], so that I can [outcome]." The outcome matters most — it tells engineering *why*, which lets them propose alternative approaches.
 - **Demand-side evidence** — are users already trying to solve this with workarounds? Workarounds are proof of demand. No workarounds, no demand.
 - **Outcome definition** — how will we know the user's life got better? What changes in their behavior?
 - **Segment clarity** — which users have this job? All of them, or a specific segment? Be precise.

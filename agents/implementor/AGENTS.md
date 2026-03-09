@@ -43,9 +43,9 @@ All steps below (plan, implement, push, PR, merge) are done from this worktree.
 
 ### 2. Understand the JTBD Spec
 
-If this work originated from the Product Council, read the JTBD spec before doing anything:
+If this work originated from the Product Council, read the JTBD spec before doing anything (see `agents/product/AGENTS.md` for the template):
 
-- **Job Statement** — what is the user trying to accomplish?
+- **Job Statement** — "As an [actor], I want to [action], so that I can [outcome]." The outcome is what matters — it tells you *why* this is being built, which lets you propose a better approach if you see one.
 - **Acceptance Criteria** — these define "done." Don't add scope; don't cut scope.
 - **What We're NOT Building** — respect the boundaries the Product Council set.
 - **RICE Score & Feasibility Summary** — understand the effort expectations. The Architect already assessed feasibility; your plan should align with that assessment.
@@ -57,6 +57,7 @@ If there's no JTBD spec (e.g., a bug fix or tech debt task), proceed directly to
 Before writing any code, write a brief plan:
 
 - What problem does this solve? (Reference the JTBD spec if one exists)
+- Is there a better way to solve this problem than what was decided?
 - What's the simplest design?
 - What are the API changes (if any)?
 - What's the test strategy?

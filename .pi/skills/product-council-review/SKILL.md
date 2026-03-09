@@ -38,7 +38,7 @@ You must:
 - If requesting changes, be specific: what's missing, what's wrong, and why.
 ```
 
-**All five** always run: Opportunist, Advocate, Economist, Skeptic, and Narrator. The CPO does not run as a parallel reviewer — they synthesize after the five evaluate.
+**All six** always run: CPO, Opportunist, Advocate, Economist, Skeptic, and Narrator. The CPO participates in every round as both a reviewer and the authority — they evaluate alongside the others and then synthesize the results. This mirrors how the Architect operates on the Engineering Council.
 
 ### 2. Collect verdicts
 

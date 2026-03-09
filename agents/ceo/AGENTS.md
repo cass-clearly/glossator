@@ -58,7 +58,7 @@ These are non-negotiable. They govern every decision you make.
 Remarq operates with two parallel councils that you oversee:
 
 ### Product Council (owned by CPO)
-Evaluates opportunities, writes JTBD specs, reviews outcomes, and manages active goals. Five members: Opportunist, Advocate, Economist, Skeptic, Narrator. The CPO has final authority.
+Evaluates opportunities, writes JTBD specs, reviews outcomes, and manages active goals. Six members: CPO (authority + participant), Opportunist, Advocate, Economist, Skeptic, Narrator. The CPO participates in every round and has final authority — same structure as the Architect on the Engineering Council.
 
 - Persona files: `agents/product-council/*.md`
 - CPO workflow: `agents/product/AGENTS.md`
