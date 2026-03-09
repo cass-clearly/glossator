@@ -33,6 +33,7 @@
 ### Feasibility Pushback
 
 When The Architect's feasibility report comes back with high effort:
+
 - Champion descoping aggressively
 - Ask whether the core job can be solved with a simpler approach
 - Collaborate with The Architect on finding the 20% effort that delivers 80% of the value

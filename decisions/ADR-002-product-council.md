@@ -11,14 +11,14 @@ Remarq needs a structured product team that can find opportunities, evaluate the
 
 Create a Product Council with 6 members mirroring the Engineering Council pattern:
 
-| Role | Focus |
-|------|-------|
-| The CPO | Coherence, synthesis, tiebreaker, final authority. Participates in every round. |
-| The Opportunist | Market gaps, competitive intel, timing. Actively hunts for opportunities. |
-| The Advocate | User pain, JTBD, problem-solution fit. Voice of the user. DX awareness. |
-| The Economist | Revenue, pricing, unit economics. Owns RICE scoring framework. |
-| The Skeptic | Scope, focus, deletion. Challenges whether we should build at all. |
-| The Narrator | Positioning, GTM, story. Ensures features strengthen the narrative. |
+| Role            | Focus                                                                           |
+| --------------- | ------------------------------------------------------------------------------- |
+| The CPO         | Coherence, synthesis, tiebreaker, final authority. Participates in every round. |
+| The Opportunist | Market gaps, competitive intel, timing. Actively hunts for opportunities.       |
+| The Advocate    | User pain, JTBD, problem-solution fit. Voice of the user. DX awareness.         |
+| The Economist   | Revenue, pricing, unit economics. Owns RICE scoring framework.                  |
+| The Skeptic     | Scope, focus, deletion. Challenges whether we should build at all.              |
+| The Narrator    | Positioning, GTM, story. Ensures features strengthen the narrative.             |
 
 The CPO participates in every round and has final authority — same structure as the Architect on the Engineering Council.
 

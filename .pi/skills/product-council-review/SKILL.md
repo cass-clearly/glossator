@@ -15,17 +15,18 @@ See `agents/product-council/cpo.md` for the CPO's persona and authority, `agents
 
 Three review types, all use the same 5-member parallel spawn:
 
-| Type | Verdicts | Trigger |
-|------|----------|---------|
-| **Opportunity Evaluation** | PURSUE / PASS / NEEDS_EVIDENCE | New opportunity brief |
-| **Spec Review** | APPROVE / REQUEST_CHANGES | JTBD spec ready for review |
-| **Outcome Review** | SUCCEEDED / PARTIAL / MISSED | Feature shipped, metrics available |
+| Type                       | Verdicts                       | Trigger                            |
+| -------------------------- | ------------------------------ | ---------------------------------- |
+| **Opportunity Evaluation** | PURSUE / PASS / NEEDS_EVIDENCE | New opportunity brief              |
+| **Spec Review**            | APPROVE / REQUEST_CHANGES      | JTBD spec ready for review         |
+| **Outcome Review**         | SUCCEEDED / PARTIAL / MISSED   | Feature shipped, metrics available |
 
 ### 1. Spawn reviewers
 
 Use `subagent` with parallel `tasks` array — one per reviewer.
 
 **Spawn template:**
+
 ```
 Read agents/product-council/<member>.md and PRINCIPLES.md.
 You are <Role Name>.
@@ -53,6 +54,7 @@ Gather verdicts from all five members for Round N.
 ### 4. Feasibility bridge (Spec Review only)
 
 After the Product Council approves a JTBD spec:
+
 1. Send to The Architect for a Feasibility Report
 2. Populate the RICE Score and Feasibility Summary sections
 3. Re-spawn the Product Council for a final review with the complete spec

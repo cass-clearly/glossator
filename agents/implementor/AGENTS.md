@@ -45,7 +45,7 @@ All steps below (plan, implement, push, PR, merge) are done from this worktree.
 
 If this work originated from the Product Council, read the JTBD spec before doing anything (template: `agents/cpo/templates/jtbd-spec.md`):
 
-- **Job Statement** — "As an [actor], I want to [action], so that I can [outcome]." The outcome is what matters — it tells you *why* this is being built, which lets you propose a better approach if you see one.
+- **Job Statement** — "As an [actor], I want to [action], so that I can [outcome]." The outcome is what matters — it tells you _why_ this is being built, which lets you propose a better approach if you see one.
 - **Acceptance Criteria** — these define "done." Don't add scope; don't cut scope.
 - **What We're NOT Building** — respect the boundaries the Product Council set.
 - **RICE Score & Feasibility Summary** — understand the effort expectations. The Architect already assessed feasibility; your plan should align with that assessment.
