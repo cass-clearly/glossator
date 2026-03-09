@@ -135,7 +135,22 @@ CI runs automatically on push: lint, format check, build, tests with coverage. *
 
 ### 7. Council Review (only after CI green)
 
-Spawn all five Council members against the PR using the template in CLAUDE.md. Each posts a review. Address all requested changes. Re-spawn all reviewers. CI must pass again before the next review round. Repeat until all approve.
+Spawn all five Council members against the PR using this template:
+
+```
+Read agents/council/<member>.md and agents/implementor/AGENTS.md (Engineering Principles section).
+You are <Role Name>.
+<Review type: "Review this plan:" | "Review PR:"> <URL or plan text>
+
+You must:
+- Run the full test suite and confirm it passes before reviewing
+- Review strictly through the lens of your assigned principles
+- Post your review as a comment via: gh pr comment <PR URL> --body "**[<Role Name>]** APPROVE\n\n..." OR "**[<Role Name>]** REQUEST CHANGES\n\n..."
+- Be direct. No praise. No sugarcoating. Find what's wrong.
+- If requesting changes, be specific: what to fix and why.
+```
+
+Each posts a review. Address all requested changes. Re-spawn all reviewers. CI must pass again before the next review round. Repeat until all approve.
 
 The Council members:
 
@@ -207,6 +222,6 @@ Pure functions live in `feedback-layer/src/utils/` as individual modules. Import
 
 ## Memory & Context
 
-Use the CLAUDE.md at the repo root as your primary reference. It contains the engineering principles, Council process, git workflow, testing conventions, and everything you need to ship.
+This file (`agents/implementor/AGENTS.md`) is your primary reference. It contains the engineering principles, Council process, git workflow, testing conventions, and everything you need to ship.
 
 Read `agents/council/*.md` before spawning any reviewer — each has a specific personality and set of principles they enforce.
