@@ -46,7 +46,7 @@ echo "POSTGRES_PASSWORD=remarq" > .env
 docker compose -f docker-compose.remarq.yml up --build
 ```
 
-Backend runs on port 3333. Visit **http://localhost:3333/demo.html** for the live demo.
+Backend runs on port 3333. Visit **http://localhost:3333** for the demo.
 
 ### 2. Add to any HTML page
 
@@ -72,15 +72,6 @@ curl "http://localhost:3333/comments?status=open&document=DOC_ID"
 
 This is the superpower. Every other annotation tool treats comments as a human-to-human channel. Remarq treats them as **an API for your agent to consume.**
 
-### 4. Close the loop automatically (optional)
-
-```bash
-cd agent-loop && npm install
-REMARQ_URL=http://localhost:3333 WEBHOOK_SECRET=your-webhook-secret ANTHROPIC_API_KEY=sk-ant-your-key node src/server.js
-```
-
-The agent loop listens for `comment.created` webhooks. When a reviewer leaves feedback, the agent reads it, calls Claude, posts a reply, and resolves the comment. See [`agent-loop/README.md`](agent-loop/README.md) for full setup.
-
 ## Why Remarq
 
 |                       | Google Docs                                                 | Remarq                                           |
@@ -96,14 +87,13 @@ The agent loop listens for `comment.created` webhooks. When a reviewer leaves fe
 
 Configure via `data-` attributes on the script tag:
 
-| Attribute               | Default            | Description                                                                                                               |
-| ----------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------- |
-| `data-api-url`          | `""` (same origin) | URL of the Remarq backend                                                                                                 |
-| `data-content-selector` | `body`             | CSS selector for the annotatable content area                                                                             |
-| `data-document-uri`     | current page URL   | Override the URI used to store/fetch annotations                                                                          |
-| `data-document-id`      | none               | Stable document ID — when set, comments are keyed by this ID instead of the page URI. Useful for pages with dynamic URLs. |
-| `data-theme`            | `"auto"`           | Color theme: `"auto"` (follows OS), `"dark"`, or `"light"`                                                                |
-| `data-default-color`    | `null` (yellow)    | Default highlight color for new comments. Accepts a preset name (`red`, `blue`, etc.) or a 6-digit hex code (`#ff6b6b`).  |
+| Attribute               | Default            | Description                                                                                                              |
+| ----------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| `data-api-url`          | `""` (same origin) | URL of the Remarq backend                                                                                                |
+| `data-content-selector` | `body`             | CSS selector for the annotatable content area                                                                            |
+| `data-document-uri`     | current page URL   | Override the URI used to store/fetch annotations                                                                         |
+| `data-theme`            | `"auto"`           | Color theme: `"auto"` (follows OS), `"dark"`, or `"light"`                                                               |
+| `data-default-color`    | `null` (yellow)    | Default highlight color for new comments. Accepts a preset name (`red`, `blue`, etc.) or a 6-digit hex code (`#ff6b6b`). |
 
 ## Production
 
@@ -122,7 +112,7 @@ docker compose -f docker-compose.remarq.yml up --build -d
 ### Direct (bring your own Postgres)
 
 ```bash
-DATABASE_URL=postgres://user:pass@localhost:5432/remarq npx @csalvato/remarq-server
+npx @csalvato/remarq-server
 ```
 
 Or:
@@ -131,14 +121,6 @@ Or:
 npm install --prefix server
 DATABASE_URL=postgres://user:pass@localhost:5432/remarq node server/index.js
 ```
-
-### Environment Variables
-
-| Variable          | Default                                    | Description                                                                                          |
-| ----------------- | ------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`    | `postgresql://postgres@localhost/postgres` | PostgreSQL connection string                                                                         |
-| `PORT`            | `3333`                                     | HTTP server listen port                                                                              |
-| `ALLOWED_ORIGINS` | `http://localhost:3333`                    | Comma-separated list of origins allowed by CORS (e.g. `https://example.com,https://app.example.com`) |
 
 ## OpenAPI Spec
 
@@ -193,7 +175,7 @@ Stripe-inspired resource pattern. All responses include an `object` field. **Ful
 | `PATCH`  | `/webhooks/:id` | Update a webhook (`url`, `events`, `active`)              |
 | `DELETE` | `/webhooks/:id` | Delete a webhook                                          |
 
-Events: `comment.created`, `comment.resolved`, `comment.deleted`. Payloads are signed with HMAC-SHA256 using the webhook's secret. See [`agent-loop/`](agent-loop/) for a working reference implementation that processes `comment.created` events with Claude.
+Events: `comment.created`, `comment.resolved`, `comment.deleted`. Payloads are signed with HMAC-SHA256 using the webhook's secret.
 
 Status is a thread-level concept — only root comments have status (`"open"` or `"closed"`). Replies always have `status: null`. The `?status=` filter matches root comments and includes all their replies. Query params can be combined (e.g. `?document=<id>&status=open&expand=document`).
 
@@ -205,7 +187,7 @@ Status is a thread-level concept — only root comments have status (`"open"` or
   "quote": "selected text",
   "prefix": "text before",
   "suffix": "text after",
-  "body": "**Issue:** This section needs `refactoring`. See [spec](https://example.com/spec).",
+  "body": "This needs work",
   "author": "Alice",
   "parent": null,
   "color": "red"
@@ -276,151 +258,15 @@ Set a default highlight color for all new comments on a page using the `data-def
 
 Accepts any preset name or hex code. Users can still override the color per-comment using the color picker in the sidebar.
 
-## WebSocket Real-Time Updates
-
-Remarq supports real-time comment synchronization via WebSocket. When a user creates, updates, or deletes a comment, all connected clients viewing the same document receive the event immediately.
-
-### Connection
-
-**Endpoint:** `ws://<host>/ws` or `wss://<host>/ws`
-
-The feedback layer script connects automatically when `data-api-url` is set. The server derives the WebSocket URL from the HTTP API base URL (http → ws, https → wss).
-
-### Subscribe Message
-
-After connecting, send a subscribe message with the document ID:
-
-```json
-{
-  "type": "subscribe",
-  "documentId": "doc_abc123"
-}
-```
-
-The server responds with a confirmation:
-
-```json
-{
-  "type": "subscribed",
-  "documentId": "doc_abc123"
-}
-```
-
-**Wait for this confirmation before assuming the subscription is active.** Events sent before the subscription is confirmed will not be delivered.
-
-### Event Types
-
-The server broadcasts these events to all subscribed clients:
-
-| Event             | Payload             | Description                                    |
-| ----------------- | ------------------- | ---------------------------------------------- |
-| `comment:created` | `{ type, comment }` | A comment was created                          |
-| `comment:updated` | `{ type, comment }` | A comment's body, status, or color was changed |
-| `comment:deleted` | `{ type, comment }` | A comment was deleted                          |
-
-All payloads include the full comment object matching the REST API format (with `id`, `document`, `body`, `author`, `status`, `reactions`, etc.).
-
-### Reconnection Behavior
-
-The client automatically reconnects on connection loss with exponential backoff (1s initial, up to 30s max). Re-subscription happens automatically on reconnect. Events that occurred during the disconnect are not replayed — clients should refresh the page to reconcile state after a prolonged disconnection.
-
-### Limitations
-
-- **No event replay.** WebSocket delivers events in real-time only. Missed events (e.g. during a disconnection) are not queued or replayed. The REST API is the source of truth.
-- **Best-effort delivery.** Broadcast failures to individual clients are silent — the REST API still returns success. Real-time updates are supplementary, not guaranteed.
-- **Reactions are not broadcast.** Reaction changes (👍, ❤️, etc.) update optimistically on the client and don't trigger real-time sync. This keeps the event stream focused on meaningful content changes.
-- **No presence tracking.** The server doesn't broadcast who's currently viewing a document.
-- **Document-scoped only.** Clients must know the document ID to subscribe. Cross-document subscriptions are not supported.
-- **Single-instance only.** Subscriptions are held in-memory. Multiple server instances require an external pub/sub layer (e.g. Redis) to share events.
-
-### Error Handling
-
-The server validates the document ID on subscription. If the document does not exist, the server responds with an error instead of a subscription confirmation:
-
-```json
-{ "type": "error", "message": "Document not found", "documentId": "doc_invalid" }
-```
-
-Clients that connect but never send a subscribe message are closed after 30 seconds.
-
-### Example
-
-```javascript
-const ws = new WebSocket("ws://localhost:3333/ws");
-let subscribed = false;
-
-ws.onopen = () => {
-  ws.send(JSON.stringify({ type: "subscribe", documentId: "doc_abc123" }));
-};
-
-ws.onmessage = (event) => {
-  const data = JSON.parse(event.data);
-
-  // Wait for subscription confirmation
-  if (data.type === "subscribed") {
-    console.log("Subscribed to", data.documentId);
-    subscribed = true;
-    return;
-  }
-
-  // Handle errors
-  if (data.type === "error") {
-    console.error("Subscription error:", data.message);
-    return;
-  }
-
-  // Only process events after subscription confirmed
-  if (!subscribed) return;
-
-  // Process comment events
-  const { type, comment } = data;
-  console.log(`Received ${type}:`, comment);
-};
-```
-
 ## Features
 
-- **Real-time collaboration** — WebSocket updates show new comments from other reviewers instantly, no page refresh needed. See feedback arrive live during review sessions.
-- **Webhook notifications** — Get notified in Slack, Discord, or email the moment feedback arrives. Wire Remarq into any workflow with signed HTTP callbacks.
-- **No accounts** — reviewers just type their name and start annotating. Zero friction.
-- **Text anchoring** — comments stick to the right text even when surrounding content changes. Uses W3C TextQuoteSelectors (Apache Annotator) so highlights survive document edits.
-- **Threaded replies** — focused discussions on specific passages without losing context.
-- **Customizable highlight colors** — color-code feedback by reviewer, priority, or type. Scan a page and instantly see what needs attention.
-- **Dark mode** — comfortable reviewing at any time of day. Auto-detects OS preference or force via `data-theme`.
-- **Keyboard shortcuts** — power through reviews without touching your mouse. Full accessibility support (`s` to toggle sidebar, `j`/`k` to navigate, `Enter` to reply).
-- **[Markdown in comments](#markdown-support)** — format feedback with `**bold**`, `*italic*`, `` `code` ``, and `[links](url)`. XSS-safe with sanitized link validation. Formatting hints appear below the textarea.
-- **Emoji reactions** — quick thumbs-up or 🤔 without cluttering the thread. Gauge consensus at a glance.
-- **Toast notifications** — non-blocking confirmations that don't interrupt your flow. No more jarring alert() dialogs.
-- **Orphaned comments stay visible** — when document text changes, orphaned comments surface at the bottom so nothing gets lost.
-- **OpenAPI spec** — agents discover the entire API from a single URL (`GET /openapi.json`). Zero ramp-up time.
-- **CLI tool** — scriptable management of documents, comments, and reactions from the terminal. No UI needed for automation. CLI commands auto-generate from the spec.
-- **Security hardening** — protected against clickjacking, MIME sniffing, and common web attacks out of the box (helmet.js).
-- **One script tag** — drop-in integration for any HTML page. Not trapped in a proprietary editor.
-- **Agent-ready API** — structured feedback your AI can consume and act on. Every comment anchored to exact text, threaded, with status tracking.
-- **[MCP server](mcp-server/README.md)** — native AI agent tool access via Model Context Protocol. Claude Code, Claude Desktop, Cursor, and any MCP client can `list_comments`, `create_comment`, `reply_to_comment`, and `resolve_comment` as tools — no REST API knowledge required.
-- **Agent loop** — reference implementation that closes the feedback cycle: comment → webhook → Claude → reply → resolved. See [`agent-loop/`](agent-loop/).
-
-## Markdown Support
-
-Comments support basic markdown formatting — no configuration needed. Formatting hints appear below the comment textarea so reviewers discover the syntax naturally.
-
-| Syntax                   | Renders as       |
-| ------------------------ | ---------------- |
-| `**bold**` or `__bold__` | **bold text**    |
-| `*italic*` or `_italic_` | _italic text_    |
-| `` `inline code` ``      | `inline code`    |
-| `[link text](url)`       | [link text](url) |
-
-Line breaks in the input are preserved. All input is HTML-escaped before rendering — markdown transforms are applied to the escaped output, so there's no XSS risk. Links with `javascript:`, `data:`, or `vbscript:` URL schemes are stripped automatically.
-
-Agents can send markdown in the `body` field of `POST /comments` to write structured, actionable feedback:
-
-```json
-{
-  "body": "**Action required:** Update `apiKey` to match [API spec](https://example.com/spec#auth).",
-  "author": "lint-agent"
-}
-```
+- **No accounts** — reviewers just type their name
+- **Text anchoring** — annotations are anchored to specific text passages using TextQuoteSelectors (via Apache Annotator), so highlights survive minor edits
+- **Threaded replies** — discuss any annotation
+- **Resolve/unresolve** — mark feedback as addressed
+- **Keyboard shortcuts** — full keyboard navigation for the sidebar
+- **One script tag** — drop-in integration for any HTML page
+- **Agent-ready API** — structured feedback your AI can consume and act on
 
 ## Documentation
 
@@ -441,33 +287,6 @@ The following keyboard shortcuts are available (they are disabled when focus is 
 | `?`                        | Toggle keyboard shortcuts help                          |
 
 Press the `⌨` button in the sidebar header to see shortcuts at any time.
-
-## GitHub Action — Doc Review on Every PR
-
-Catch unclear writing, broken examples, and missing context before it ships. Add one workflow file:
-
-```yaml
-# .github/workflows/doc-review.yml
-name: Document Review
-on:
-  pull_request:
-    paths: ["**/*.md", "docs/**"]
-
-permissions:
-  pull-requests: write
-  contents: read
-
-jobs:
-  review:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: cass-clearly/remarq-action@v1
-        with:
-          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
-```
-
-No Remarq server required. No accounts. Claude reads the diff and posts inline review comments on the PR. See [`github-action/`](github-action/) for full docs.
 
 ## The Bottom Line
 

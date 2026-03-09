@@ -6,7 +6,7 @@ Here's a common workflow for working with the Remarq API:
 
 ```bash
 # 1. Create a comment on a document (auto-creates document if needed)
-curl -X POST http://localhost:3333/comments \
+curl -X POST http://localhost:3000/comments \
   -H "Content-Type: application/json" \
   -d '{
     "uri": "https://example.com/article",
@@ -18,7 +18,7 @@ curl -X POST http://localhost:3333/comments \
 # Response: { "id": "cmt_xyz", "status": "open", ... }
 
 # 2. Create a reply to the comment
-curl -X POST http://localhost:3333/comments \
+curl -X POST http://localhost:3000/comments \
   -H "Content-Type: application/json" \
   -d '{
     "document": "doc_abc",
@@ -28,12 +28,12 @@ curl -X POST http://localhost:3333/comments \
   }'
 
 # 3. Resolve the original comment
-curl -X PATCH http://localhost:3333/comments/cmt_xyz \
+curl -X PATCH http://localhost:3000/comments/cmt_xyz \
   -H "Content-Type: application/json" \
   -d '{ "status": "closed" }'
 
 # 4. List all open comments for the document
-curl "http://localhost:3333/comments?uri=https://example.com/article&status=open"
+curl "http://localhost:3000/comments?uri=https://example.com/article&status=open"
 ```
 
 ---
@@ -43,7 +43,7 @@ curl "http://localhost:3333/comments?uri=https://example.com/article&status=open
 When running locally:
 
 ```
-http://localhost:3333
+http://localhost:3000
 ```
 
 When deployed, replace with your server's URL.
@@ -73,7 +73,7 @@ Check if the server is running.
 **Example:**
 
 ```bash
-curl http://localhost:3333/health
+curl http://localhost:3000/health
 ```
 
 ---
@@ -107,7 +107,7 @@ List all documents.
 **Example:**
 
 ```bash
-curl http://localhost:3333/documents
+curl http://localhost:3000/documents
 ```
 
 ---
@@ -165,7 +165,7 @@ Create a new document (or return existing if URI already exists).
 **Example:**
 
 ```bash
-curl -X POST http://localhost:3333/documents \
+curl -X POST http://localhost:3000/documents \
   -H "Content-Type: application/json" \
   -d '{"uri": "https://example.com/article"}'
 ```
@@ -214,7 +214,7 @@ Get a single document by ID.
 **Example:**
 
 ```bash
-curl http://localhost:3333/documents/doc_k3mXp9q2aBvN
+curl http://localhost:3000/documents/doc_k3mXp9q2aBvN
 ```
 
 ---
@@ -246,7 +246,7 @@ Delete a document and all its comments.
 **Example:**
 
 ```bash
-curl -X DELETE http://localhost:3333/documents/doc_k3mXp9q2aBvN
+curl -X DELETE http://localhost:3000/documents/doc_k3mXp9q2aBvN
 ```
 
 **Notes:**
@@ -324,16 +324,16 @@ List comments with optional filtering.
 
 ```bash
 # List all comments for a document by ID
-curl "http://localhost:3333/comments?document=doc_k3mXp9q2aBvN"
+curl "http://localhost:3000/comments?document=doc_k3mXp9q2aBvN"
 
 # List all comments for a document by URI
-curl "http://localhost:3333/comments?uri=https://example.com/article"
+curl "http://localhost:3000/comments?uri=https://example.com/article"
 
 # List only open comments
-curl "http://localhost:3333/comments?document=doc_k3mXp9q2aBvN&status=open"
+curl "http://localhost:3000/comments?document=doc_k3mXp9q2aBvN&status=open"
 
 # List all comments with document objects expanded
-curl "http://localhost:3333/comments?document=doc_k3mXp9q2aBvN&expand=document"
+curl "http://localhost:3000/comments?document=doc_k3mXp9q2aBvN&expand=document"
 ```
 
 **Notes:**
@@ -374,7 +374,7 @@ Create a new comment or reply.
 
 **Required Fields:**
 
-- `body` (string) — Comment text. Supports markdown: `**bold**`/`__bold__`, `*italic*`/`_italic_`, `` `code` ``, and `[link](url)`. All input is HTML-escaped before rendering. URLs with `javascript:`, `data:`, or `vbscript:` schemes are blocked.
+- `body` (string) — Comment text
 - `author` (string) — Author name
 - `uri` OR `document` (string) — Document URI or ID
 - `quote` (string) — Required for top-level comments; not required for replies
@@ -455,7 +455,7 @@ Document not found:
 
 ```bash
 # Create a top-level comment (auto-creates document if needed)
-curl -X POST http://localhost:3333/comments \
+curl -X POST http://localhost:3000/comments \
   -H "Content-Type: application/json" \
   -d '{
     "uri": "https://example.com/article",
@@ -465,7 +465,7 @@ curl -X POST http://localhost:3333/comments \
   }'
 
 # Create a reply
-curl -X POST http://localhost:3333/comments \
+curl -X POST http://localhost:3000/comments \
   -H "Content-Type: application/json" \
   -d '{
     "document": "doc_k3mXp9q2aBvN",
@@ -530,10 +530,10 @@ Get a single comment by ID.
 
 ```bash
 # Get comment by ID
-curl http://localhost:3333/comments/cmt_abc123
+curl http://localhost:3000/comments/cmt_abc123
 
 # Get comment with document object expanded
-curl "http://localhost:3333/comments/cmt_abc123?expand=document"
+curl "http://localhost:3000/comments/cmt_abc123?expand=document"
 ```
 
 ---
@@ -611,17 +611,17 @@ Setting status on a reply:
 
 ```bash
 # Update comment body
-curl -X PATCH http://localhost:3333/comments/cmt_abc123 \
+curl -X PATCH http://localhost:3000/comments/cmt_abc123 \
   -H "Content-Type: application/json" \
   -d '{"body": "Updated text"}'
 
 # Resolve a comment
-curl -X PATCH http://localhost:3333/comments/cmt_abc123 \
+curl -X PATCH http://localhost:3000/comments/cmt_abc123 \
   -H "Content-Type: application/json" \
   -d '{"status": "closed"}'
 
 # Reopen a comment
-curl -X PATCH http://localhost:3333/comments/cmt_abc123 \
+curl -X PATCH http://localhost:3000/comments/cmt_abc123 \
   -H "Content-Type: application/json" \
   -d '{"status": "open"}'
 ```
@@ -662,7 +662,7 @@ Delete a comment and all its replies.
 **Example:**
 
 ```bash
-curl -X DELETE http://localhost:3333/comments/cmt_abc123
+curl -X DELETE http://localhost:3000/comments/cmt_abc123
 ```
 
 **Notes:**
