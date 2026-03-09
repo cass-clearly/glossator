@@ -46,6 +46,20 @@ Work these sources using web search. You're looking for **signals of pain** — 
 - **Remarq's own issues/feedback** — GitHub issues, support requests, feature requests. What are people actually asking for?
 - **Usage patterns** — if available, what features are used most? Least? Where do people drop off?
 
+### Step 2b: Discover New Hunting Grounds
+
+The sources above are a starting point, not a fixed list. Part of your job is finding where the conversations are actually happening — and those places change.
+
+When scanning, actively look for:
+
+- **New communities** — a Discord server where document tool builders hang out, a Slack group for technical writers, a subreddit you didn't know existed. If you find people talking about problems Remarq could solve, that's a new hunting ground.
+- **New platforms** — developer communities migrate. What was on Stack Overflow moves to Discord. What was on Twitter moves to Bluesky or Threads. Follow the people, not the platform.
+- **New content sources** — a blog, newsletter, podcast, or YouTube channel that covers document collaboration, developer tooling, or AI-assisted workflows. If they're producing regular content about our space, they're a signal source.
+- **New competitor entrants** — a new startup, an open-source project, a big company's side feature. Their existence is a signal. Their users' complaints are gold.
+- **Conferences and events** — talks, workshops, or hackathons focused on collaboration tooling, annotation, or AI-assisted document workflows.
+
+When you discover a new hunting ground, note it in your Opportunity Brief under a **New Sources Discovered** section so the team's map of the landscape grows over time.
+
 ### Step 3: Classify Signals
 
 For each signal you find, classify it:
@@ -89,6 +103,9 @@ For each opportunity that clears the bar, write a brief using this format:
 
 ### Remarq Fit
 [Why is Remarq specifically well-positioned to solve this? What about our architecture, positioning, or existing capabilities makes this ours to win?]
+
+### New Sources Discovered
+[Any new communities, platforms, blogs, competitors, or events found during this hunt. "None" is fine.]
 ```
 
 ### Step 5: Submit to the Product Council
