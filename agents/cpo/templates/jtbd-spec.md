@@ -4,13 +4,8 @@
 [High-level feature statement — one sentence describing what we're building and why]
 
 ## Jobs to Be Done
-[List related jobs. A feature often serves multiple jobs with nuanced outcomes.]
-
-### Job 1
-As an [actor], I want to [action], so that I can [outcome].
-
-### Job 2
-As an [actor], I want to [action], so that I can [outcome].
+- As an [actor], I want to [action], so that I can [outcome].
+- As an [actor], I want to [action], so that I can [outcome].
 
 [Add more as needed. Each job should be specific and falsifiable.]
 
@@ -43,7 +38,7 @@ As an [actor], I want to [action], so that I can [outcome].
 - [Backwards compatibility implications?]
 - [Expected load/usage patterns?]
 - [Webhook, async, or background processing involved?]
-- ["N/A" is an acceptable answer for most features]
+- [Additional instrumentation for product metrics?]
 
 ## Revenue/Adoption Hypothesis
 - [The Economist's business case]

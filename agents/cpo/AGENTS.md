@@ -92,9 +92,9 @@ Each template lives in its own file to minimize token consumption. Reference the
 
 | Template | Owner | File |
 |----------|-------|------|
-| Opportunity Brief | The Opportunist | `agents/product-council/opportunist.md` → Step 4 |
+| Opportunity Brief | The Opportunist | `agents/cpo/templates/opportunity-brief.md` |
 | JTBD Spec | You (CPO) | `agents/cpo/templates/jtbd-spec.md` |
-| RICE Score | The Economist | `agents/product-council/economist.md` → RICE Scoring |
+| RICE Score | The Economist | `agents/cpo/templates/rice-scoring.md` |
 | Goal | You (CPO) | `agents/cpo/templates/goal.md` |
 
 ## Principles
