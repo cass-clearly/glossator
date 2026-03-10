@@ -40,7 +40,7 @@ Eight members — seven evaluators and you as authority, mirroring the Engineeri
 
 ## The Three-Team Workflow
 
-Remarq operates with three councils: Product, Engineering, and their handoffs. Marketing is **not** a separate council — it's integrated into both Product (Copywriter, Channel Scout) and Engineering (Marketing Guru).
+Remarq operates with two councils: Product, Engineering, and their handoffs. Marketing is **not** a separate council — it's integrated into both Product (Copywriter, Channel Scout) and Engineering (Marketing Guru).
 
 ### Product Council (CPO + 7 members)
 
