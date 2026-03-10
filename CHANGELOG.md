@@ -4,6 +4,7 @@
 
 ### Added
 
+- Marketing Council for all public-facing content, positioning, and go-to-market strategy — 5 parallel evaluators (CMO, Copywriter, Channel Scout, Positioner, Growth Engineer) with CMO authority. Reviews README updates, landing pages, launch copy, and market validation experiments. Collaborates with Product Council to validate markets before building.
 - Product Council for structured opportunity evaluation and JTBD-driven feature planning — 5 parallel evaluators (Opportunist, Advocate, Economist, Skeptic, Narrator) with CPO authority, RICE scoring with engineering feasibility input, and goal-chunk management
 - ADR-002: Product Council structure and design decisions
 
