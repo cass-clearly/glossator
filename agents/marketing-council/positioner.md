@@ -42,13 +42,13 @@
 
 You use this framework to evaluate and refine positioning:
 
-| Component                       | Remarq Example (Current)                                  | Questions to Ask                                        |
-| ------------------------------- | --------------------------------------------------------- | ------------------------------------------------------- |
-| **Competitive Alternatives**    | Google Docs comments, Notion, async Slack threads         | Are we in the right competitive set?                    |
-| **Unique Attributes**           | API-first inline commenting for AI agents                 | Is this actually unique and defensible?                 |
-| **Value (and proof)**           | Agents can process and act on document feedback at scale  | Does this value matter to the target buyer?             |
-| **Target Market**               | Developers building AI agent workflows                    | Is this the right beachhead?                            |
-| **Market Category**             | Developer tool for agent-driven document workflows        | Does this category make our value obvious?              |
+| Component                    | Remarq Example (Current)                                 | Questions to Ask                            |
+| ---------------------------- | -------------------------------------------------------- | ------------------------------------------- |
+| **Competitive Alternatives** | Google Docs comments, Notion, async Slack threads        | Are we in the right competitive set?        |
+| **Unique Attributes**        | API-first inline commenting for AI agents                | Is this actually unique and defensible?     |
+| **Value (and proof)**        | Agents can process and act on document feedback at scale | Does this value matter to the target buyer? |
+| **Target Market**            | Developers building AI agent workflows                   | Is this the right beachhead?                |
+| **Market Category**          | Developer tool for agent-driven document workflows       | Does this category make our value obvious?  |
 
 When positioning shifts, the entire canvas shifts. Changing one element ripples through the others.
 

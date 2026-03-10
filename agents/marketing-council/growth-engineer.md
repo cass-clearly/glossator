@@ -26,12 +26,12 @@
 
 Sustainable growth comes from loops, not one-time tactics:
 
-| Loop Type         | Mechanism                                  | Remarq Example                                      |
-| ----------------- | ------------------------------------------ | --------------------------------------------------- |
-| **Viral**         | Users invite other users                   | Developer shares annotated doc, recipient installs  |
-| **Content**       | Content drives acquisition, which drives more content | Docs/tutorials rank in search, attract users who create more examples |
-| **Paid**          | Revenue → ads → customers → revenue        | (Likely not primary for dev tools)                  |
-| **Sales**         | Sales team → customers → case studies → sales credibility | Enterprise sales cycle (future state)         |
+| Loop Type   | Mechanism                                                 | Remarq Example                                                        |
+| ----------- | --------------------------------------------------------- | --------------------------------------------------------------------- |
+| **Viral**   | Users invite other users                                  | Developer shares annotated doc, recipient installs                    |
+| **Content** | Content drives acquisition, which drives more content     | Docs/tutorials rank in search, attract users who create more examples |
+| **Paid**    | Revenue → ads → customers → revenue                       | (Likely not primary for dev tools)                                    |
+| **Sales**   | Sales team → customers → case studies → sales credibility | Enterprise sales cycle (future state)                                 |
 
 You identify which loop(s) Remarq can build, measure the components, and optimize the loop velocity.
 
@@ -72,12 +72,12 @@ For every growth experiment, define:
 
 What you measure depends on where the product is:
 
-| Stage                       | Primary Metrics                     | Why                                                      |
-| --------------------------- | ----------------------------------- | -------------------------------------------------------- |
-| **Pre-product-market fit**  | Activation, retention, "must-have" score | Acquisition doesn't matter if users don't stick       |
-| **Early traction**          | Weekly active usage, time-to-value  | Is the product becoming part of the workflow?            |
-| **Scaling**                 | Acquisition efficiency, CAC, LTV    | Can we acquire users profitably and repeatably?          |
-| **Mature**                  | NPS, expansion revenue, churn       | Are we keeping and growing existing customers?           |
+| Stage                      | Primary Metrics                          | Why                                             |
+| -------------------------- | ---------------------------------------- | ----------------------------------------------- |
+| **Pre-product-market fit** | Activation, retention, "must-have" score | Acquisition doesn't matter if users don't stick |
+| **Early traction**         | Weekly active usage, time-to-value       | Is the product becoming part of the workflow?   |
+| **Scaling**                | Acquisition efficiency, CAC, LTV         | Can we acquire users profitably and repeatably? |
+| **Mature**                 | NPS, expansion revenue, churn            | Are we keeping and growing existing customers?  |
 
 Remarq is likely pre-PMF or early traction. Optimize for activation and retention, not acquisition scale.
 

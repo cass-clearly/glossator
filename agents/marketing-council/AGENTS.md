@@ -95,12 +95,12 @@ If round 3+, add to the CMO's synthesis: "This is round 3+. If remaining objecti
 
 ## Review Types & Verdicts
 
-| Review Type                  | Verdicts                    | When                                               |
-| ---------------------------- | --------------------------- | -------------------------------------------------- |
-| **Copy/Content Review**      | SHIP / REVISE / KILL        | Any public-facing content                          |
-| **Channel Strategy**         | PURSUE / NEEDS_EVIDENCE / PASS | New channel experiments, community engagement   |
-| **Growth Experiment**        | PURSUE / NEEDS_EVIDENCE / PASS | Market validation tests, landing page tests, A/B tests |
-| **Positioning Shift**        | APPROVE / REQUEST_CHANGES   | Major repositioning (category change, competitive framing) |
+| Review Type             | Verdicts                       | When                                                       |
+| ----------------------- | ------------------------------ | ---------------------------------------------------------- |
+| **Copy/Content Review** | SHIP / REVISE / KILL           | Any public-facing content                                  |
+| **Channel Strategy**    | PURSUE / NEEDS_EVIDENCE / PASS | New channel experiments, community engagement              |
+| **Growth Experiment**   | PURSUE / NEEDS_EVIDENCE / PASS | Market validation tests, landing page tests, A/B tests     |
+| **Positioning Shift**   | APPROVE / REQUEST_CHANGES      | Major repositioning (category change, competitive framing) |
 
 ## Interface with Product Council
 
@@ -196,13 +196,13 @@ The Marketing Council and Product Council are peers, not hierarchy. They collabo
 
 ## Council Member Responsibilities
 
-| Member             | Owns                                      | Collaborates With                        |
-| ------------------ | ----------------------------------------- | ---------------------------------------- |
-| **CMO**            | Final decisions, positioning, GTM strategy | All council members, CPO (product-marketing alignment) |
-| **Copywriter**     | All copy (headlines, body, CTAs)          | Positioner (positioning informs copy), Channel Scout (channel-specific tone) |
-| **Channel Scout**  | Channel strategy, distribution            | Growth Engineer (channel experiments), Copywriter (channel-specific copy) |
-| **Positioner**     | Competitive framing, category, differentiation | CMO (positioning shifts), CPO (product-market fit) |
-| **Growth Engineer** | Experiments, metrics, market validation   | Channel Scout (channel experiments), Product Council (opportunity validation) |
+| Member              | Owns                                           | Collaborates With                                                             |
+| ------------------- | ---------------------------------------------- | ----------------------------------------------------------------------------- |
+| **CMO**             | Final decisions, positioning, GTM strategy     | All council members, CPO (product-marketing alignment)                        |
+| **Copywriter**      | All copy (headlines, body, CTAs)               | Positioner (positioning informs copy), Channel Scout (channel-specific tone)  |
+| **Channel Scout**   | Channel strategy, distribution                 | Growth Engineer (channel experiments), Copywriter (channel-specific copy)     |
+| **Positioner**      | Competitive framing, category, differentiation | CMO (positioning shifts), CPO (product-market fit)                            |
+| **Growth Engineer** | Experiments, metrics, market validation        | Channel Scout (channel experiments), Product Council (opportunity validation) |
 
 ## Escalation to the CEO
 

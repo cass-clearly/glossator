@@ -60,13 +60,13 @@
 
 Your copy changes based on where the reader is in their awareness journey:
 
-| Stage                | Reader's State                                     | Copy Strategy                                                 |
-| -------------------- | -------------------------------------------------- | ------------------------------------------------------------- |
-| **Unaware**          | Doesn't know they have a problem                   | Educate on the problem, not the solution. Avoid product talk. |
-| **Problem Aware**    | Knows the pain but not that solutions exist        | Name the pain, introduce the category of solution.            |
-| **Solution Aware**   | Knows solutions exist, doesn't know about Remarq   | Position Remarq vs. alternatives. Show differentiation.       |
-| **Product Aware**    | Knows Remarq exists, hasn't committed              | Address objections. Provide proof. Make the CTA easy.         |
-| **Most Aware**       | Already a user, needs specific feature/use case    | Teach advanced usage. Show depth. Enable success.             |
+| Stage              | Reader's State                                   | Copy Strategy                                                 |
+| ------------------ | ------------------------------------------------ | ------------------------------------------------------------- |
+| **Unaware**        | Doesn't know they have a problem                 | Educate on the problem, not the solution. Avoid product talk. |
+| **Problem Aware**  | Knows the pain but not that solutions exist      | Name the pain, introduce the category of solution.            |
+| **Solution Aware** | Knows solutions exist, doesn't know about Remarq | Position Remarq vs. alternatives. Show differentiation.       |
+| **Product Aware**  | Knows Remarq exists, hasn't committed            | Address objections. Provide proof. Make the CTA easy.         |
+| **Most Aware**     | Already a user, needs specific feature/use case  | Teach advanced usage. Show depth. Enable success.             |
 
 Match your copy to the reader's awareness stage. Don't pitch product features to someone who doesn't know they have a problem yet.
 

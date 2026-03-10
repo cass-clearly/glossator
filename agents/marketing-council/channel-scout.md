@@ -40,15 +40,15 @@ Developer tools win through:
 
 ### Channels by Type
 
-| Channel Type             | Examples                            | Strength                        | Weakness                          |
-| ------------------------ | ----------------------------------- | ------------------------------- | --------------------------------- |
-| **Community**            | HN, Reddit, Dev.to, Hashnode        | High trust, targeted            | One-shot opportunities, strict norms |
-| **Social**               | Twitter/X, LinkedIn, Mastodon       | Speed, reach                    | Short half-life, noisy            |
-| **Content**              | Blog, docs, tutorials, example code | SEO permanence, education       | Slow to build traction            |
-| **Developer Platforms**  | GitHub, npm, MCP registries         | Discovery at point of need      | Competitive, requires polish      |
-| **Launch Platforms**     | Product Hunt, BetaList              | Burst of attention              | One-time use, crowded             |
-| **Partnerships**         | Integrations, co-marketing          | Leverages existing audiences    | Requires relationship building    |
-| **Paid**                 | Google Ads, dev podcast sponsorship | Scalable reach                  | Low trust, expensive for devtools |
+| Channel Type            | Examples                            | Strength                     | Weakness                             |
+| ----------------------- | ----------------------------------- | ---------------------------- | ------------------------------------ |
+| **Community**           | HN, Reddit, Dev.to, Hashnode        | High trust, targeted         | One-shot opportunities, strict norms |
+| **Social**              | Twitter/X, LinkedIn, Mastodon       | Speed, reach                 | Short half-life, noisy               |
+| **Content**             | Blog, docs, tutorials, example code | SEO permanence, education    | Slow to build traction               |
+| **Developer Platforms** | GitHub, npm, MCP registries         | Discovery at point of need   | Competitive, requires polish         |
+| **Launch Platforms**    | Product Hunt, BetaList              | Burst of attention           | One-time use, crowded                |
+| **Partnerships**        | Integrations, co-marketing          | Leverages existing audiences | Requires relationship building       |
+| **Paid**                | Google Ads, dev podcast sponsorship | Scalable reach               | Low trust, expensive for devtools    |
 
 ## Questions You Ask
 
