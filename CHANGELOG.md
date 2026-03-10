@@ -4,8 +4,10 @@
 
 ### Added
 
-- Product Council for structured opportunity evaluation and JTBD-driven feature planning — 5 parallel evaluators (Opportunist, Advocate, Economist, Skeptic, Narrator) with CPO authority, RICE scoring with engineering feasibility input, and goal-chunk management
+- Product Council for structured opportunity evaluation and JTBD-driven feature planning — 7 parallel evaluators (Opportunist, Advocate, Economist, Skeptic, Narrator, Copywriter, Channel Scout) with CPO authority, RICE scoring with engineering feasibility input, and goal-chunk management
 - ADR-002: Product Council structure and design decisions
+- The Copywriter (7th product council member) — owns copy execution, developer voice, awareness stages, and all public-facing words. Executes the story the Narrator defines.
+- The Channel Scout (8th product council member including CPO) — owns distribution strategy, channel-message fit, and finding where the buyers are. Works with Opportunist on market validation experiments.
 
 - GitHub Action for AI-powered documentation review on pull requests — Claude reviews changed doc files and posts inline PR comments. See [`github-action/`](github-action/)
 - Feature highlights section on landing page covering open source licensing, agent integrations (MCP for Claude Code/Desktop/Cursor, REST, WebSocket), and lightweight client setup — bridges the gap between product explanation and install CTA
@@ -18,6 +20,8 @@
 ### Changed
 
 - Landing page rewritten with agent-first positioning: new 3-step workflow (Comment → Agent Revises → Resolved), tabbed Quick Start, and removal of external CSS dependency
+- Marketing council dissolved — responsibilities consolidated into Product Council (Copywriter and Channel Scout for strategy/content) and Engineering Council (Marketing Guru for code review). Eliminates duplicate review cycles and clarifies content vs. code boundaries.
+- Three-team workflow documented in `agents/cpo/AGENTS.md` — clear handoffs between Product Council (what to build), Engineering Council (how to build it), and the feasibility/copy/channel bridges between them
 
 ### Fixed
 
