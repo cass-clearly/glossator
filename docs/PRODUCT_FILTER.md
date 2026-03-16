@@ -12,11 +12,11 @@ Jobs called it "hair on fire." Musk asks if removing the problem meaningfully ad
 
 If the customer can ignore the problem and be fine, walk away. Nice-to-haves are where roadmaps go to die.
 
-> **For Remarq:** Does the reviewer *actually* find the current feedback process painful, or do they just accept it? Are authors genuinely losing signal in their feedback loops, or just mildly inconvenienced?
+> **For Remarq:** Does the reviewer _actually_ find the current feedback process painful, or do they just accept it? Are authors genuinely losing signal in their feedback loops, or just mildly inconvenienced?
 
 ---
 
-### 2. What changed that makes this possible *now*?
+### 2. What changed that makes this possible _now_?
 
 Every great business is built on a shift — a new technology, a behavior change, a regulation, a demographic tipping point.
 
@@ -30,7 +30,7 @@ If the answer is "nothing changed, it was always a good idea," that's a red flag
 
 Musk's first-principles framing: assume human behavior is a constant. If your product only works if people behave differently, the physics are against you.
 
-The best products work *with* existing behavior and remove friction from what people already do.
+The best products work _with_ existing behavior and remove friction from what people already do.
 
 > **For Remarq:** Are we asking reviewers to learn a new workflow, or are we inserting ourselves into the workflow they already have? The latter is the right answer.
 
@@ -88,4 +88,4 @@ Before committing to any significant product bet, answer these:
 
 ---
 
-*Added to capture the product thinking framework used to evaluate Remarq's own trajectory. See also: [JTBD.md](./JTBD.md), [PRINCIPLES.md](../PRINCIPLES.md).*
+_Added to capture the product thinking framework used to evaluate Remarq's own trajectory. See also: [JTBD.md](./JTBD.md), [PRINCIPLES.md](../PRINCIPLES.md)._
