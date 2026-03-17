@@ -109,6 +109,7 @@ module.exports = [
         requestAnimationFrame: "readonly",
         navigator: "readonly",
         WebSocket: "readonly",
+        AbortController: "readonly",
       },
     },
     rules: { ...sharedRules },

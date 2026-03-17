@@ -364,3 +364,121 @@ describe("api", async () => {
     setBaseUrl("");
   });
 });
+
+// ── fetchWithRetry ─────────────────────────────────────────────────────
+
+describe("fetchWithRetry", async () => {
+  const { fetchWithRetry, _setRetryConfig } = await import("../src/api.js");
+  const origFetch = globalThis.fetch;
+
+  // Use fast delays for testing (1ms each)
+  _setRetryConfig([1, 1, 1], 100);
+
+  it("returns successful response on first try", async () => {
+    globalThis.fetch = async () => ({ ok: true, status: 200 });
+    try {
+      const res = await fetchWithRetry("http://test.com/api");
+      assert.equal(res.status, 200);
+      assert.equal(res.ok, true);
+    } finally {
+      globalThis.fetch = origFetch;
+    }
+  });
+
+  it("does NOT retry on 4xx client errors", async () => {
+    let callCount = 0;
+    globalThis.fetch = async () => {
+      callCount++;
+      return { ok: false, status: 404, json: async () => ({}) };
+    };
+    try {
+      const res = await fetchWithRetry("http://test.com/api");
+      assert.equal(res.status, 404);
+      assert.equal(callCount, 1); // No retry
+    } finally {
+      globalThis.fetch = origFetch;
+    }
+  });
+
+  it("retries on 5xx server errors and eventually returns response", async () => {
+    let callCount = 0;
+    globalThis.fetch = async () => {
+      callCount++;
+      return { ok: false, status: 503 };
+    };
+    try {
+      const res = await fetchWithRetry("http://test.com/api");
+      assert.equal(res.status, 503);
+      assert.equal(callCount, 4); // Initial + 3 retries
+    } finally {
+      globalThis.fetch = origFetch;
+    }
+  });
+
+  it("succeeds after transient 5xx failure", async () => {
+    let callCount = 0;
+    globalThis.fetch = async () => {
+      callCount++;
+      if (callCount < 3) return { ok: false, status: 500 };
+      return { ok: true, status: 200 };
+    };
+    try {
+      const res = await fetchWithRetry("http://test.com/api");
+      assert.equal(res.status, 200);
+      assert.equal(callCount, 3);
+    } finally {
+      globalThis.fetch = origFetch;
+    }
+  });
+
+  it("retries on network errors and throws after exhausting retries", async () => {
+    let callCount = 0;
+    globalThis.fetch = async () => {
+      callCount++;
+      throw new Error("Network error");
+    };
+    try {
+      await assert.rejects(() => fetchWithRetry("http://test.com/api"), { message: "Network error" });
+      assert.equal(callCount, 4); // Initial + 3 retries
+    } finally {
+      globalThis.fetch = origFetch;
+    }
+  });
+
+  it("succeeds after transient network failure", async () => {
+    let callCount = 0;
+    globalThis.fetch = async () => {
+      callCount++;
+      if (callCount < 2) throw new Error("Network error");
+      return { ok: true, status: 200 };
+    };
+    try {
+      const res = await fetchWithRetry("http://test.com/api");
+      assert.equal(res.status, 200);
+      assert.equal(callCount, 2);
+    } finally {
+      globalThis.fetch = origFetch;
+    }
+  });
+
+  it("passes options through to fetch", async () => {
+    let capturedOptions;
+    globalThis.fetch = async (url, opts) => {
+      capturedOptions = opts;
+      return { ok: true, status: 200 };
+    };
+    try {
+      await fetchWithRetry("http://test.com/api", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: '{"test":true}',
+      });
+      assert.equal(capturedOptions.method, "POST");
+      assert.equal(capturedOptions.headers["Content-Type"], "application/json");
+      assert.equal(capturedOptions.body, '{"test":true}');
+      assert.ok(capturedOptions.signal instanceof AbortSignal);
+    } finally {
+      globalThis.fetch = origFetch;
+    }
+  });
+});
