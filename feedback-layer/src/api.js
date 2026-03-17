@@ -92,3 +92,22 @@ export async function removeReaction(commentId, emoji, author) {
   await throwIfNotOk(res, "Failed to remove reaction");
   return res.json();
 }
+
+export async function exportAnnotations(documentId, format) {
+  const res = await fetch(`${_baseUrl}/documents/${documentId}/export?format=${format}`);
+  await throwIfNotOk(res, "Failed to export annotations");
+
+  const contentDisposition = res.headers.get("Content-Disposition");
+  const filenameMatch = contentDisposition?.match(/filename="(.+?)"/);
+  const filename = filenameMatch ? filenameMatch[1] : `annotations.${format}`;
+
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}

@@ -48,6 +48,7 @@ let _onReply = null;
 let _onEdit = null;
 let _onReaction = null;
 let _onColorChange = null; // eslint-disable-line no-unused-vars -- tracked for future color picker callback
+let _onExport = null;
 let _defaultColor = null;
 let _showResolved = false;
 let _lastComments = [];
@@ -89,6 +90,7 @@ export function createSidebar({
   onEdit,
   onReaction,
   onColorChange,
+  onExport,
   defaultColor,
 }) {
   _onSubmit = onSubmit;
@@ -98,6 +100,7 @@ export function createSidebar({
   _onEdit = onEdit;
   _onReaction = onReaction;
   _onColorChange = onColorChange;
+  _onExport = onExport;
   _defaultColor = defaultColor || null;
 
   ensureStyles();
@@ -110,6 +113,16 @@ export function createSidebar({
     <div class="fb-sidebar-header">
       <strong>Feedback</strong>
       <div class="fb-sidebar-header-actions">
+        <div class="fb-export-container">
+          <button class="fb-export-btn" title="Export annotations">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </button>
+          <div class="fb-export-dropdown" style="display:none">
+            <button class="fb-export-option" data-format="json">JSON</button>
+            <button class="fb-export-option" data-format="csv">CSV</button>
+            <button class="fb-export-option" data-format="pdf">PDF</button>
+          </div>
+        </div>
         <button class="fb-ai-btn" title="Send feedback to Claude">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.912 5.813a2 2 0 0 0 1.275 1.275L21 12l-5.813 1.912a2 2 0 0 0-1.275 1.275L12 21l-1.912-5.813a2 2 0 0 0-1.275-1.275L3 12l5.813-1.912a2 2 0 0 0 1.275-1.275L12 3z"/></svg>
         </button>
@@ -156,6 +169,27 @@ export function createSidebar({
   const nameInput = _sidebar.querySelector(".fb-name-input");
   nameInput.addEventListener("input", () => {
     localStorage.setItem(COMMENTER_KEY, nameInput.value.trim());
+  });
+
+  // Export button and dropdown in header
+  const exportBtn = _sidebar.querySelector(".fb-export-btn");
+  const exportDropdown = _sidebar.querySelector(".fb-export-dropdown");
+  exportBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const isVisible = exportDropdown.style.display !== "none";
+    exportDropdown.style.display = isVisible ? "none" : "block";
+  });
+  _sidebar.querySelectorAll(".fb-export-option").forEach((opt) => {
+    opt.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const format = opt.dataset.format;
+      exportDropdown.style.display = "none";
+      if (_onExport) _onExport(format);
+    });
+  });
+  // Close dropdown when clicking outside
+  document.addEventListener("click", () => {
+    exportDropdown.style.display = "none";
   });
 
   // AI button in header

@@ -24,6 +24,7 @@ import {
   updateCommentStatus,
   addReaction,
   removeReaction,
+  exportAnnotations,
 } from "./api.js";
 import { selectorFromRange, rangeFromSelector } from "./anchoring.js";
 import {
@@ -138,6 +139,7 @@ function init() {
         onEdit: handleEdit,
         onReaction: handleReaction,
         onColorChange: handleColorChange,
+        onExport: handleExport,
         defaultColor: _defaultColor,
       });
 
@@ -547,6 +549,23 @@ async function handleDelete(commentId) {
   } catch (err) {
     console.error("[feedback-layer] Failed to delete comment:", err);
     showToast(`Failed to delete comment: ${err.message}`, "error");
+  }
+}
+
+async function handleExport(format) {
+  // Get the document ID from existing comments or the configured docId
+  const documentId = _docId || (_comments.length > 0 ? _comments[0].document : null);
+  if (!documentId) {
+    showToast("No document to export", "error");
+    return;
+  }
+
+  try {
+    await exportAnnotations(documentId, format);
+    showToast(`Exported annotations as ${format.toUpperCase()}`, "success");
+  } catch (err) {
+    console.error("[feedback-layer] Failed to export:", err);
+    showToast(`Failed to export: ${err.message}`, "error");
   }
 }
 

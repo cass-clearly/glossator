@@ -443,6 +443,115 @@ describe("API", async () => {
     });
   });
 
+  // ── Export ──────────────────────────────────────────────────────
+
+  describe("GET /documents/:id/export", () => {
+    it("exports JSON with document and comments", async () => {
+      const docRes = await fetch(`${BASE}/documents`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uri: "https://example.com/page" }),
+      });
+      const doc = await docRes.json();
+
+      await fetch(`${BASE}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ document: doc.id, quote: "text", body: "hello", author: "me" }),
+      });
+
+      const res = await fetch(`${BASE}/documents/${doc.id}/export?format=json`);
+      assert.equal(res.status, 200);
+      assert.equal(res.headers.get("content-type"), "application/json; charset=utf-8");
+      assert.ok(res.headers.get("content-disposition").includes("attachment"));
+
+      const json = await res.json();
+      assert.equal(json.document.id, doc.id);
+      assert.equal(json.comments.length, 1);
+      assert.equal(json.comments[0].body, "hello");
+      assert.ok(json.exported_at);
+    });
+
+    it("exports CSV with proper headers and data", async () => {
+      const docRes = await fetch(`${BASE}/documents`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uri: "https://example.com/page" }),
+      });
+      const doc = await docRes.json();
+
+      await fetch(`${BASE}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ document: doc.id, quote: "quoted text", body: "comment body", author: "tester" }),
+      });
+
+      const res = await fetch(`${BASE}/documents/${doc.id}/export?format=csv`);
+      assert.equal(res.status, 200);
+      assert.ok(res.headers.get("content-type").includes("text/csv"));
+      assert.ok(res.headers.get("content-disposition").includes("attachment"));
+
+      const csv = await res.text();
+      assert.ok(csv.startsWith("quote,body,author,status,created_at,parent_id\n"));
+      assert.ok(csv.includes('"quoted text"'));
+      assert.ok(csv.includes('"comment body"'));
+      assert.ok(csv.includes('"tester"'));
+    });
+
+    it("exports PDF with proper content type", async () => {
+      const docRes = await fetch(`${BASE}/documents`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uri: "https://example.com/page" }),
+      });
+      const doc = await docRes.json();
+
+      await fetch(`${BASE}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ document: doc.id, quote: "text", body: "hello", author: "me" }),
+      });
+
+      const res = await fetch(`${BASE}/documents/${doc.id}/export?format=pdf`);
+      assert.equal(res.status, 200);
+      assert.equal(res.headers.get("content-type"), "application/pdf");
+      assert.ok(res.headers.get("content-disposition").includes("attachment"));
+
+      const buffer = await res.arrayBuffer();
+      const header = new Uint8Array(buffer.slice(0, 5));
+      assert.equal(String.fromCharCode(...header), "%PDF-");
+    });
+
+    it("returns 400 for missing format", async () => {
+      const docRes = await fetch(`${BASE}/documents`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uri: "https://example.com/page" }),
+      });
+      const doc = await docRes.json();
+
+      const res = await fetch(`${BASE}/documents/${doc.id}/export`);
+      assert.equal(res.status, 400);
+    });
+
+    it("returns 400 for invalid format", async () => {
+      const docRes = await fetch(`${BASE}/documents`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uri: "https://example.com/page" }),
+      });
+      const doc = await docRes.json();
+
+      const res = await fetch(`${BASE}/documents/${doc.id}/export?format=xml`);
+      assert.equal(res.status, 400);
+    });
+
+    it("returns 404 for missing document", async () => {
+      const res = await fetch(`${BASE}/documents/doc_nonexistent/export?format=json`);
+      assert.equal(res.status, 404);
+    });
+  });
+
   // ── Comments ──────────────────────────────────────────────────
 
   describe("POST /comments", () => {

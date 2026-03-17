@@ -15,6 +15,7 @@ const { triggerEvent } = require("./webhooks.js");
 const { registerWebhookRoutes } = require("./webhook-routes.js");
 const path = require("path");
 const openApiSpec = require("./openapi.js");
+const PDFDocument = require("pdfkit");
 
 const app = express();
 const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(",") : ["http://localhost:3333"];
@@ -242,6 +243,127 @@ app.delete(
     const { rows } = await pool.query("DELETE FROM documents WHERE id = $1 RETURNING *", [req.params.id]);
     if (rows.length === 0) return res.status(404).json(errorResponse("Document not found"));
     res.json(formatDocument(rows[0]));
+  }),
+);
+
+// ── Export endpoint ─────────────────────────────────────────────────
+
+app.get(
+  "/documents/:id/export",
+  asyncHandler(async (req, res) => {
+    const { format } = req.query;
+    if (!format || !["json", "csv", "pdf"].includes(format)) {
+      return res.status(400).json(errorResponse("format query parameter must be json, csv, or pdf"));
+    }
+
+    // Fetch document
+    const { rows: docRows } = await pool.query("SELECT * FROM documents WHERE id = $1", [req.params.id]);
+    if (docRows.length === 0) return res.status(404).json(errorResponse("Document not found"));
+    const document = formatDocument(docRows[0]);
+
+    // Fetch comments for document
+    const { rows: commentRows } = await pool.query(
+      "SELECT * FROM comments WHERE document = $1 ORDER BY created_at ASC",
+      [req.params.id],
+    );
+    const comments = commentRows.map(formatComment);
+
+    // Attach reactions to comments
+    const commentIds = comments.map((c) => c.id);
+    const reactionsMap = await fetchReactionsForComments(commentIds);
+    const commentsWithReactions = comments.map((c) => ({
+      ...c,
+      reactions: reactionsMap.get(c.id) || [],
+    }));
+
+    if (format === "json") {
+      const exportData = {
+        document,
+        comments: commentsWithReactions,
+        exported_at: new Date().toISOString(),
+      };
+      res.setHeader("Content-Type", "application/json");
+      res.setHeader("Content-Disposition", `attachment; filename="annotations-${req.params.id}.json"`);
+      return res.json(exportData);
+    }
+
+    if (format === "csv") {
+      const csvHeader = "quote,body,author,status,created_at,parent_id\n";
+      const csvRows = commentsWithReactions
+        .map((c) => {
+          const escape = (v) => {
+            if (v === null || v === undefined) return "";
+            const str = String(v).replace(/"/g, '""');
+            return `"${str}"`;
+          };
+          return [
+            escape(c.quote),
+            escape(c.body),
+            escape(c.author),
+            escape(c.status),
+            escape(c.created_at),
+            escape(c.parent),
+          ].join(",");
+        })
+        .join("\n");
+      const csvContent = csvHeader + csvRows;
+      res.setHeader("Content-Type", "text/csv");
+      res.setHeader("Content-Disposition", `attachment; filename="annotations-${req.params.id}.csv"`);
+      return res.send(csvContent);
+    }
+
+    if (format === "pdf") {
+      const doc = new PDFDocument({ margin: 50 });
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename="annotations-${req.params.id}.pdf"`);
+      doc.pipe(res);
+
+      // Title
+      doc.fontSize(20).text("Annotation Export", { align: "center" });
+      doc.moveDown(0.5);
+
+      // Document metadata
+      doc.fontSize(10).fillColor("#666");
+      doc.text(`Document: ${document.uri}`);
+      doc.text(`Exported: ${new Date().toISOString()}`);
+      doc.moveDown();
+
+      // Annotations
+      doc.fontSize(12).fillColor("#000");
+      const topLevel = commentsWithReactions.filter((c) => !c.parent);
+      const repliesByParent = new Map();
+      for (const c of commentsWithReactions) {
+        if (c.parent) {
+          if (!repliesByParent.has(c.parent)) repliesByParent.set(c.parent, []);
+          repliesByParent.get(c.parent).push(c);
+        }
+      }
+
+      for (const comment of topLevel) {
+        doc.fillColor("#7c3aed").fontSize(11);
+        if (comment.quote) {
+          doc.text(`"${comment.quote}"`, { continued: false });
+        }
+        doc.fillColor("#000").fontSize(12);
+        doc.text(comment.body);
+        doc.fontSize(9).fillColor("#888");
+        doc.text(`— ${comment.author} | ${comment.status || "reply"} | ${comment.created_at}`);
+
+        // Replies
+        const replies = repliesByParent.get(comment.id) || [];
+        for (const reply of replies) {
+          doc.moveDown(0.3);
+          doc.fillColor("#000").fontSize(11);
+          doc.text(`    ${reply.body}`, { indent: 20 });
+          doc.fontSize(9).fillColor("#888");
+          doc.text(`    — ${reply.author} | ${reply.created_at}`, { indent: 20 });
+        }
+
+        doc.moveDown();
+      }
+
+      doc.end();
+    }
   }),
 );
 
