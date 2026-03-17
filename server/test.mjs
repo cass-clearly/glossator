@@ -112,9 +112,19 @@ describe("export-pdf", async () => {
     const buf = await renderPdf(testDoc, [comment]);
     assert.ok(Buffer.isBuffer(buf));
     assert.equal(buf.slice(0, 5).toString(), "%PDF-");
-    // Verify the string "reply" does NOT appear in the PDF text stream
-    const pdfText = buf.toString("latin1");
-    assert.ok(!pdfText.includes("| reply |"), "PDF should not render 'reply' as status for top-level comments");
+    // PDFKit compresses page streams with FlateDecode. Locate the zlib magic bytes
+    // (0x78 0x9c), decompress, then extract hex-encoded TJ text segments to get the
+    // rendered text content.
+    const { inflateSync } = await import("node:zlib");
+    const hexStr = buf.toString("hex");
+    const zlibStart = hexStr.indexOf("789c");
+    assert.ok(zlibStart >= 0, "Expected a FlateDecode stream in the PDF");
+    const decompressed = inflateSync(buf.slice(zlibStart / 2)).toString("latin1");
+    const hexMatches = decompressed.match(/<([0-9a-fA-F]+)>/g) || [];
+    const renderedText = hexMatches
+      .map((m) => Buffer.from(m.slice(1, -1), "hex").toString("utf8"))
+      .join("");
+    assert.ok(renderedText.includes("| open |"), `PDF should render null status as 'open' for top-level comments. Rendered: ${renderedText.slice(0, 200)}`);
   });
 
   it("handles comments with replies", async () => {

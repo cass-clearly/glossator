@@ -279,7 +279,6 @@ app.get(
     }));
 
     if (format === "json") {
-      res.setHeader("Content-Type", "application/json");
       res.setHeader("Content-Disposition", `attachment; filename="annotations-${req.params.id}.json"`);
       return res.json(renderJson(document, commentsWithReactions));
     }
