@@ -5,6 +5,126 @@ import { WebSocket } from "ws";
 import fs from "node:fs";
 import path from "node:path";
 
+// ── Export module unit tests ────────────────────────────────────────
+
+/** Shared helper: build a minimal comment with reactions */
+function makeComment(overrides = {}) {
+  return {
+    id: "cmt_test1",
+    object: "comment",
+    document: "doc_test1",
+    quote: "some text",
+    body: "a comment",
+    author: "Alice",
+    status: "open",
+    parent: null,
+    color: null,
+    created_at: "2026-01-01T00:00:00.000Z",
+    reactions: [],
+    ...overrides,
+  };
+}
+
+const testDoc = {
+  id: "doc_test1",
+  object: "document",
+  uri: "https://example.com/page",
+  created_at: "2026-01-01T00:00:00.000Z",
+};
+
+describe("export-json", async () => {
+  const { renderJson } = await import("./export-json.js");
+
+  it("returns document, comments, and exported_at", () => {
+    const comment = makeComment();
+    const result = renderJson(testDoc, [comment]);
+    assert.deepEqual(result.document, testDoc);
+    assert.deepEqual(result.comments, [comment]);
+    assert.ok(result.exported_at);
+    assert.ok(new Date(result.exported_at).getTime() > 0);
+  });
+
+  it("handles empty comments array", () => {
+    const result = renderJson(testDoc, []);
+    assert.deepEqual(result.comments, []);
+  });
+});
+
+describe("export-csv", async () => {
+  const { renderCsv, escape } = await import("./export-csv.js");
+
+  it("escape wraps value in double quotes", () => {
+    assert.equal(escape("hello"), '"hello"');
+  });
+
+  it("escape handles null/undefined as empty string", () => {
+    assert.equal(escape(null), "");
+    assert.equal(escape(undefined), "");
+  });
+
+  it("escape doubles internal double quotes", () => {
+    assert.equal(escape('say "hi"'), '"say ""hi"""');
+  });
+
+  it("renderCsv produces correct header", () => {
+    const csv = renderCsv([]);
+    assert.ok(csv.startsWith("quote,body,author,status,created_at,parent_id\n"));
+  });
+
+  it("renderCsv includes comment fields", () => {
+    const comment = makeComment({ quote: "text", body: "body", author: "Bob", status: "open", parent: null });
+    const csv = renderCsv([comment]);
+    assert.ok(csv.includes('"text"'));
+    assert.ok(csv.includes('"body"'));
+    assert.ok(csv.includes('"Bob"'));
+    assert.ok(csv.includes('"open"'));
+  });
+
+  it("renderCsv handles null status (replies)", () => {
+    const comment = makeComment({ status: null, parent: "cmt_parent" });
+    const csv = renderCsv([comment]);
+    // null status should render as empty string, not "null"
+    const row = csv.split("\n")[1];
+    const cols = row.split(",");
+    assert.equal(cols[3], ""); // status column is empty
+  });
+});
+
+describe("export-pdf", async () => {
+  const { renderPdf } = await import("./export-pdf.js");
+
+  it("returns a Buffer starting with %PDF-", async () => {
+    const comment = makeComment();
+    const buf = await renderPdf(testDoc, [comment]);
+    assert.ok(Buffer.isBuffer(buf));
+    assert.equal(buf.slice(0, 5).toString(), "%PDF-");
+  });
+
+  it("handles empty comments array", async () => {
+    const buf = await renderPdf(testDoc, []);
+    assert.ok(Buffer.isBuffer(buf));
+    assert.equal(buf.slice(0, 5).toString(), "%PDF-");
+  });
+
+  it("handles comments with null status (renders as 'open', not 'reply')", async () => {
+    // A top-level comment with null status should not crash and should render "open"
+    const comment = makeComment({ status: null });
+    const buf = await renderPdf(testDoc, [comment]);
+    assert.ok(Buffer.isBuffer(buf));
+    assert.equal(buf.slice(0, 5).toString(), "%PDF-");
+    // Verify the string "reply" does NOT appear in the PDF text stream
+    const pdfText = buf.toString("latin1");
+    assert.ok(!pdfText.includes("| reply |"), "PDF should not render 'reply' as status for top-level comments");
+  });
+
+  it("handles comments with replies", async () => {
+    const parent = makeComment({ id: "cmt_p1" });
+    const reply = makeComment({ id: "cmt_r1", parent: "cmt_p1", quote: null, status: null });
+    const buf = await renderPdf(testDoc, [parent, reply]);
+    assert.ok(Buffer.isBuffer(buf));
+  });
+});
+
 // ── Utility unit tests ──────────────────────────────────────────────
 
 describe("generate-id", async () => {
@@ -1641,6 +1761,7 @@ describe("API", async () => {
       assert.ok(json.paths["/health"]);
       assert.ok(json.paths["/documents"]);
       assert.ok(json.paths["/documents/{id}"]);
+      assert.ok(json.paths["/documents/{id}/export"]);
       assert.ok(json.paths["/comments"]);
       assert.ok(json.paths["/comments/{id}"]);
       assert.ok(json.paths["/comments/{id}/reactions"]);

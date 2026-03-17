@@ -144,12 +144,13 @@ Stripe-inspired resource pattern. All responses include an `object` field. **Ful
 
 ### Documents
 
-| Method   | Endpoint         | Description                        |
-| -------- | ---------------- | ---------------------------------- |
-| `GET`    | `/documents`     | List all documents                 |
-| `POST`   | `/documents`     | Create or find a document by URI   |
-| `GET`    | `/documents/:id` | Retrieve a document                |
-| `DELETE` | `/documents/:id` | Delete a document and its comments |
+| Method   | Endpoint                                      | Description                             |
+| -------- | --------------------------------------------- | --------------------------------------- |
+| `GET`    | `/documents`                                  | List all documents                      |
+| `POST`   | `/documents`                                  | Create or find a document by URI        |
+| `GET`    | `/documents/:id`                              | Retrieve a document                     |
+| `DELETE` | `/documents/:id`                              | Delete a document and its comments      |
+| `GET`    | `/documents/:id/export?format=json\|csv\|pdf` | Export annotations as JSON, CSV, or PDF |
 
 ### Comments
 
@@ -176,6 +177,26 @@ Stripe-inspired resource pattern. All responses include an `object` field. **Ful
 | `DELETE` | `/webhooks/:id` | Delete a webhook                                          |
 
 Events: `comment.created`, `comment.resolved`, `comment.deleted`. Payloads are signed with HMAC-SHA256 using the webhook's secret.
+
+### Annotation Exports
+
+Download all comments for a document in your preferred format:
+
+```bash
+# Export as JSON (structured data for scripts and agents)
+curl "http://localhost:3333/documents/doc_abc123/export?format=json" \
+  -o annotations.json
+
+# Export as CSV (spreadsheets, pivot tables, analysis)
+curl "http://localhost:3333/documents/doc_abc123/export?format=csv" \
+  -o annotations.csv
+
+# Export as PDF (readable report, easy to share)
+curl "http://localhost:3333/documents/doc_abc123/export?format=pdf" \
+  -o annotations.pdf
+```
+
+The JSON export includes the document metadata, all comments with reactions, and an `exported_at` timestamp. The CSV export has columns: `quote`, `body`, `author`, `status`, `created_at`, `parent_id`. The PDF export is a formatted report with top-level annotations and threaded replies.
 
 Status is a thread-level concept — only root comments have status (`"open"` or `"closed"`). Replies always have `status: null`. The `?status=` filter matches root comments and includes all their replies. Query params can be combined (e.g. `?document=<id>&status=open&expand=document`).
 

@@ -255,6 +255,80 @@ curl -X DELETE http://localhost:3000/documents/doc_k3mXp9q2aBvN
 
 ---
 
+#### `GET /documents/:id/export`
+
+Export all annotations for a document as JSON, CSV, or PDF.
+
+**Parameters:**
+
+- `id` (path, required) — Document ID
+- `format` (query, required) — Export format: `json`, `csv`, or `pdf`
+
+**Response (200 OK):**
+
+Varies by format:
+
+- `format=json` — `Content-Type: application/json`
+
+  ```json
+  {
+    "document": {
+      "id": "doc_k3mXp9q2aBvN",
+      "object": "document",
+      "uri": "https://example.com/article",
+      "created_at": "2026-02-21T10:30:00.000Z"
+    },
+    "comments": [
+      {
+        "id": "cmt_abc123",
+        "object": "comment",
+        "document": "doc_k3mXp9q2aBvN",
+        "quote": "selected text",
+        "body": "This needs work",
+        "author": "Alice",
+        "status": "open",
+        "parent": null,
+        "reactions": [],
+        "created_at": "2026-02-21T11:00:00.000Z"
+      }
+    ],
+    "exported_at": "2026-02-21T12:00:00.000Z"
+  }
+  ```
+
+- `format=csv` — `Content-Type: text/csv`
+
+  ```
+  quote,body,author,status,created_at,parent_id
+  "selected text","This needs work","Alice","open","2026-02-21T11:00:00.000Z",""
+  ```
+
+- `format=pdf` — `Content-Type: application/pdf` — A formatted PDF report with top-level annotations and threaded replies.
+
+**Status Codes:**
+
+- `200 OK` — Export generated
+- `400 Bad Request` — `format` is missing or not one of `json`, `csv`, `pdf`
+- `404 Not Found` — Document not found
+
+**Examples:**
+
+```bash
+# Export as JSON
+curl "http://localhost:3000/documents/doc_k3mXp9q2aBvN/export?format=json" \
+  -o annotations.json
+
+# Export as CSV
+curl "http://localhost:3000/documents/doc_k3mXp9q2aBvN/export?format=csv" \
+  -o annotations.csv
+
+# Export as PDF
+curl "http://localhost:3000/documents/doc_k3mXp9q2aBvN/export?format=pdf" \
+  -o annotations.pdf
+```
+
+---
+
 ### Comments
 
 #### `GET /comments`

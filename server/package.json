@@ -21,6 +21,9 @@
     "openapi.js",
     "color-constants.js",
     "emoji-constants.js",
+    "export-json.js",
+    "export-csv.js",
+    "export-pdf.js",
     "serve"
   ],
   "dependencies": {
