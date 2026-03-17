@@ -252,13 +252,24 @@ function _handleSidebarKeydown(e) {
     if (_activeThreadIndex >= 0 && _activeThreadIndex < cards.length) {
       e.preventDefault();
       const thread = cards[_activeThreadIndex].closest(".fb-thread");
+      const resolveBtn = thread?.querySelector(".fb-cmt-resolve");
+      if (resolveBtn) resolveBtn.click();
+    }
+    return;
+  }
+
+  if (key === "r") {
+    const cards = _getThreadCards();
+    if (_activeThreadIndex >= 0 && _activeThreadIndex < cards.length) {
+      e.preventDefault();
+      const thread = cards[_activeThreadIndex].closest(".fb-thread");
       const replyBtn = thread?.querySelector(".fb-reply-btn");
       if (replyBtn) replyBtn.click();
     }
     return;
   }
 
-  if (key === "j") {
+  if (key === "j" || key === "ArrowDown") {
     e.preventDefault();
     const cards = _getThreadCards();
     if (cards.length === 0) return;
@@ -267,7 +278,7 @@ function _handleSidebarKeydown(e) {
     return;
   }
 
-  if (key === "k") {
+  if (key === "k" || key === "ArrowUp") {
     e.preventDefault();
     const cards = _getThreadCards();
     if (cards.length === 0) return;
@@ -304,9 +315,10 @@ function _toggleShortcutsHelp() {
         <tbody>
           <tr><td><kbd>s</kbd></td><td>Toggle sidebar open/closed</td></tr>
           <tr><td><kbd>Esc</kbd></td><td>Close sidebar</td></tr>
-          <tr><td><kbd>j</kbd></td><td>Next comment thread</td></tr>
-          <tr><td><kbd>k</kbd></td><td>Previous comment thread</td></tr>
-          <tr><td><kbd>Enter</kbd></td><td>Reply to focused thread</td></tr>
+          <tr><td><kbd>j</kbd> / <kbd>↓</kbd></td><td>Next comment thread</td></tr>
+          <tr><td><kbd>k</kbd> / <kbd>↑</kbd></td><td>Previous comment thread</td></tr>
+          <tr><td><kbd>r</kbd></td><td>Reply to focused thread</td></tr>
+          <tr><td><kbd>Enter</kbd></td><td>Resolve/reopen focused thread</td></tr>
           <tr><td><kbd>Cmd+Enter</kbd></td><td>Submit comment or reply</td></tr>
           <tr><td><kbd>?</kbd></td><td>Toggle this help</td></tr>
         </tbody>
