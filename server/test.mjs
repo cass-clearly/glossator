@@ -1150,6 +1150,97 @@ describe("API", async () => {
     });
   });
 
+  describe("GET /comments cursor pagination", () => {
+    it("returns all comments without limit (backward compatible)", async () => {
+      const uri = "https://example.com/pagination-test-all";
+      for (let i = 0; i < 3; i++) {
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ uri, quote: `q${i}`, body: `body ${i}`, author: "tester" }),
+        });
+      }
+      const res = await fetch(`${BASE}/comments?uri=${encodeURIComponent(uri)}`);
+      assert.equal(res.status, 200);
+      const json = await res.json();
+      assert.equal(json.object, "list");
+      assert.ok(json.data.length >= 3);
+      assert.equal(json.next_cursor, undefined, "no next_cursor without limit");
+    });
+
+    it("returns paginated results with limit", async () => {
+      const uri = "https://example.com/pagination-test-limit";
+      for (let i = 0; i < 5; i++) {
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ uri, quote: `q${i}`, body: `body ${i}`, author: "tester" }),
+        });
+      }
+      const res = await fetch(`${BASE}/comments?uri=${encodeURIComponent(uri)}&limit=2`);
+      assert.equal(res.status, 200);
+      const json = await res.json();
+      assert.equal(json.data.length, 2);
+      assert.ok(json.next_cursor, "should return next_cursor when more pages exist");
+    });
+
+    it("fetches next page via cursor", async () => {
+      const uri = "https://example.com/pagination-test-cursor";
+      const ids = [];
+      for (let i = 0; i < 4; i++) {
+        const r = await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ uri, quote: `q${i}`, body: `body ${i}`, author: "tester" }),
+        });
+        const c = await r.json();
+        ids.push(c.id);
+      }
+      const page1 = await (await fetch(`${BASE}/comments?uri=${encodeURIComponent(uri)}&limit=2`)).json();
+      assert.equal(page1.data.length, 2);
+      assert.ok(page1.next_cursor);
+
+      const page2 = await (
+        await fetch(`${BASE}/comments?uri=${encodeURIComponent(uri)}&limit=2&after=${page1.next_cursor}`)
+      ).json();
+      assert.equal(page2.data.length, 2);
+      // No overlap between pages
+      const page1Ids = new Set(page1.data.map((c) => c.id));
+      for (const c of page2.data) assert.ok(!page1Ids.has(c.id), "pages must not overlap");
+    });
+
+    it("last page has null next_cursor", async () => {
+      const uri = "https://example.com/pagination-test-last";
+      for (let i = 0; i < 3; i++) {
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ uri, quote: `q${i}`, body: `body ${i}`, author: "tester" }),
+        });
+      }
+      const page1 = await (await fetch(`${BASE}/comments?uri=${encodeURIComponent(uri)}&limit=2`)).json();
+      const page2 = await (
+        await fetch(`${BASE}/comments?uri=${encodeURIComponent(uri)}&limit=2&after=${page1.next_cursor}`)
+      ).json();
+      assert.equal(page2.next_cursor, null, "last page should have null next_cursor");
+    });
+
+    it("returns 400 for invalid limit", async () => {
+      const res = await fetch(`${BASE}/comments?uri=https://x.com/p&limit=0`);
+      assert.equal(res.status, 400);
+    });
+
+    it("returns 400 for limit > 200", async () => {
+      const res = await fetch(`${BASE}/comments?uri=https://x.com/p&limit=201`);
+      assert.equal(res.status, 400);
+    });
+
+    it("returns 400 for invalid cursor", async () => {
+      const res = await fetch(`${BASE}/comments?uri=https://x.com/p&after=notvalidcursor`);
+      assert.equal(res.status, 400);
+    });
+  });
+
   describe("PATCH /comments/:id reply guards", () => {
     it("returns 400 when setting status on a reply", async () => {
       const parent = await (
