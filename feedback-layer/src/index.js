@@ -139,6 +139,7 @@ function init() {
         onReaction: handleReaction,
         onColorChange: handleColorChange,
         defaultColor: _defaultColor,
+        documentUri: _docUri,
       });
 
       // Highlight click → scroll sidebar to card

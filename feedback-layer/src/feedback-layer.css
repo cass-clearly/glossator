@@ -513,6 +513,25 @@
 .fb-filter-toggle input {
   cursor: pointer;
 }
+.fb-sort-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+.fb-sort-label {
+  font-size: 12px;
+  color: var(--remarq-text-faint);
+}
+.fb-sort-select {
+  font-size: 12px;
+  padding: 2px 4px;
+  border: 1px solid var(--remarq-border-subtle);
+  border-radius: 4px;
+  background: var(--remarq-bg);
+  color: var(--remarq-text);
+  cursor: pointer;
+}
 .fb-thread {
   display: flex;
   flex-direction: column;

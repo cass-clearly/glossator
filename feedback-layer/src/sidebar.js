@@ -52,9 +52,29 @@ let _defaultColor = null;
 let _showResolved = false;
 let _lastComments = [];
 let _lastAnchoredIds = new Set();
+let _lastCommentRanges = new Map();
 let _activeThreadIndex = -1;
 let _keydownHandler = null;
 let _stylesInjected = false;
+let _sortMode = "location"; // "location" | "newest" | "oldest"
+let _documentUri = null;
+
+const SORT_KEY_PREFIX = "remarq-sort-";
+
+function _getSortKey() {
+  return SORT_KEY_PREFIX + (_documentUri || window.location.href);
+}
+
+function _loadSortMode() {
+  const saved = localStorage.getItem(_getSortKey());
+  if (saved === "newest" || saved === "oldest" || saved === "location") {
+    _sortMode = saved;
+  }
+}
+
+function _saveSortMode() {
+  localStorage.setItem(_getSortKey(), _sortMode);
+}
 
 /**
  * Inject CSS styles eagerly (before sidebar DOM is created).
@@ -90,6 +110,7 @@ export function createSidebar({
   onReaction,
   onColorChange,
   defaultColor,
+  documentUri,
 }) {
   _onSubmit = onSubmit;
   _onDelete = onDelete;
@@ -99,6 +120,8 @@ export function createSidebar({
   _onReaction = onReaction;
   _onColorChange = onColorChange;
   _defaultColor = defaultColor || null;
+  _documentUri = documentUri || null;
+  _loadSortMode();
 
   ensureStyles();
 
@@ -130,6 +153,14 @@ export function createSidebar({
           <input type="checkbox" class="fb-show-resolved-cb">
           <span>Show closed</span>
         </label>
+        <div class="fb-sort-control">
+          <label class="fb-sort-label">Sort:</label>
+          <select class="fb-sort-select">
+            <option value="location">By Location</option>
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+          </select>
+        </div>
       </div>
       <div class="fb-comment-list"></div>
       <div class="fb-form-section" style="display:none"></div>
@@ -174,7 +205,16 @@ export function createSidebar({
   const resolvedCb = _sidebar.querySelector(".fb-show-resolved-cb");
   resolvedCb.addEventListener("change", () => {
     _showResolved = resolvedCb.checked;
-    renderComments(_lastComments, _lastAnchoredIds); // Use stored anchoredIds
+    renderComments(_lastComments, _lastAnchoredIds, _lastCommentRanges);
+  });
+
+  // Sort control
+  const sortSelect = _sidebar.querySelector(".fb-sort-select");
+  sortSelect.value = _sortMode;
+  sortSelect.addEventListener("change", () => {
+    _sortMode = sortSelect.value;
+    _saveSortMode();
+    renderComments(_lastComments, _lastAnchoredIds, _lastCommentRanges);
   });
 
   // Global keyboard shortcut: "s" to toggle sidebar
@@ -454,6 +494,7 @@ export function showCommentForm(quote) {
 export function renderComments(comments, anchoredIds = new Set(), commentRanges = new Map()) {
   _lastComments = comments;
   _lastAnchoredIds = anchoredIds;
+  _lastCommentRanges = commentRanges;
   _activeThreadIndex = -1;
   _listEl.innerHTML = "";
 
@@ -470,13 +511,27 @@ export function renderComments(comments, anchoredIds = new Set(), commentRanges 
     }
   }
 
-  // Sort anchored comments by document position
-  anchored.sort((a, b) => {
-    const rangeA = commentRanges.get(a.id);
-    const rangeB = commentRanges.get(b.id);
-    if (!rangeA || !rangeB) return 0;
-    return rangeA.compareBoundaryPoints(Range.START_TO_START, rangeB);
-  });
+  // Sort anchored comments based on current sort mode
+  if (_sortMode === "newest") {
+    anchored.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  } else if (_sortMode === "oldest") {
+    anchored.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+  } else {
+    // Default: sort by document position
+    anchored.sort((a, b) => {
+      const rangeA = commentRanges.get(a.id);
+      const rangeB = commentRanges.get(b.id);
+      if (!rangeA || !rangeB) return 0;
+      return rangeA.compareBoundaryPoints(Range.START_TO_START, rangeB);
+    });
+  }
+
+  // Also sort orphaned by the same time-based mode (location has no meaning for orphans)
+  if (_sortMode === "newest") {
+    orphaned.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  } else if (_sortMode === "oldest") {
+    orphaned.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+  }
 
   // Anchored first, then orphaned at the bottom
   const sortedTopLevel = [...anchored, ...orphaned];
