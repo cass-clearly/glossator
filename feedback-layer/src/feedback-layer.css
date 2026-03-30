@@ -513,6 +513,49 @@
 .fb-filter-toggle input {
   cursor: pointer;
 }
+/* Color filter chips */
+.fb-color-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 0 4px;
+  align-items: center;
+}
+.fb-color-chip {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  outline: none;
+  transition: border-color 0.15s, transform 0.1s;
+}
+.fb-color-chip:hover {
+  transform: scale(1.15);
+}
+.fb-color-chip.fb-color-chip-active {
+  border-color: var(--remarq-text, #333);
+}
+.fb-color-chip-all {
+  width: auto;
+  height: auto;
+  border-radius: 10px;
+  padding: 2px 8px;
+  font-size: 11px;
+  background: var(--remarq-bg-card, #f5f5f5);
+  color: var(--remarq-text, #333);
+}
+.fb-color-chip-all.fb-color-chip-active {
+  background: var(--remarq-accent, #7c5cfc);
+  color: #fff;
+  border-color: transparent;
+}
+/* Dimmed highlights (color filter) */
+.fb-highlight.fb-dim {
+  opacity: 0.25 !important;
+  transition: opacity 0.2s;
+}
 .fb-thread {
   display: flex;
   flex-direction: column;
