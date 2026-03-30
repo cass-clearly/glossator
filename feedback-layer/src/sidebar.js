@@ -50,6 +50,8 @@ let _onReaction = null;
 let _onColorChange = null; // eslint-disable-line no-unused-vars -- tracked for future color picker callback
 let _defaultColor = null;
 let _showResolved = false;
+let _sortMode = 'location';
+let _documentUri = '';
 let _lastComments = [];
 let _lastAnchoredIds = new Set();
 let _activeThreadIndex = -1;
@@ -68,6 +70,10 @@ export function ensureStyles() {
 
 export function getCommenter() {
   return localStorage.getItem(COMMENTER_KEY) || "";
+}
+
+export function setDocumentUri(uri) {
+  _documentUri = uri;
 }
 
 /**
@@ -130,6 +136,7 @@ export function createSidebar({
           <input type="checkbox" class="fb-show-resolved-cb">
           <span>Show closed</span>
         </label>
+        <div class="fb-sort-control"><label class="fb-label">Sort</label><select class="fb-sort-select"><option value="location">By location</option><option value="newest">Newest first</option><option value="oldest">Oldest first</option></select></div>
       </div>
       <div class="fb-comment-list"></div>
       <div class="fb-form-section" style="display:none"></div>
@@ -175,6 +182,13 @@ export function createSidebar({
   resolvedCb.addEventListener("change", () => {
     _showResolved = resolvedCb.checked;
     renderComments(_lastComments, _lastAnchoredIds); // Use stored anchoredIds
+  });
+
+  // Sort select
+  const sortSelect = _sidebar.querySelector(".fb-sort-select");
+  sortSelect.addEventListener("change", () => {
+    _sortMode = sortSelect.value;
+    renderComments(_lastComments, _lastAnchoredIds);
   });
 
   // Global keyboard shortcut: "s" to toggle sidebar
@@ -480,6 +494,14 @@ export function renderComments(comments, anchoredIds = new Set(), commentRanges 
 
   // Anchored first, then orphaned at the bottom
   const sortedTopLevel = [...anchored, ...orphaned];
+
+  // Apply sort mode
+  if (_sortMode === 'newest') {
+    sortedTopLevel.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  } else if (_sortMode === 'oldest') {
+    sortedTopLevel.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+  }
+  // 'location' keeps default order (anchored by position, then orphaned)
 
   // Apply closed filter
   const visibleTopLevel = _showResolved ? sortedTopLevel : sortedTopLevel.filter((a) => a.status !== "closed");
