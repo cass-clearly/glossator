@@ -205,9 +205,19 @@ app.get("/health", (_req, res) => {
 
 app.get(
   "/documents",
-  asyncHandler(async (_req, res) => {
-    const { rows } = await pool.query("SELECT * FROM documents ORDER BY created_at ASC");
-    res.json(listResponse(rows.map(formatDocument)));
+  asyncHandler(async (req, res) => {
+    const limit = Math.max(1, Math.min(100, parseInt(req.query.limit, 10) || 20));
+    const offset = Math.max(0, parseInt(req.query.offset, 10) || 0);
+    const { rows } = await pool.query(
+      `SELECT d.*, COUNT(c.id) FILTER (WHERE c.parent IS NULL) AS comment_count
+       FROM documents d
+       LEFT JOIN comments c ON c.document = d.id
+       GROUP BY d.id
+       ORDER BY d.created_at ASC
+       LIMIT $1 OFFSET $2`,
+      [limit, offset],
+    );
+    res.json(listResponse(rows.map((row) => ({ ...formatDocument(row), comment_count: Number(row.comment_count) }))));
   }),
 );
 
