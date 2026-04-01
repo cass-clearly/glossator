@@ -121,10 +121,11 @@ describe("export-pdf", async () => {
     assert.ok(zlibStart >= 0, "Expected a FlateDecode stream in the PDF");
     const decompressed = inflateSync(buf.slice(zlibStart / 2)).toString("latin1");
     const hexMatches = decompressed.match(/<([0-9a-fA-F]+)>/g) || [];
-    const renderedText = hexMatches
-      .map((m) => Buffer.from(m.slice(1, -1), "hex").toString("utf8"))
-      .join("");
-    assert.ok(renderedText.includes("| open |"), `PDF should render null status as 'open' for top-level comments. Rendered: ${renderedText.slice(0, 200)}`);
+    const renderedText = hexMatches.map((m) => Buffer.from(m.slice(1, -1), "hex").toString("utf8")).join("");
+    assert.ok(
+      renderedText.includes("| open |"),
+      `PDF should render null status as 'open' for top-level comments. Rendered: ${renderedText.slice(0, 200)}`,
+    );
   });
 
   it("handles comments with replies", async () => {
