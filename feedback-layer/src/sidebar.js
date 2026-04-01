@@ -50,8 +50,8 @@ let _onReaction = null;
 let _onColorChange = null; // eslint-disable-line no-unused-vars -- tracked for future color picker callback
 let _defaultColor = null;
 let _showResolved = false;
-let _sortMode = 'location';
-let _documentUri = '';
+let _sortMode = "location";
+let _documentUri = "";
 let _lastComments = [];
 let _lastAnchoredIds = new Set();
 let _activeThreadIndex = -1;
@@ -496,9 +496,9 @@ export function renderComments(comments, anchoredIds = new Set(), commentRanges 
   const sortedTopLevel = [...anchored, ...orphaned];
 
   // Apply sort mode
-  if (_sortMode === 'newest') {
+  if (_sortMode === "newest") {
     sortedTopLevel.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-  } else if (_sortMode === 'oldest') {
+  } else if (_sortMode === "oldest") {
     sortedTopLevel.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
   }
   // 'location' keeps default order (anchored by position, then orphaned)
