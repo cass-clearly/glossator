@@ -343,9 +343,7 @@ app.get(
         [status],
       ));
     } else {
-      ({ rows } = await pool.query(
-        `SELECT * FROM comments ORDER BY created_at ASC, id ASC${limitClause}`,
-      ));
+      ({ rows } = await pool.query(`SELECT * FROM comments ORDER BY created_at ASC, id ASC${limitClause}`));
     }
 
     // Determine next cursor

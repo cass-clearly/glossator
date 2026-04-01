@@ -271,13 +271,15 @@ const spec = {
           {
             name: "limit",
             in: "query",
-            description: "Maximum number of comments to return (1–200). When omitted, all comments are returned (backward-compatible).",
+            description:
+              "Maximum number of comments to return (1–200). When omitted, all comments are returned (backward-compatible).",
             schema: { type: "integer", minimum: 1, maximum: 200 },
           },
           {
             name: "after",
             in: "query",
-            description: "Opaque cursor returned as next_cursor in a previous paginated response. Used to fetch the next page.",
+            description:
+              "Opaque cursor returned as next_cursor in a previous paginated response. Used to fetch the next page.",
             schema: { type: "string" },
           },
         ],
