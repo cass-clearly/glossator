@@ -529,7 +529,9 @@
   cursor: pointer;
   padding: 0;
   outline: none;
-  transition: border-color 0.15s, transform 0.1s;
+  transition:
+    border-color 0.15s,
+    transform 0.1s;
 }
 .fb-color-chip:hover {
   transform: scale(1.15);
