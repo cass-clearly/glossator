@@ -13,6 +13,7 @@ import { timeAgo } from "./utils/time-ago.js";
 import { initToastContainer } from "./toast.js";
 import { wrapIndex } from "./utils/keyboard-nav.js";
 import { COLOR_PRESETS, DEFAULT_COLOR, resolveColor } from "./utils/color.js";
+import { commentCounts, titleSuffix } from "./utils/comment-counts.js";
 
 /**
  * Scroll an element into view within the sidebar without affecting main page scroll.
@@ -50,6 +51,8 @@ let _onReaction = null;
 let _onColorChange = null; // eslint-disable-line no-unused-vars -- tracked for future color picker callback
 let _defaultColor = null;
 let _showResolved = false;
+let _originalTitle = null;
+let _tabEl = null;
 let _lastComments = [];
 let _lastAnchoredIds = new Set();
 let _activeThreadIndex = -1;
@@ -139,8 +142,9 @@ export function createSidebar({
   // Floating tab to reopen sidebar when closed
   const tab = document.createElement("button");
   tab.className = "fb-sidebar-tab";
-  tab.textContent = "Feedback";
+  tab.innerHTML = 'Feedback<span class="fb-tab-badge" style="display:none"></span>';
   tab.addEventListener("click", () => openSidebar());
+  _tabEl = tab;
   document.body.appendChild(tab);
 
   document.body.appendChild(_sidebar);
@@ -451,11 +455,42 @@ export function showCommentForm(quote) {
  * @param {Set} anchoredIds - Set of comment IDs that successfully anchored to text
  * @param {Map} commentRanges - Map of comment ID to Range for position sorting
  */
+/**
+ * Update page title and sidebar tab badge to reflect current comment counts.
+ * Called automatically from renderComments.
+ */
+function _updateTitleAndBadge(comments) {
+  const { total, resolved, unresolved } = commentCounts(comments);
+
+  // Page title
+  const suffix = titleSuffix(total, resolved);
+  if (suffix) {
+    if (_originalTitle === null) _originalTitle = document.title;
+    document.title = `${_originalTitle} ${suffix}`;
+  } else if (_originalTitle !== null) {
+    document.title = _originalTitle;
+  }
+
+  // Tab badge
+  if (_tabEl) {
+    const badge = _tabEl.querySelector(".fb-tab-badge");
+    if (badge) {
+      if (unresolved > 0) {
+        badge.textContent = ` (${unresolved})`;
+        badge.style.display = "";
+      } else {
+        badge.style.display = "none";
+      }
+    }
+  }
+}
+
 export function renderComments(comments, anchoredIds = new Set(), commentRanges = new Map()) {
   _lastComments = comments;
   _lastAnchoredIds = anchoredIds;
   _activeThreadIndex = -1;
   _listEl.innerHTML = "";
+  _updateTitleAndBadge(comments);
 
   const { topLevel, repliesByParent } = threadComments(comments);
 
