@@ -19,6 +19,9 @@
     "webhook-routes.js",
     "validate-color.js",
     "openapi.js",
+    "db/index.js",
+    "db/postgres-adapter.js",
+    "db/contract.js",
     "color-constants.js",
     "emoji-constants.js",
     "serve"
