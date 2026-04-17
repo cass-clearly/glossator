@@ -3,9 +3,7 @@ const http = require("http");
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
-const { Pool } = require("pg");
 const { WebSocketServer } = require("ws");
-const { insertWithId } = require("./generate-id.js");
 const { normalizeUri } = require("./normalize-uri.js");
 const { sanitize } = require("./sanitize.js");
 const { validateColor } = require("./validate-color.js");
@@ -13,6 +11,7 @@ const { PRESET_NAMES } = require("./color-constants.js");
 const { ALLOWED_REACTION_EMOJIS } = require("./emoji-constants.js");
 const { triggerEvent } = require("./webhooks.js");
 const { registerWebhookRoutes } = require("./webhook-routes.js");
+const { createDatabaseAdapter } = require("./db/index.js");
 const path = require("path");
 const openApiSpec = require("./openapi.js");
 
@@ -29,74 +28,13 @@ app.use(
 app.use(express.json());
 
 const DATABASE_URL = process.env.DATABASE_URL || "postgresql://postgres@localhost/postgres";
-const pool = new Pool({ connectionString: DATABASE_URL });
+const db = createDatabaseAdapter({ connectionString: DATABASE_URL });
+const pool = db.pool;
+const initSchema = () => db.initSchema();
 
 // Express 4 does not catch rejected promises from async handlers.
 // Wrap them so unhandled rejections become proper error responses.
 const asyncHandler = (fn) => (req, res, next) => fn(req, res, next).catch(next);
-
-async function initSchema() {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS documents (
-      id         TEXT PRIMARY KEY,
-      uri        TEXT NOT NULL UNIQUE,
-      object     TEXT NOT NULL DEFAULT 'document',
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    )
-  `);
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS comments (
-      id         TEXT PRIMARY KEY,
-      object     TEXT NOT NULL DEFAULT 'comment',
-      document   TEXT NOT NULL REFERENCES documents(id),
-      quote      TEXT NOT NULL DEFAULT '',
-      prefix     TEXT,
-      suffix     TEXT,
-      body       TEXT NOT NULL,
-      author     TEXT NOT NULL,
-      status     TEXT NOT NULL DEFAULT 'open',
-      parent     TEXT REFERENCES comments(id),
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    )
-  `);
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS reactions (
-      comment_id TEXT NOT NULL REFERENCES comments(id) ON DELETE CASCADE,
-      author     TEXT NOT NULL,
-      emoji      TEXT NOT NULL,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      PRIMARY KEY (comment_id, author, emoji)
-    )
-  `);
-
-  // Allow NULL status for replies (idempotent)
-  await pool.query(`ALTER TABLE comments ALTER COLUMN status DROP NOT NULL`);
-  await pool.query(`UPDATE comments SET status = NULL WHERE parent IS NOT NULL AND status IS NOT NULL`);
-  // Add color column with CHECK constraint (idempotent)
-  await pool.query(`ALTER TABLE comments ADD COLUMN IF NOT EXISTS color TEXT`);
-  await pool.query(`ALTER TABLE comments DROP CONSTRAINT IF EXISTS comments_color_check`);
-  await pool.query(
-    `ALTER TABLE comments ADD CONSTRAINT comments_color_check CHECK (color IS NULL OR color IN (${PRESET_NAMES.map((n) => `'${n}'`).join(", ")}) OR color ~ '^#[0-9a-fA-F]{6}$')`,
-  );
-
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS webhooks (
-      id         TEXT PRIMARY KEY,
-      url        TEXT NOT NULL UNIQUE,
-      secret     TEXT NOT NULL,
-      events     TEXT[] NOT NULL DEFAULT '{}',
-      active     BOOLEAN NOT NULL DEFAULT true,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    )
-  `);
-  // Add unique constraint on url if not already present (idempotent)
-  try {
-    await pool.query(`ALTER TABLE webhooks ADD CONSTRAINT webhooks_url_key UNIQUE (url)`);
-  } catch (e) {
-    // 42P07 = relation already exists (constraint already added), 23505 = duplicate key (existing data violates)
-    if (e.code !== "42P07" && e.code !== "23505") throw e;
-  }
-}
 
 // ── Response helpers ────────────────────────────────────────────────
 
@@ -129,63 +67,9 @@ function formatComment(row) {
 function listResponse(items) {
   return { object: "list", data: items };
 }
+
 function errorResponse(msg) {
   return { error: { message: msg } };
-}
-
-/**
- * Fetch reactions for a set of comment IDs and return a Map of commentId → reactions array.
- * Each reaction entry: { emoji, count, authors: [...] }
- */
-async function fetchReactionsForComments(commentIds) {
-  const map = new Map();
-  if (commentIds.length === 0) return map;
-  const { rows } = await pool.query(
-    "SELECT comment_id, emoji, author FROM reactions WHERE comment_id = ANY($1) ORDER BY emoji, created_at ASC",
-    [commentIds],
-  );
-  for (const row of rows) {
-    if (!map.has(row.comment_id)) map.set(row.comment_id, new Map());
-    const emojiMap = map.get(row.comment_id);
-    if (!emojiMap.has(row.emoji)) emojiMap.set(row.emoji, []);
-    emojiMap.get(row.emoji).push(row.author);
-  }
-  // Convert to the final format
-  const result = new Map();
-  for (const [commentId, emojiMap] of map) {
-    const reactions = [];
-    for (const [emoji, authors] of emojiMap) {
-      reactions.push({ emoji, count: authors.length, authors });
-    }
-    result.set(commentId, reactions);
-  }
-  return result;
-}
-
-// ── Helper: find or create document by URI ──────────────────────────
-
-async function findOrCreateDocument(uri) {
-  const normalized = normalizeUri(uri);
-  const { rows } = await pool.query("SELECT * FROM documents WHERE uri = $1", [normalized]);
-  if (rows.length > 0) return { doc: rows[0], created: false };
-
-  try {
-    const doc = await insertWithId("doc", async (id) => {
-      const { rows } = await pool.query("INSERT INTO documents (id, uri) VALUES ($1, $2) RETURNING *", [
-        id,
-        normalized,
-      ]);
-      return rows[0];
-    });
-    return { doc, created: true };
-  } catch (err) {
-    // Lost the race — another request created the document concurrently
-    if (err.code === "23505") {
-      const { rows } = await pool.query("SELECT * FROM documents WHERE uri = $1", [normalized]);
-      if (rows.length > 0) return { doc: rows[0], created: false };
-    }
-    throw err;
-  }
 }
 
 // ── OpenAPI spec ─────────────────────────────────────────────────────
@@ -206,7 +90,7 @@ app.get("/health", (_req, res) => {
 app.get(
   "/documents",
   asyncHandler(async (_req, res) => {
-    const { rows } = await pool.query("SELECT * FROM documents ORDER BY created_at ASC");
+    const rows = await db.listDocuments();
     res.json(listResponse(rows.map(formatDocument)));
   }),
 );
@@ -218,7 +102,7 @@ app.post(
     if (!uri) return res.status(400).json(errorResponse("uri is required"));
 
     try {
-      const { doc, created } = await findOrCreateDocument(uri);
+      const { doc, created } = await db.findOrCreateDocument(normalizeUri(uri));
       res.status(created ? 201 : 200).json(formatDocument(doc));
     } catch (err) {
       res.status(400).json(errorResponse(err.message));
@@ -229,19 +113,18 @@ app.post(
 app.get(
   "/documents/:id",
   asyncHandler(async (req, res) => {
-    const { rows } = await pool.query("SELECT * FROM documents WHERE id = $1", [req.params.id]);
-    if (rows.length === 0) return res.status(404).json(errorResponse("Document not found"));
-    res.json(formatDocument(rows[0]));
+    const document = await db.getDocumentById(req.params.id);
+    if (!document) return res.status(404).json(errorResponse("Document not found"));
+    res.json(formatDocument(document));
   }),
 );
 
 app.delete(
   "/documents/:id",
   asyncHandler(async (req, res) => {
-    await pool.query("DELETE FROM comments WHERE document = $1", [req.params.id]);
-    const { rows } = await pool.query("DELETE FROM documents WHERE id = $1 RETURNING *", [req.params.id]);
-    if (rows.length === 0) return res.status(404).json(errorResponse("Document not found"));
-    res.json(formatDocument(rows[0]));
+    const document = await db.deleteDocument(req.params.id);
+    if (!document) return res.status(404).json(errorResponse("Document not found"));
+    res.json(formatDocument(document));
   }),
 );
 
@@ -261,57 +144,30 @@ app.get(
     if (docId) {
       resolvedDocId = docId;
     } else if (uri) {
-      let normalized;
+      let lookupUri;
       try {
-        normalized = normalizeUri(uri);
+        lookupUri = normalizeUri(uri);
       } catch {
-        normalized = uri;
+        lookupUri = uri;
       }
-      const docResult = await pool.query("SELECT id FROM documents WHERE uri = $1", [normalized]);
-      if (docResult.rows.length === 0) return res.json(listResponse([]));
-      resolvedDocId = docResult.rows[0].id;
+      const document = await db.getDocumentByUri(lookupUri);
+      if (!document) return res.json(listResponse([]));
+      resolvedDocId = document.id;
     }
 
-    let rows;
-    if (resolvedDocId) {
-      if (status) {
-        ({ rows } = await pool.query(
-          `SELECT * FROM comments WHERE document = $1
-          AND ((parent IS NULL AND status = $2)
-            OR (parent IN (SELECT id FROM comments WHERE document = $1 AND parent IS NULL AND status = $2)))
-          ORDER BY created_at ASC`,
-          [resolvedDocId, status],
-        ));
-      } else {
-        ({ rows } = await pool.query("SELECT * FROM comments WHERE document = $1 ORDER BY created_at ASC", [
-          resolvedDocId,
-        ]));
-      }
-    } else if (status) {
-      ({ rows } = await pool.query(
-        `SELECT * FROM comments
-        WHERE (parent IS NULL AND status = $1)
-          OR (parent IN (SELECT id FROM comments WHERE parent IS NULL AND status = $1))
-        ORDER BY created_at ASC`,
-        [status],
-      ));
-    } else {
-      ({ rows } = await pool.query("SELECT * FROM comments ORDER BY created_at ASC"));
-    }
+    const rows = await db.listComments({ documentId: resolvedDocId, status });
 
     let data = rows.map(formatComment);
 
-    // Attach reactions
-    const commentIds = data.map((c) => c.id);
-    const reactionsMap = await fetchReactionsForComments(commentIds);
-    data = data.map((c) => ({ ...c, reactions: reactionsMap.get(c.id) || [] }));
+    const reactionsMap = await db.getReactionsByCommentIds(data.map((comment) => comment.id));
+    data = data.map((comment) => ({ ...comment, reactions: reactionsMap.get(comment.id) || [] }));
 
     if (expand === "document") {
-      const docIds = [...new Set(data.map((c) => c.document))];
+      const docIds = [...new Set(data.map((comment) => comment.document))];
       if (docIds.length > 0) {
-        const { rows: docs } = await pool.query("SELECT * FROM documents WHERE id = ANY($1)", [docIds]);
-        const docMap = Object.fromEntries(docs.map((d) => [d.id, formatDocument(d)]));
-        data = data.map((c) => ({ ...c, document: docMap[c.document] || c.document }));
+        const documents = await db.getDocumentsByIds(docIds);
+        const docMap = Object.fromEntries(documents.map((document) => [document.id, formatDocument(document)]));
+        data = data.map((comment) => ({ ...comment, document: docMap[comment.document] || comment.document }));
       }
     }
 
@@ -352,39 +208,31 @@ app.post(
     let documentId;
     try {
       if (docId) {
-        const result = await pool.query("SELECT id FROM documents WHERE id = $1", [docId]);
-        if (result.rows.length === 0) return res.status(404).json(errorResponse("Document not found"));
-        documentId = result.rows[0].id;
+        const document = await db.getDocumentById(docId);
+        if (!document) return res.status(404).json(errorResponse("Document not found"));
+        documentId = document.id;
       } else {
-        const { doc } = await findOrCreateDocument(uri);
+        const { doc } = await db.findOrCreateDocument(normalizeUri(uri));
         documentId = doc.id;
       }
     } catch (err) {
       return res.status(400).json(errorResponse(err.message));
     }
 
-    const commentStatus = parent ? null : "open";
-    const comment = await insertWithId("cmt", async (id) => {
-      const { rows } = await pool.query(
-        "INSERT INTO comments (id, document, quote, prefix, suffix, body, author, status, parent, color) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *",
-        [
-          id,
-          documentId,
-          quote || "",
-          prefix || null,
-          suffix || null,
-          cleanBody,
-          cleanAuthor,
-          commentStatus,
-          parent || null,
-          validatedColor,
-        ],
-      );
-      return rows[0];
+    const comment = await db.createComment({
+      document: documentId,
+      quote: quote || "",
+      prefix: prefix || null,
+      suffix: suffix || null,
+      body: cleanBody,
+      author: cleanAuthor,
+      status: parent ? null : "open",
+      parent: parent || null,
+      color: validatedColor,
     });
 
     const formatted = formatComment(comment);
-    triggerEvent(pool, "comment.created", { comment: formatted });
+    triggerEvent(db, "comment.created", { comment: formatted });
     res.status(201).json(formatted);
     broadcast(documentId, { type: "comment:created", comment: formatted });
   }),
@@ -393,15 +241,18 @@ app.post(
 app.get(
   "/comments/:id",
   asyncHandler(async (req, res) => {
-    const { rows } = await pool.query("SELECT * FROM comments WHERE id = $1", [req.params.id]);
-    if (rows.length === 0) return res.status(404).json(errorResponse("Comment not found"));
-    let comment = formatComment(rows[0]);
-    const reactionsMap = await fetchReactionsForComments([comment.id]);
+    const row = await db.getCommentById(req.params.id);
+    if (!row) return res.status(404).json(errorResponse("Comment not found"));
+
+    let comment = formatComment(row);
+    const reactionsMap = await db.getReactionsByCommentIds([comment.id]);
     comment = { ...comment, reactions: reactionsMap.get(comment.id) || [] };
+
     if (req.query.expand === "document") {
-      const { rows: docs } = await pool.query("SELECT * FROM documents WHERE id = $1", [comment.document]);
-      if (docs.length > 0) comment = { ...comment, document: formatDocument(docs[0]) };
+      const document = await db.getDocumentById(comment.document);
+      if (document) comment = { ...comment, document: formatDocument(document) };
     }
+
     res.json(comment);
   }),
 );
@@ -409,12 +260,12 @@ app.get(
 app.patch(
   "/comments/:id",
   asyncHandler(async (req, res) => {
-    const { rows } = await pool.query("SELECT * FROM comments WHERE id = $1", [req.params.id]);
-    if (rows.length === 0) return res.status(404).json(errorResponse("Comment not found"));
+    const existing = await db.getCommentById(req.params.id);
+    if (!existing) return res.status(404).json(errorResponse("Comment not found"));
 
     const { body, status, color } = req.body;
 
-    if (status !== undefined && rows[0].parent) {
+    if (status !== undefined && existing.parent) {
       return res.status(400).json(errorResponse("status cannot be set on replies"));
     }
 
@@ -424,7 +275,7 @@ app.patch(
 
     if (color !== undefined) {
       if (color === null) {
-        await pool.query("UPDATE comments SET color = NULL WHERE id = $1", [req.params.id]);
+        await db.setCommentColor(req.params.id, null);
       } else {
         const validatedColor = validateColor(color);
         if (!validatedColor) {
@@ -436,21 +287,21 @@ app.patch(
               ),
             );
         }
-        await pool.query("UPDATE comments SET color = $1 WHERE id = $2", [validatedColor, req.params.id]);
+        await db.setCommentColor(req.params.id, validatedColor);
       }
     }
 
     if (body !== undefined) {
-      await pool.query("UPDATE comments SET body = $1 WHERE id = $2", [sanitize(body), req.params.id]);
+      await db.setCommentBody(req.params.id, sanitize(body));
     }
     if (status !== undefined) {
-      await pool.query("UPDATE comments SET status = $1 WHERE id = $2", [status, req.params.id]);
+      await db.setCommentStatus(req.params.id, status);
     }
 
-    const updated = await pool.query("SELECT * FROM comments WHERE id = $1", [req.params.id]);
-    const formatted = formatComment(updated.rows[0]);
+    const updated = await db.getCommentById(req.params.id);
+    const formatted = formatComment(updated);
     if (status === "closed") {
-      triggerEvent(pool, "comment.resolved", { comment: formatted });
+      triggerEvent(db, "comment.resolved", { comment: formatted });
     }
     res.json(formatted);
     broadcast(formatted.document, { type: "comment:updated", comment: formatted });
@@ -460,11 +311,10 @@ app.patch(
 app.delete(
   "/comments/:id",
   asyncHandler(async (req, res) => {
-    await pool.query("DELETE FROM comments WHERE parent = $1", [req.params.id]);
-    const { rows } = await pool.query("DELETE FROM comments WHERE id = $1 RETURNING *", [req.params.id]);
-    if (rows.length === 0) return res.status(404).json(errorResponse("Comment not found"));
-    const formatted = formatComment(rows[0]);
-    triggerEvent(pool, "comment.deleted", { comment: formatted });
+    const deleted = await db.deleteComment(req.params.id);
+    if (!deleted) return res.status(404).json(errorResponse("Comment not found"));
+    const formatted = formatComment(deleted);
+    triggerEvent(db, "comment.deleted", { comment: formatted });
     res.json(formatted);
     broadcast(formatted.document, { type: "comment:deleted", comment: formatted });
   }),
@@ -488,16 +338,13 @@ app.post(
 
     const cleanAuthor = sanitize(author);
 
-    // Verify comment exists
-    const { rows: check } = await pool.query("SELECT id FROM comments WHERE id = $1", [req.params.id]);
-    if (check.length === 0) return res.status(404).json(errorResponse("Comment not found"));
+    if (!(await db.commentExists(req.params.id))) {
+      return res.status(404).json(errorResponse("Comment not found"));
+    }
 
-    await pool.query(
-      "INSERT INTO reactions (comment_id, author, emoji) VALUES ($1, $2, $3) ON CONFLICT (comment_id, author, emoji) DO NOTHING",
-      [req.params.id, cleanAuthor, emoji],
-    );
+    await db.addReaction(req.params.id, cleanAuthor, emoji);
 
-    const reactionsMap = await fetchReactionsForComments([req.params.id]);
+    const reactionsMap = await db.getReactionsByCommentIds([req.params.id]);
     res.status(201).json({ comment_id: req.params.id, reactions: reactionsMap.get(req.params.id) || [] });
   }),
 );
@@ -517,24 +364,20 @@ app.delete(
 
     const cleanAuthor = sanitize(author);
 
-    // Verify comment exists
-    const { rows: check } = await pool.query("SELECT id FROM comments WHERE id = $1", [req.params.id]);
-    if (check.length === 0) return res.status(404).json(errorResponse("Comment not found"));
+    if (!(await db.commentExists(req.params.id))) {
+      return res.status(404).json(errorResponse("Comment not found"));
+    }
 
-    await pool.query("DELETE FROM reactions WHERE comment_id = $1 AND author = $2 AND emoji = $3", [
-      req.params.id,
-      cleanAuthor,
-      emoji,
-    ]);
+    await db.removeReaction(req.params.id, cleanAuthor, emoji);
 
-    const reactionsMap = await fetchReactionsForComments([req.params.id]);
+    const reactionsMap = await db.getReactionsByCommentIds([req.params.id]);
     res.json({ comment_id: req.params.id, reactions: reactionsMap.get(req.params.id) || [] });
   }),
 );
 
 // ── Webhook endpoints ───────────────────────────────────────────────
 
-registerWebhookRoutes(app, pool, asyncHandler);
+registerWebhookRoutes(app, db, asyncHandler);
 
 // ── Static files ────────────────────────────────────────────────────
 
@@ -591,13 +434,11 @@ function handleWsConnection(ws) {
     }
 
     if (msg.type === "subscribe" && msg.documentId) {
-      // Validate document exists before subscribing
-      pool
-        .query("SELECT id FROM documents WHERE id = $1", [msg.documentId])
-        .then(({ rows }) => {
-          if (ws.readyState !== 1) return; // Connection closed during query
+      db.getDocumentById(msg.documentId)
+        .then((document) => {
+          if (ws.readyState !== 1) return;
 
-          if (rows.length === 0) {
+          if (!document) {
             ws.send(
               JSON.stringify({
                 type: "error",

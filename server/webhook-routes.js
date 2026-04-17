@@ -1,5 +1,3 @@
-const { insertWithId } = require("./generate-id.js");
-
 const VALID_EVENTS = ["comment.created", "comment.resolved", "comment.deleted"];
 
 function errorResponse(msg) {
@@ -32,11 +30,11 @@ function formatWebhook(row) {
   };
 }
 
-function registerWebhookRoutes(app, pool, asyncHandler) {
+function registerWebhookRoutes(app, db, asyncHandler) {
   app.get(
     "/webhooks",
     asyncHandler(async (_req, res) => {
-      const { rows } = await pool.query("SELECT * FROM webhooks ORDER BY created_at ASC");
+      const rows = await db.listWebhooks();
       res.json({ object: "list", data: rows.map(formatWebhook) });
     }),
   );
@@ -54,52 +52,43 @@ function registerWebhookRoutes(app, pool, asyncHandler) {
         return res.status(400).json(errorResponse("events must be a non-empty array"));
       }
 
-      const invalid = events.filter((e) => !VALID_EVENTS.includes(e));
+      const invalid = events.filter((event) => !VALID_EVENTS.includes(event));
       if (invalid.length > 0) {
         return res
           .status(400)
           .json(errorResponse(`Invalid events: ${invalid.join(", ")}. Valid events: ${VALID_EVENTS.join(", ")}`));
       }
 
-      const { rows: existing } = await pool.query("SELECT id FROM webhooks WHERE url = $1", [url]);
-      if (existing.length > 0) {
+      if (await db.getWebhookByUrl(url)) {
         return res.status(409).json(errorResponse("A webhook with this URL already exists"));
       }
 
-      let webhook;
       try {
-        webhook = await insertWithId("whk", async (id) => {
-          const { rows } = await pool.query(
-            "INSERT INTO webhooks (id, url, secret, events) VALUES ($1, $2, $3, $4) RETURNING *",
-            [id, url, secret, events],
-          );
-          return rows[0];
-        });
+        const webhook = await db.createWebhook({ url, secret, events });
+        res.status(201).json(formatWebhook(webhook));
       } catch (err) {
         if (err.code === "23505") {
           return res.status(409).json(errorResponse("A webhook with this URL already exists"));
         }
         throw err;
       }
-
-      res.status(201).json(formatWebhook(webhook));
     }),
   );
 
   app.get(
     "/webhooks/:id",
     asyncHandler(async (req, res) => {
-      const { rows } = await pool.query("SELECT * FROM webhooks WHERE id = $1", [req.params.id]);
-      if (rows.length === 0) return res.status(404).json(errorResponse("Webhook not found"));
-      res.json(formatWebhook(rows[0]));
+      const webhook = await db.getWebhookById(req.params.id);
+      if (!webhook) return res.status(404).json(errorResponse("Webhook not found"));
+      res.json(formatWebhook(webhook));
     }),
   );
 
   app.patch(
     "/webhooks/:id",
     asyncHandler(async (req, res) => {
-      const { rows } = await pool.query("SELECT * FROM webhooks WHERE id = $1", [req.params.id]);
-      if (rows.length === 0) return res.status(404).json(errorResponse("Webhook not found"));
+      const existing = await db.getWebhookById(req.params.id);
+      if (!existing) return res.status(404).json(errorResponse("Webhook not found"));
 
       const { url, events, active, secret } = req.body;
 
@@ -107,11 +96,7 @@ function registerWebhookRoutes(app, pool, asyncHandler) {
         const urlError = validateUrl(url);
         if (urlError) return res.status(400).json(errorResponse(urlError));
 
-        const { rows: existing } = await pool.query("SELECT id FROM webhooks WHERE url = $1 AND id != $2", [
-          url,
-          req.params.id,
-        ]);
-        if (existing.length > 0) {
+        if (await db.getWebhookByUrlExcludingId(url, req.params.id)) {
           return res.status(409).json(errorResponse("A webhook with this URL already exists"));
         }
       }
@@ -120,7 +105,7 @@ function registerWebhookRoutes(app, pool, asyncHandler) {
         if (!Array.isArray(events) || events.length === 0) {
           return res.status(400).json(errorResponse("events must be a non-empty array"));
         }
-        const invalid = events.filter((e) => !VALID_EVENTS.includes(e));
+        const invalid = events.filter((event) => !VALID_EVENTS.includes(event));
         if (invalid.length > 0) {
           return res
             .status(400)
@@ -135,33 +120,20 @@ function registerWebhookRoutes(app, pool, asyncHandler) {
       if (secret !== undefined) fields.secret = secret;
 
       if (Object.keys(fields).length === 0) {
-        return res.json(formatWebhook(rows[0]));
+        return res.json(formatWebhook(existing));
       }
 
-      const setClauses = [];
-      const values = [];
-      let paramIndex = 1;
-      for (const [col, val] of Object.entries(fields)) {
-        setClauses.push(`${col} = $${paramIndex}`);
-        values.push(val);
-        paramIndex++;
-      }
-      values.push(req.params.id);
-
-      const { rows: updated } = await pool.query(
-        `UPDATE webhooks SET ${setClauses.join(", ")} WHERE id = $${paramIndex} RETURNING *`,
-        values,
-      );
-      res.json(formatWebhook(updated[0]));
+      const updated = await db.updateWebhook(req.params.id, fields);
+      res.json(formatWebhook(updated));
     }),
   );
 
   app.delete(
     "/webhooks/:id",
     asyncHandler(async (req, res) => {
-      const { rows } = await pool.query("DELETE FROM webhooks WHERE id = $1 RETURNING *", [req.params.id]);
-      if (rows.length === 0) return res.status(404).json(errorResponse("Webhook not found"));
-      res.json(formatWebhook(rows[0]));
+      const webhook = await db.deleteWebhook(req.params.id);
+      if (!webhook) return res.status(404).json(errorResponse("Webhook not found"));
+      res.json(formatWebhook(webhook));
     }),
   );
 }

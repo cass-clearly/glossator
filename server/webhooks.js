@@ -44,17 +44,24 @@ async function retryWithBackoff(fn, { maxAttempts = 3, baseDelay = 1000 } = {}) 
 
 // ── Event trigger ───────────────────────────────────────────────────
 
-function triggerEvent(pool, eventType, data) {
+function triggerEvent(db, eventType, data) {
   // Fire and forget — do not await, do not block the response
-  _dispatchWebhooks(pool, eventType, data).catch((err) => {
+  _dispatchWebhooks(db, eventType, data).catch((err) => {
     console.error(`Webhook dispatch error for ${eventType}:`, err.message);
   });
 }
 
-async function _dispatchWebhooks(pool, eventType, data) {
-  const { rows: webhooks } = await pool.query("SELECT * FROM webhooks WHERE active = true AND $1 = ANY(events)", [
-    eventType,
-  ]);
+async function listActiveWebhooks(db, eventType) {
+  if (typeof db.listActiveWebhooksForEvent === "function") {
+    return db.listActiveWebhooksForEvent(eventType);
+  }
+
+  const { rows } = await db.query("SELECT * FROM webhooks WHERE active = true AND $1 = ANY(events)", [eventType]);
+  return rows;
+}
+
+async function _dispatchWebhooks(db, eventType, data) {
+  const webhooks = await listActiveWebhooks(db, eventType);
 
   const payload = {
     event: eventType,
