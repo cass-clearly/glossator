@@ -27,7 +27,7 @@ The Remarq operator owns runtime patching, dependency updates, vulnerability tri
 Automated GitHub Actions run weekly and on PRs:
 
 - root `npm audit --audit-level=high --omit=dev`
-- `server`, `feedback-layer`, `mcp-server`, `cli`, and `agent-loop` production dependency audits when present
+- package-level production dependency audits wherever a lockfile exists
 
 Operators may add container/image scanning in their deployment platform.
 
