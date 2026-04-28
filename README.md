@@ -122,6 +122,12 @@ npm install --prefix server
 DATABASE_URL=postgres://user:pass@localhost:5432/remarq node server/index.js
 ```
 
+## Enterprise operations
+
+- [Enterprise deployment guide](docs/enterprise-deployment.md)
+- [Security controls](docs/security-controls.md)
+- [Incident response](docs/incident-response.md)
+
 ## OpenAPI Spec
 
 The server exposes a machine-readable OpenAPI 3.0 spec at:
