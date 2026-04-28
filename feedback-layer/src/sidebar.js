@@ -55,6 +55,16 @@ let _lastAnchoredIds = new Set();
 let _activeThreadIndex = -1;
 let _keydownHandler = null;
 let _stylesInjected = false;
+let _permissions = [];
+
+function hasPermission(permission) {
+  return _permissions.includes(permission);
+}
+
+function canEditComment(ann) {
+  if (_permissions.length === 0) return true;
+  return hasPermission("comments:edit-any") || (hasPermission("comments:edit-own") && ann.author === getCommenter());
+}
 
 /**
  * Inject CSS styles eagerly (before sidebar DOM is created).
@@ -82,6 +92,7 @@ export function getCommenter() {
  * @param {Function} opts.onReaction - Called with (commentId, emoji) when reaction toggled
  */
 export function createSidebar({
+  permissions = [],
   onSubmit,
   onDelete,
   onResolve,
@@ -91,6 +102,7 @@ export function createSidebar({
   onColorChange,
   defaultColor,
 }) {
+  _permissions = permissions;
   _onSubmit = onSubmit;
   _onDelete = onDelete;
   _onResolve = onResolve;
@@ -511,14 +523,16 @@ export function renderComments(comments, anchoredIds = new Set(), commentRanges 
     }
 
     // Reply button
-    const replyBtn = document.createElement("button");
-    replyBtn.className = "fb-reply-btn";
-    replyBtn.textContent = "Reply";
-    replyBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      showReplyForm(ann.id, thread, replyBtn);
-    });
-    thread.appendChild(replyBtn);
+    if (hasPermission("comments:create") || _permissions.length === 0) {
+      const replyBtn = document.createElement("button");
+      replyBtn.className = "fb-reply-btn";
+      replyBtn.textContent = "Reply";
+      replyBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        showReplyForm(ann.id, thread, replyBtn);
+      });
+      thread.appendChild(replyBtn);
+    }
 
     // Sync document highlight when thread receives focus (e.g. via Tab)
     thread.addEventListener("focus", () => {
@@ -554,9 +568,9 @@ function buildCard(ann, isReply, isOrphaned = false) {
     <div class="fb-cmt-meta">
       <span class="fb-cmt-author">${escapeHtml(ann.author)}</span>
       <span class="fb-cmt-time">${timeAgo(ann.created_at)}</span>
-      <button class="fb-cmt-edit" title="Edit">&#x270E;</button>
-      ${!isReply ? `<button class="fb-cmt-resolve" title="${isClosed ? "Reopen" : "Resolve"}">${isClosed ? "&#x21a9;" : "&#x2713;"}</button>` : ""}
-      <button class="fb-cmt-delete" title="Delete">&times;</button>
+      ${canEditComment(ann) ? `<button class="fb-cmt-edit" title="Edit">&#x270E;</button>` : ""}
+      ${!isReply && hasPermission("comments:resolve") ? `<button class="fb-cmt-resolve" title="${isClosed ? "Reopen" : "Resolve"}">${isClosed ? "&#x21a9;" : "&#x2713;"}</button>` : ""}
+      ${hasPermission("comments:delete") ? `<button class="fb-cmt-delete" title="Delete">&times;</button>` : ""}
     </div>
     <div class="fb-reactions"></div>
   `;
@@ -583,21 +597,30 @@ function buildCard(ann, isReply, isOrphaned = false) {
       card.classList.add("fb-cmt-active");
     });
 
-    card.querySelector(".fb-cmt-resolve").addEventListener("click", (e) => {
+    const resolveButton = card.querySelector(".fb-cmt-resolve");
+    if (resolveButton) {
+      resolveButton.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (_onResolve) _onResolve(ann.id, !isClosed);
+      });
+    }
+  }
+
+  const editButton = card.querySelector(".fb-cmt-edit");
+  if (editButton) {
+    editButton.addEventListener("click", (e) => {
       e.stopPropagation();
-      if (_onResolve) _onResolve(ann.id, !isClosed);
+      showEditForm(ann, card);
     });
   }
 
-  card.querySelector(".fb-cmt-edit").addEventListener("click", (e) => {
-    e.stopPropagation();
-    showEditForm(ann, card);
-  });
-
-  card.querySelector(".fb-cmt-delete").addEventListener("click", (e) => {
-    e.stopPropagation();
-    if (_onDelete) _onDelete(ann.id);
-  });
+  const deleteButton = card.querySelector(".fb-cmt-delete");
+  if (deleteButton) {
+    deleteButton.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (_onDelete) _onDelete(ann.id);
+    });
+  }
 
   return card;
 }

@@ -52,6 +52,16 @@ When deployed, replace with your server's URL.
 
 ## Endpoints
 
+### Users and Permissions
+
+#### `GET /me/permissions`
+
+Returns the current actor's role and permissions.
+
+#### `PUT /users/:id/role`
+
+Admin-only endpoint to assign a persisted role. Body: `{ "role": "viewer|commenter|resolver|admin" }`.
+
 ### Health Check
 
 #### `GET /health`

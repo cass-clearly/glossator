@@ -19,6 +19,12 @@ async function throwIfNotOk(res, fallbackMessage) {
   throw new Error(err.error?.message || `${fallbackMessage}: ${res.status}`);
 }
 
+export async function fetchPermissions() {
+  const res = await fetch(`${_baseUrl}/me/permissions`);
+  await throwIfNotOk(res, "Failed to fetch permissions");
+  return res.json();
+}
+
 export async function fetchComments(uri, documentId) {
   const query = documentId ? `document=${encodeURIComponent(documentId)}` : `uri=${encodeURIComponent(uri)}`;
   const res = await fetch(`${_baseUrl}/comments?${query}`);

@@ -104,6 +104,23 @@ describe("sanitize", async () => {
   });
 });
 
+describe("authz", async () => {
+  const { can, normalizeRole, permissionsForRole } = await import("./authz.js");
+
+  it("normalizes unknown roles to viewer", () => {
+    assert.equal(normalizeRole("admin"), "admin");
+    assert.equal(normalizeRole("owner"), "viewer");
+  });
+
+  it("maps permissions by role", () => {
+    assert.deepEqual(permissionsForRole("viewer"), ["comments:read"]);
+    assert.equal(can("commenter", "comments:create"), true);
+    assert.equal(can("commenter", "comments:delete"), false);
+    assert.equal(can("resolver", "comments:resolve"), true);
+    assert.equal(can("admin", "users:manage"), true);
+  });
+});
+
 describe("validate-color", async () => {
   const { validateColor } = await import("./validate-color.js");
 

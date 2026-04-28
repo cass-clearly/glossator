@@ -15,6 +15,7 @@ const { triggerEvent } = require("./webhooks.js");
 const { registerWebhookRoutes } = require("./webhook-routes.js");
 const path = require("path");
 const openApiSpec = require("./openapi.js");
+const { ensureUsersTable, requirePermission, resolveUser, setUserRole } = require("./authz.js");
 
 const app = express();
 const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(",") : ["http://localhost:3333"];
@@ -59,6 +60,8 @@ async function initSchema() {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
+  await ensureUsersTable(pool);
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS reactions (
       comment_id TEXT NOT NULL REFERENCES comments(id) ON DELETE CASCADE,
@@ -188,6 +191,30 @@ async function findOrCreateDocument(uri) {
   }
 }
 
+// ── RBAC context ──────────────────────────────────────────────────────
+
+app.use(
+  asyncHandler(async (req, _res, next) => {
+    const user = await resolveUser(pool, req);
+    // eslint-disable-next-line require-atomic-updates -- middleware owns req.user for downstream handlers.
+    req.user = user;
+    next();
+  }),
+);
+
+app.get("/me/permissions", (req, res) => {
+  res.json({ object: "user", id: req.user.id, role: req.user.role, permissions: req.user.permissions });
+});
+
+app.put(
+  "/users/:id/role",
+  requirePermission("users:manage"),
+  asyncHandler(async (req, res) => {
+    const user = await setUserRole(pool, req.params.id, req.body.role);
+    res.json({ object: "user", id: user.id, role: user.role });
+  }),
+);
+
 // ── OpenAPI spec ─────────────────────────────────────────────────────
 
 app.get("/openapi.json", (_req, res) => {
@@ -249,6 +276,7 @@ app.delete(
 
 app.get(
   "/comments",
+  requirePermission("comments:read"),
   asyncHandler(async (req, res) => {
     const { document: docId, uri, status, expand } = req.query;
 
@@ -321,6 +349,7 @@ app.get(
 
 app.post(
   "/comments",
+  requirePermission("comments:create"),
   asyncHandler(async (req, res) => {
     const { uri, document: docId, quote, prefix, suffix, body, author, parent, color } = req.body;
 
@@ -392,6 +421,7 @@ app.post(
 
 app.get(
   "/comments/:id",
+  requirePermission("comments:read"),
   asyncHandler(async (req, res) => {
     const { rows } = await pool.query("SELECT * FROM comments WHERE id = $1", [req.params.id]);
     if (rows.length === 0) return res.status(404).json(errorResponse("Comment not found"));
@@ -413,6 +443,15 @@ app.patch(
     if (rows.length === 0) return res.status(404).json(errorResponse("Comment not found"));
 
     const { body, status, color } = req.body;
+
+    if ((body !== undefined || color !== undefined) && !req.user.permissions.includes("comments:edit-any")) {
+      if (!req.user.permissions.includes("comments:edit-own") || rows[0].author !== req.user.id) {
+        return res.status(403).json(errorResponse("Forbidden"));
+      }
+    }
+    if (status !== undefined && !req.user.permissions.includes("comments:resolve")) {
+      return res.status(403).json(errorResponse("Forbidden"));
+    }
 
     if (status !== undefined && rows[0].parent) {
       return res.status(400).json(errorResponse("status cannot be set on replies"));
@@ -459,6 +498,7 @@ app.patch(
 
 app.delete(
   "/comments/:id",
+  requirePermission("comments:delete"),
   asyncHandler(async (req, res) => {
     await pool.query("DELETE FROM comments WHERE parent = $1", [req.params.id]);
     const { rows } = await pool.query("DELETE FROM comments WHERE id = $1 RETURNING *", [req.params.id]);
