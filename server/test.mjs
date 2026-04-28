@@ -133,6 +133,38 @@ describe("validate-color", async () => {
   });
 });
 
+describe("audit-log", async () => {
+  const { actorFromRequest, formatAuditEvent } = await import("./audit-log.js");
+
+  it("uses trusted identity headers before body author", () => {
+    const req = { get: (name) => (name === "X-Remarq-User" ? "alice" : null), body: { author: "bob" } };
+    assert.equal(actorFromRequest(req), "alice");
+  });
+
+  it("formats audit events", () => {
+    const created = new Date("2026-04-27T00:00:00Z");
+    assert.deepEqual(
+      formatAuditEvent({
+        id: 1,
+        actor: "alice",
+        action: "comment.created",
+        target: "cmt_1",
+        metadata: {},
+        created_at: created,
+      }),
+      {
+        id: "1",
+        object: "audit_event",
+        actor: "alice",
+        action: "comment.created",
+        target: "cmt_1",
+        metadata: {},
+        created_at: "2026-04-27T00:00:00.000Z",
+      },
+    );
+  });
+});
+
 describe("webhooks", async () => {
   const { signPayload, deliverWebhook, retryWithBackoff } = await import("./webhooks.js");
 
@@ -264,6 +296,7 @@ describe("API", async () => {
     await pool.query("DELETE FROM comments");
     await pool.query("DELETE FROM documents");
     await pool.query("DELETE FROM webhooks");
+    await pool.query("DELETE FROM audit_events");
   });
 
   // ── Health check ─────────────────────────────────────────────

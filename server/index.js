@@ -15,6 +15,13 @@ const { triggerEvent } = require("./webhooks.js");
 const { registerWebhookRoutes } = require("./webhook-routes.js");
 const path = require("path");
 const openApiSpec = require("./openapi.js");
+const {
+  actorFromRequest,
+  ensureAuditLogTable,
+  formatAuditEvent,
+  purgeAuditEvents,
+  recordAuditEvent,
+} = require("./audit-log.js");
 
 const app = express();
 const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(",") : ["http://localhost:3333"];
@@ -59,6 +66,8 @@ async function initSchema() {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
+  await ensureAuditLogTable(pool);
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS reactions (
       comment_id TEXT NOT NULL REFERENCES comments(id) ON DELETE CASCADE,
@@ -231,6 +240,12 @@ app.get(
   asyncHandler(async (req, res) => {
     const { rows } = await pool.query("SELECT * FROM documents WHERE id = $1", [req.params.id]);
     if (rows.length === 0) return res.status(404).json(errorResponse("Document not found"));
+    await recordAuditEvent(pool, {
+      actor: actorFromRequest(req),
+      action: "document.accessed",
+      target: rows[0].id,
+      metadata: { uri: rows[0].uri },
+    });
     res.json(formatDocument(rows[0]));
   }),
 );
@@ -242,6 +257,17 @@ app.delete(
     const { rows } = await pool.query("DELETE FROM documents WHERE id = $1 RETURNING *", [req.params.id]);
     if (rows.length === 0) return res.status(404).json(errorResponse("Document not found"));
     res.json(formatDocument(rows[0]));
+  }),
+);
+
+// ── Audit endpoints ───────────────────────────────────────────────
+
+app.get(
+  "/audit-events",
+  asyncHandler(async (req, res) => {
+    const limit = Math.min(Number(req.query.limit) || 100, 500);
+    const { rows } = await pool.query("SELECT * FROM audit_events ORDER BY created_at DESC LIMIT $1", [limit]);
+    res.json(listResponse(rows.map(formatAuditEvent)));
   }),
 );
 
@@ -297,6 +323,15 @@ app.get(
       ));
     } else {
       ({ rows } = await pool.query("SELECT * FROM comments ORDER BY created_at ASC"));
+    }
+
+    if (resolvedDocId) {
+      await recordAuditEvent(pool, {
+        actor: actorFromRequest(req),
+        action: "document.accessed",
+        target: resolvedDocId,
+        metadata: { source: "comments.list" },
+      });
     }
 
     let data = rows.map(formatComment);
@@ -384,6 +419,12 @@ app.post(
     });
 
     const formatted = formatComment(comment);
+    await recordAuditEvent(pool, {
+      actor: actorFromRequest(req),
+      action: "comment.created",
+      target: formatted.id,
+      metadata: { document: formatted.document },
+    });
     triggerEvent(pool, "comment.created", { comment: formatted });
     res.status(201).json(formatted);
     broadcast(documentId, { type: "comment:created", comment: formatted });
@@ -396,6 +437,12 @@ app.get(
     const { rows } = await pool.query("SELECT * FROM comments WHERE id = $1", [req.params.id]);
     if (rows.length === 0) return res.status(404).json(errorResponse("Comment not found"));
     let comment = formatComment(rows[0]);
+    await recordAuditEvent(pool, {
+      actor: actorFromRequest(req),
+      action: "document.accessed",
+      target: comment.document,
+      metadata: { comment: comment.id },
+    });
     const reactionsMap = await fetchReactionsForComments([comment.id]);
     comment = { ...comment, reactions: reactionsMap.get(comment.id) || [] };
     if (req.query.expand === "document") {
@@ -449,6 +496,12 @@ app.patch(
 
     const updated = await pool.query("SELECT * FROM comments WHERE id = $1", [req.params.id]);
     const formatted = formatComment(updated.rows[0]);
+    await recordAuditEvent(pool, {
+      actor: actorFromRequest(req),
+      action: body !== undefined || color !== undefined ? "comment.updated" : "comment.status_changed",
+      target: formatted.id,
+      metadata: { document: formatted.document, status: formatted.status },
+    });
     if (status === "closed") {
       triggerEvent(pool, "comment.resolved", { comment: formatted });
     }
@@ -464,6 +517,12 @@ app.delete(
     const { rows } = await pool.query("DELETE FROM comments WHERE id = $1 RETURNING *", [req.params.id]);
     if (rows.length === 0) return res.status(404).json(errorResponse("Comment not found"));
     const formatted = formatComment(rows[0]);
+    await recordAuditEvent(pool, {
+      actor: actorFromRequest(req),
+      action: "comment.deleted",
+      target: formatted.id,
+      metadata: { document: formatted.document },
+    });
     triggerEvent(pool, "comment.deleted", { comment: formatted });
     res.json(formatted);
     broadcast(formatted.document, { type: "comment:deleted", comment: formatted });
@@ -651,6 +710,7 @@ async function start(options = {}) {
   const port = options.port !== undefined ? options.port : process.env.PORT || 3333;
   const host = options.host || "0.0.0.0";
   await initSchema();
+  await purgeAuditEvents(pool, process.env.REMARQ_AUDIT_RETENTION_DAYS || 90);
 
   const server = http.createServer(app);
   const wss = new WebSocketServer({ noServer: true });
