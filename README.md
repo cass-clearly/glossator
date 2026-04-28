@@ -46,7 +46,7 @@ echo "POSTGRES_PASSWORD=remarq" > .env
 docker compose -f docker-compose.remarq.yml up --build
 ```
 
-Backend runs on port 3333. Visit **http://localhost:3333** for the demo.
+Backend runs on port 3333 bound to localhost. Visit **http://localhost:3333** for the demo.
 
 ### 2. Add to any HTML page
 
@@ -121,6 +121,10 @@ Or:
 npm install --prefix server
 DATABASE_URL=postgres://user:pass@localhost:5432/remarq node server/index.js
 ```
+
+## Enterprise security
+
+Remarq should be deployed internal-network-only behind VPN/corporate ingress. See [docs/network-isolation.md](docs/network-isolation.md).
 
 ## OpenAPI Spec
 

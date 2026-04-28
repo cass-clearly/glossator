@@ -649,7 +649,7 @@ function handleWsConnection(ws) {
 
 async function start(options = {}) {
   const port = options.port !== undefined ? options.port : process.env.PORT || 3333;
-  const host = options.host || "0.0.0.0";
+  const host = options.host || process.env.HOST || "127.0.0.1";
   await initSchema();
 
   const server = http.createServer(app);
