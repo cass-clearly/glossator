@@ -122,6 +122,10 @@ npm install --prefix server
 DATABASE_URL=postgres://user:pass@localhost:5432/remarq node server/index.js
 ```
 
+## Enterprise security
+
+PostgreSQL deployments must use encryption at rest, daily backups, and least-privilege roles. See [docs/postgres-hardening.md](docs/postgres-hardening.md).
+
 ## OpenAPI Spec
 
 The server exposes a machine-readable OpenAPI 3.0 spec at:
