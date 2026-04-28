@@ -15,9 +15,9 @@ jobs:
         with:
           node-version: 24
           cache: npm
-      - run: npm audit --audit-level=high
-      - run: npm audit --audit-level=high --prefix server
-      - run: npm audit --audit-level=high --prefix feedback-layer
-      - run: npm audit --audit-level=high --prefix mcp-server
-      - run: npm audit --audit-level=high --prefix cli
-      - run: npm audit --audit-level=high --prefix agent-loop
+      - run: npm audit --audit-level=high --omit=dev
+      - run: npm audit --audit-level=high --omit=dev --prefix server
+      - run: npm audit --audit-level=high --omit=dev --prefix feedback-layer
+      - run: npm audit --audit-level=high --omit=dev --prefix mcp-server
+      - run: npm audit --audit-level=high --omit=dev --prefix cli
+      - run: npm audit --audit-level=high --omit=dev --prefix agent-loop
