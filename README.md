@@ -122,6 +122,10 @@ npm install --prefix server
 DATABASE_URL=postgres://user:pass@localhost:5432/remarq node server/index.js
 ```
 
+## Enterprise security
+
+Configurable comment retention and soft delete controls are documented in [docs/data-retention.md](docs/data-retention.md).
+
 ## OpenAPI Spec
 
 The server exposes a machine-readable OpenAPI 3.0 spec at:

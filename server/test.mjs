@@ -104,6 +104,21 @@ describe("sanitize", async () => {
   });
 });
 
+describe("retention", async () => {
+  const { retentionConfig } = await import("./retention.js");
+
+  it("reads configurable retention and recovery windows", () => {
+    assert.deepEqual(retentionConfig({ REMARQ_COMMENT_RETENTION_DAYS: "45", REMARQ_COMMENT_RECOVERY_DAYS: "7" }), {
+      retentionDays: 45,
+      recoveryDays: 7,
+    });
+  });
+
+  it("uses safe defaults", () => {
+    assert.deepEqual(retentionConfig({}), { retentionDays: 365, recoveryDays: 30 });
+  });
+});
+
 describe("validate-color", async () => {
   const { validateColor } = await import("./validate-color.js");
 
