@@ -12,6 +12,7 @@
   },
   "files": [
     "index.js",
+    "transport-security.js",
     "generate-id.js",
     "normalize-uri.js",
     "sanitize.js",
