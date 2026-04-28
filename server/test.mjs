@@ -104,6 +104,51 @@ describe("sanitize", async () => {
   });
 });
 
+describe("auth", async () => {
+  const { isAuthRequired, oktaAuthorizeUrl, parseCookies, sessionTimeoutMs, createSessionStore } =
+    await import("./auth.js");
+
+  it("requires auth when explicitly enabled", () => {
+    assert.equal(isAuthRequired({ REMARQ_AUTH_REQUIRED: "true" }), true);
+    assert.equal(isAuthRequired({}), false);
+  });
+
+  it("requires auth when Okta client settings are present", () => {
+    assert.equal(
+      isAuthRequired({ OKTA_ISSUER: "https://okta.example", OKTA_CLIENT_ID: "id", OKTA_CLIENT_SECRET: "s" }),
+      true,
+    );
+  });
+
+  it("builds Okta authorize URLs", () => {
+    const url = oktaAuthorizeUrl(
+      {
+        OKTA_ISSUER: "https://okta.example/oauth2/default/",
+        OKTA_CLIENT_ID: "client",
+        OKTA_REDIRECT_URI: "https://remarq.example/auth/callback",
+      },
+      "state123",
+    );
+    assert.equal(
+      url,
+      "https://okta.example/oauth2/default/v1/authorize?client_id=client&response_type=code&scope=openid+profile+email&redirect_uri=https%3A%2F%2Fremarq.example%2Fauth%2Fcallback&state=state123",
+    );
+  });
+
+  it("parses cookies and session timeout", () => {
+    assert.deepEqual(parseCookies("a=1; remarq_session=abc%201"), { a: "1", remarq_session: "abc 1" });
+    assert.equal(sessionTimeoutMs({ REMARQ_SESSION_TIMEOUT_MINUTES: "30" }), 30 * 60 * 1000);
+  });
+
+  it("expires sessions", async () => {
+    const store = createSessionStore();
+    const sid = store.create({ id: "u1" }, 1);
+    assert.deepEqual(store.get(sid), { id: "u1" });
+    await new Promise((resolve) => setTimeout(resolve, 2));
+    assert.equal(store.get(sid), null);
+  });
+});
+
 describe("validate-color", async () => {
   const { validateColor } = await import("./validate-color.js");
 

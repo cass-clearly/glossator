@@ -15,6 +15,7 @@ const { triggerEvent } = require("./webhooks.js");
 const { registerWebhookRoutes } = require("./webhook-routes.js");
 const path = require("path");
 const openApiSpec = require("./openapi.js");
+const { createAuthMiddleware, createSessionStore, registerAuthRoutes } = require("./auth.js");
 
 const app = express();
 const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(",") : ["http://localhost:3333"];
@@ -27,6 +28,9 @@ app.use(
   }),
 );
 app.use(express.json());
+const authStore = createSessionStore();
+registerAuthRoutes(app, { store: authStore });
+app.use(createAuthMiddleware({ store: authStore }));
 
 const DATABASE_URL = process.env.DATABASE_URL || "postgresql://postgres@localhost/postgres";
 const pool = new Pool({ connectionString: DATABASE_URL });

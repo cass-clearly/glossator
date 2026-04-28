@@ -52,6 +52,16 @@ When deployed, replace with your server's URL.
 
 ## Endpoints
 
+### Authentication
+
+#### `GET /login`
+
+Redirects to Okta when enterprise authentication is enabled. Returns `204 No Content` when auth is disabled.
+
+#### `GET /auth/callback`
+
+Completes the Okta authorization-code callback and sets the `remarq_session` HTTP-only cookie.
+
 ### Health Check
 
 #### `GET /health`
