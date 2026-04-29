@@ -89,6 +89,19 @@ async function initSchema() {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS leads (
+      id         TEXT PRIMARY KEY,
+      email      TEXT NOT NULL,
+      source     TEXT NOT NULL DEFAULT 'unknown',
+      path       TEXT,
+      referrer   TEXT,
+      user_agent TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE (email, source)
+    )
+  `);
   // Add unique constraint on url if not already present (idempotent)
   try {
     await pool.query(`ALTER TABLE webhooks ADD CONSTRAINT webhooks_url_key UNIQUE (url)`);
@@ -131,6 +144,33 @@ function listResponse(items) {
 }
 function errorResponse(msg) {
   return { error: { message: msg } };
+}
+
+function normalizeEmail(email) {
+  if (typeof email !== "string") return null;
+  const normalized = email.trim().toLowerCase();
+  if (normalized.length > 254) return null;
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) return null;
+  return normalized;
+}
+
+function cleanLeadString(value, maxLength = 500) {
+  if (typeof value !== "string") return null;
+  const cleaned = value.trim();
+  if (!cleaned) return null;
+  return cleaned.slice(0, maxLength);
+}
+
+function formatLead(row) {
+  return {
+    id: row.id,
+    object: "lead",
+    email: row.email,
+    source: row.source,
+    path: row.path || null,
+    created_at: row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at,
+    updated_at: row.updated_at instanceof Date ? row.updated_at.toISOString() : row.updated_at,
+  };
 }
 
 /**
@@ -200,6 +240,39 @@ app.get("/openapi.json", (_req, res) => {
 app.get("/health", (_req, res) => {
   res.json({ status: "ok" });
 });
+
+// ── Lead capture endpoints ──────────────────────────────────────────
+
+app.post(
+  "/leads",
+  asyncHandler(async (req, res) => {
+    const email = normalizeEmail(req.body.email);
+    if (!email) return res.status(400).json(errorResponse("valid email is required"));
+
+    const source = cleanLeadString(req.body.source, 120) || "unknown";
+    const leadPath = cleanLeadString(req.body.path, 500);
+    const referrer = cleanLeadString(req.body.referrer, 500);
+    const userAgent = cleanLeadString(req.get("user-agent"), 500);
+
+    const lead = await insertWithId("lead", async (id) => {
+      const { rows } = await pool.query(
+        `INSERT INTO leads (id, email, source, path, referrer, user_agent)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         ON CONFLICT (email, source)
+         DO UPDATE SET
+           path = COALESCE(EXCLUDED.path, leads.path),
+           referrer = COALESCE(EXCLUDED.referrer, leads.referrer),
+           user_agent = COALESCE(EXCLUDED.user_agent, leads.user_agent),
+           updated_at = NOW()
+         RETURNING *`,
+        [id, email, source, leadPath, referrer, userAgent],
+      );
+      return rows[0];
+    });
+
+    res.status(201).json(formatLead(lead));
+  }),
+);
 
 // ── Document endpoints ──────────────────────────────────────────────
 
