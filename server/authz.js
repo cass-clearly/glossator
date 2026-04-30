@@ -44,7 +44,7 @@ async function resolveUser(pool, req) {
   const id = userIdFromRequest(req);
   if (!id) return { id: null, role: "admin", permissions: permissionsForRole("admin") };
   const { rows } = await pool.query("SELECT id, role FROM users WHERE id = $1", [id]);
-  const role = normalizeRole(rows[0]?.role || req.get("X-Remarq-Role") || "viewer");
+  const role = normalizeRole(rows[0]?.role || "viewer");
   return { id, role, permissions: permissionsForRole(role) };
 }
 
@@ -56,12 +56,16 @@ function requirePermission(permission) {
 }
 
 async function setUserRole(pool, id, role) {
-  const normalized = normalizeRole(role);
+  if (!ROLES.includes(role)) {
+    const err = new Error("role must be viewer, commenter, resolver, or admin");
+    err.status = 400;
+    throw err;
+  }
   const { rows } = await pool.query(
     `INSERT INTO users (id, role, updated_at) VALUES ($1, $2, NOW())
      ON CONFLICT (id) DO UPDATE SET role = EXCLUDED.role, updated_at = NOW()
      RETURNING id, role, created_at, updated_at`,
-    [id, normalized],
+    [id, role],
   );
   return rows[0];
 }

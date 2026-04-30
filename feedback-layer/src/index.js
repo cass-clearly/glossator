@@ -59,7 +59,7 @@ let _anchoredIds = new Set(); // Track successfully anchored comments
 const _commentRanges = new Map(); // Map comment ID to its range for position sorting
 let _wsConnection = null; // WebSocket connection handle
 let _apiUrl = null; // API base URL for establishing WS connection later
-let _permissions = [];
+let _permissions = null;
 
 /**
  * Add a comment to _comments if no comment with the same ID exists.
@@ -131,8 +131,8 @@ function init() {
       // Set theme attribute on <html> for CSS variable scoping
       document.documentElement.dataset.remarqTheme = config.theme;
 
-      const me = await fetchPermissions().catch(() => ({ permissions: [] }));
-      _permissions = me.permissions || [];
+      const me = await fetchPermissions().catch(() => ({ permissions: null }));
+      _permissions = me.permissions ?? null;
 
       // Sidebar
       createSidebar({
@@ -267,7 +267,7 @@ function onSelectionChange() {
       return;
     }
 
-    if (_permissions.includes("comments:create")) showTooltip(range);
+    if (_permissions === null || _permissions.includes("comments:create")) showTooltip(range);
   }, 10);
 }
 

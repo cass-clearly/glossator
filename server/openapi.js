@@ -129,6 +129,52 @@ const spec = {
   servers: [{ url: "/" }],
 
   paths: {
+    // ── Users and permissions ───────────────────────────────────────
+
+    "/me/permissions": {
+      get: {
+        operationId: "getMyPermissions",
+        summary: "Get current actor permissions",
+        tags: ["users"],
+        responses: {
+          200: {
+            description: "Current actor role and permissions",
+            content: jsonContent({
+              type: "object",
+              properties: {
+                object: { type: "string", enum: ["user"] },
+                id: { type: "string", nullable: true },
+                role: { type: "string", enum: ["viewer", "commenter", "resolver", "admin"] },
+                permissions: { type: "array", items: { type: "string" } },
+              },
+            }),
+          },
+        },
+      },
+    },
+
+    "/users/{id}/role": {
+      put: {
+        operationId: "setUserRole",
+        summary: "Assign a user role",
+        tags: ["users"],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+        requestBody: {
+          required: true,
+          content: jsonContent({
+            type: "object",
+            required: ["role"],
+            properties: { role: { type: "string", enum: ["viewer", "commenter", "resolver", "admin"] } },
+          }),
+        },
+        responses: {
+          200: { description: "Role assigned" },
+          400: { description: "Invalid role", content: jsonContent(errorSchema) },
+          403: { description: "Forbidden", content: jsonContent(errorSchema) },
+        },
+      },
+    },
+
     // ── Health ──────────────────────────────────────────────────────
 
     "/health": {

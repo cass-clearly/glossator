@@ -29,6 +29,7 @@
 
 ### Security
 
+- Added role-based access control for viewer, commenter, resolver, and admin actions with server-side enforcement and UI permission gates.
 - CORS now restricted to trusted origins via `ALLOWED_ORIGINS` env var (previously allowed all origins)
 
 ### Docs

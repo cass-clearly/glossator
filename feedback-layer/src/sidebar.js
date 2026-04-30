@@ -13,6 +13,7 @@ import { timeAgo } from "./utils/time-ago.js";
 import { initToastContainer } from "./toast.js";
 import { wrapIndex } from "./utils/keyboard-nav.js";
 import { COLOR_PRESETS, DEFAULT_COLOR, resolveColor } from "./utils/color.js";
+import { canCreateComment, canDeleteComment, canEditComment, canResolveComment } from "./utils/permissions.js";
 
 /**
  * Scroll an element into view within the sidebar without affecting main page scroll.
@@ -55,16 +56,7 @@ let _lastAnchoredIds = new Set();
 let _activeThreadIndex = -1;
 let _keydownHandler = null;
 let _stylesInjected = false;
-let _permissions = [];
-
-function hasPermission(permission) {
-  return _permissions.includes(permission);
-}
-
-function canEditComment(ann) {
-  if (_permissions.length === 0) return true;
-  return hasPermission("comments:edit-any") || (hasPermission("comments:edit-own") && ann.author === getCommenter());
-}
+let _permissions = null;
 
 /**
  * Inject CSS styles eagerly (before sidebar DOM is created).
@@ -92,7 +84,7 @@ export function getCommenter() {
  * @param {Function} opts.onReaction - Called with (commentId, emoji) when reaction toggled
  */
 export function createSidebar({
-  permissions = [],
+  permissions = null,
   onSubmit,
   onDelete,
   onResolve,
@@ -523,7 +515,7 @@ export function renderComments(comments, anchoredIds = new Set(), commentRanges 
     }
 
     // Reply button
-    if (hasPermission("comments:create") || _permissions.length === 0) {
+    if (canCreateComment(_permissions)) {
       const replyBtn = document.createElement("button");
       replyBtn.className = "fb-reply-btn";
       replyBtn.textContent = "Reply";
@@ -568,9 +560,9 @@ function buildCard(ann, isReply, isOrphaned = false) {
     <div class="fb-cmt-meta">
       <span class="fb-cmt-author">${escapeHtml(ann.author)}</span>
       <span class="fb-cmt-time">${timeAgo(ann.created_at)}</span>
-      ${canEditComment(ann) ? `<button class="fb-cmt-edit" title="Edit">&#x270E;</button>` : ""}
-      ${!isReply && hasPermission("comments:resolve") ? `<button class="fb-cmt-resolve" title="${isClosed ? "Reopen" : "Resolve"}">${isClosed ? "&#x21a9;" : "&#x2713;"}</button>` : ""}
-      ${hasPermission("comments:delete") ? `<button class="fb-cmt-delete" title="Delete">&times;</button>` : ""}
+      ${canEditComment(_permissions, ann, getCommenter()) ? `<button class="fb-cmt-edit" title="Edit">&#x270E;</button>` : ""}
+      ${!isReply && canResolveComment(_permissions) ? `<button class="fb-cmt-resolve" title="${isClosed ? "Reopen" : "Resolve"}">${isClosed ? "&#x21a9;" : "&#x2713;"}</button>` : ""}
+      ${canDeleteComment(_permissions) ? `<button class="fb-cmt-delete" title="Delete">&times;</button>` : ""}
     </div>
     <div class="fb-reactions"></div>
   `;

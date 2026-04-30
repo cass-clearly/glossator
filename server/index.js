@@ -210,8 +210,12 @@ app.put(
   "/users/:id/role",
   requirePermission("users:manage"),
   asyncHandler(async (req, res) => {
-    const user = await setUserRole(pool, req.params.id, req.body.role);
-    res.json({ object: "user", id: user.id, role: user.role });
+    try {
+      const user = await setUserRole(pool, req.params.id, req.body.role);
+      res.json({ object: "user", id: user.id, role: user.role });
+    } catch (err) {
+      res.status(err.status || 500).json(errorResponse(err.message));
+    }
   }),
 );
 
@@ -264,6 +268,7 @@ app.get(
 
 app.delete(
   "/documents/:id",
+  requirePermission("comments:delete"),
   asyncHandler(async (req, res) => {
     await pool.query("DELETE FROM comments WHERE document = $1", [req.params.id]);
     const { rows } = await pool.query("DELETE FROM documents WHERE id = $1 RETURNING *", [req.params.id]);
@@ -353,7 +358,7 @@ app.post(
   asyncHandler(async (req, res) => {
     const { uri, document: docId, quote, prefix, suffix, body, author, parent, color } = req.body;
 
-    if (!body || !author) {
+    if (!body || (!author && !req.user.id)) {
       return res.status(400).json(errorResponse("body and author are required"));
     }
     if (!parent && !quote) {
@@ -376,7 +381,7 @@ app.post(
     }
 
     const cleanBody = sanitize(body);
-    const cleanAuthor = sanitize(author);
+    const cleanAuthor = req.user.id || sanitize(author);
 
     let documentId;
     try {
@@ -514,9 +519,10 @@ app.delete(
 
 app.post(
   "/comments/:id/reactions",
+  requirePermission("comments:create"),
   asyncHandler(async (req, res) => {
     const { emoji, author } = req.body;
-    if (!emoji || !author) {
+    if (!emoji || (!author && !req.user.id)) {
       return res.status(400).json(errorResponse("emoji and author are required"));
     }
     if (typeof emoji !== "string" || emoji.length === 0 || emoji.length > 32) {
@@ -526,7 +532,7 @@ app.post(
       return res.status(400).json(errorResponse(`emoji not allowed. Allowed: ${ALLOWED_REACTION_EMOJIS.join(" ")}`));
     }
 
-    const cleanAuthor = sanitize(author);
+    const cleanAuthor = req.user.id || sanitize(author);
 
     // Verify comment exists
     const { rows: check } = await pool.query("SELECT id FROM comments WHERE id = $1", [req.params.id]);
@@ -544,9 +550,10 @@ app.post(
 
 app.delete(
   "/comments/:id/reactions/:emoji",
+  requirePermission("comments:create"),
   asyncHandler(async (req, res) => {
     const { author } = req.query;
-    if (!author) {
+    if (!author && !req.user.id) {
       return res.status(400).json(errorResponse("author query parameter is required"));
     }
 
@@ -555,7 +562,7 @@ app.delete(
       return res.status(400).json(errorResponse("invalid emoji"));
     }
 
-    const cleanAuthor = sanitize(author);
+    const cleanAuthor = req.user.id || sanitize(author);
 
     // Verify comment exists
     const { rows: check } = await pool.query("SELECT id FROM comments WHERE id = $1", [req.params.id]);

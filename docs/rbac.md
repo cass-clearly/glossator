@@ -18,7 +18,7 @@ User roles are persisted in the `users` table. Requests identify the actor with 
 | `GET`  | `/me/permissions` | Returns current actor role and permissions for UI gating.    |
 | `PUT`  | `/users/:id/role` | Admin-only role assignment. Body: `{ "role": "commenter" }`. |
 
-Comment endpoints reject unauthorized actions with `403 Forbidden`. Ownership checks compare `X-Remarq-User` to the comment `author`; commenters cannot edit other users' comments.
+Comment endpoints reject unauthorized actions with `403 Forbidden`. When `X-Remarq-User` is present, the server stores that identity as the comment author so ownership checks have one source of truth. Unknown authenticated users default to `viewer`; roles must be assigned in the `users` table.
 
 Existing unauthenticated local development remains admin-compatible. Enterprise deployments should combine this PR with Okta auth and trusted identity headers.
 
@@ -29,5 +29,3 @@ curl -H 'X-Remarq-User: alice' https://remarq.internal/comments
 curl -X POST -H 'X-Remarq-User: bob' https://remarq.internal/comments
 # 403 until bob has commenter/resolver/admin role
 ```
-
-Closes #276.
