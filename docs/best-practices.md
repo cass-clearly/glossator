@@ -35,9 +35,9 @@ DATABASE_URL=postgres://user:pass@localhost:5432/remarq node server/index.js
 
 This is ideal for local development or solo pair-writing with your AI agent.
 
-### Team / production: Docker Compose
+### Team / internal deployment: Docker Compose
 
-For teams or production deployments, Docker Compose bundles Postgres and the Remarq server together.
+For teams or internal deployments, Docker Compose bundles Postgres and the Remarq server together. Publish Remarq only on loopback/private networks and put VPN/corporate ingress in front of it; see [network isolation](network-isolation.md).
 
 ```bash
 git clone https://github.com/cass-clearly/remarq.git
@@ -59,14 +59,14 @@ The `.env` file is read automatically by Docker Compose. Use a strong, random pa
 
 ### Reverse proxy (HTTPS)
 
-In production, put Remarq behind a reverse proxy that terminates TLS.
+In production, put Remarq behind an internal reverse proxy that terminates TLS and only accepts VPN/corporate network traffic. Do not expose Remarq directly to the public internet; see [network isolation](network-isolation.md).
 
 **Nginx:**
 
 ```nginx
 server {
     listen 443 ssl;
-    server_name remarq.example.com;
+    server_name remarq.internal.example.com;
 
     ssl_certificate     /etc/letsencrypt/live/remarq.example.com/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/remarq.example.com/privkey.pem;
@@ -84,17 +84,17 @@ server {
 **Caddy** (automatic HTTPS):
 
 ```
-remarq.example.com {
+remarq.internal.example.com {
     reverse_proxy 127.0.0.1:3333
 }
 ```
 
-Then point your script tag at the public domain:
+Then point your script tag at the internal domain:
 
 ```html
 <script
-  src="https://remarq.example.com/feedback-layer.js"
-  data-api-url="https://remarq.example.com"
+  src="https://remarq.internal.example.com/feedback-layer.js"
+  data-api-url="https://remarq.internal.example.com"
   data-content-selector="article"
 ></script>
 ```
@@ -111,8 +111,8 @@ The `data-content-selector` attribute determines which part of the page is annot
 
 ```html
 <script
-  src="https://remarq.example.com/feedback-layer.js"
-  data-api-url="https://remarq.example.com"
+  src="https://remarq.internal.example.com/feedback-layer.js"
+  data-api-url="https://remarq.internal.example.com"
   data-content-selector="article"
 ></script>
 ```
@@ -122,8 +122,8 @@ The `data-content-selector` attribute determines which part of the page is annot
 ```html
 <!-- Target the main content area, not the sidebar or nav -->
 <script
-  src="https://remarq.example.com/feedback-layer.js"
-  data-api-url="https://remarq.example.com"
+  src="https://remarq.internal.example.com/feedback-layer.js"
+  data-api-url="https://remarq.internal.example.com"
   data-content-selector=".docs-content"
 ></script>
 ```
@@ -132,8 +132,8 @@ The `data-content-selector` attribute determines which part of the page is annot
 
 ```html
 <script
-  src="https://remarq.example.com/feedback-layer.js"
-  data-api-url="https://remarq.example.com"
+  src="https://remarq.internal.example.com/feedback-layer.js"
+  data-api-url="https://remarq.internal.example.com"
   data-content-selector="#contract-body"
 ></script>
 ```
@@ -164,8 +164,8 @@ If you serve multiple pages from the same origin, use `data-document-uri` to giv
 
 ```html
 <script
-  src="https://remarq.example.com/feedback-layer.js"
-  data-api-url="https://remarq.example.com"
+  src="https://remarq.internal.example.com/feedback-layer.js"
+  data-api-url="https://remarq.internal.example.com"
   data-content-selector="article"
   data-document-uri="/docs/getting-started"
 ></script>
@@ -195,7 +195,7 @@ Remarq's API is designed for AI agents to consume. Here are patterns for buildin
 import requests
 import time
 
-REMARQ_URL = "https://remarq.example.com"
+REMARQ_URL = "https://remarq.internal.example.com"
 DOCUMENT_URI = "https://example.com/docs/proposal.html"
 
 def get_open_comments():
@@ -247,7 +247,7 @@ if comments:
 ### JavaScript example
 
 ```js
-const REMARQ_URL = "https://remarq.example.com";
+const REMARQ_URL = "https://remarq.internal.example.com";
 const DOCUMENT_URI = "https://example.com/docs/proposal.html";
 
 async function getOpenComments() {
@@ -441,7 +441,7 @@ Example prompt instruction:
 To reply as the agent:
 
 ```bash
-curl -X POST https://remarq.example.com/comments \
+curl -X POST https://remarq.internal.example.com/comments \
   -H "Content-Type: application/json" \
   -d '{
     "uri": "https://example.com/docs/proposal.html",
@@ -467,7 +467,7 @@ To delete all comments for a document:
 
 ```bash
 # Option 1: Delete the document (cascades to all its comments)
-curl -X DELETE https://remarq.example.com/documents/doc_abc123
+curl -X DELETE https://remarq.internal.example.com/documents/doc_abc123
 
 # The document will be automatically re-created when new comments are posted.
 ```
@@ -478,7 +478,7 @@ Before clearing comments, export them for your records:
 
 ```bash
 # Export all comments (including resolved) for a document
-curl "https://remarq.example.com/comments?uri=https://example.com/docs/proposal.html&expand=document" \
+curl "https://remarq.internal.example.com/comments?uri=https://example.com/docs/proposal.html&expand=document" \
   -o review-archive-2026-02-21.json
 ```
 
@@ -494,7 +494,7 @@ For global uniqueness, request a document ID from the server before embedding th
 
 ```bash
 # Create a document and get its server-generated ID
-curl -X POST https://remarq.example.com/documents \
+curl -X POST https://remarq.internal.example.com/documents \
   -H "Content-Type: application/json" \
   -d '{"uri": "https://example.com/docs/proposal-v2"}' \
   | jq -r '.id'
@@ -505,8 +505,8 @@ Then use that ID in your page:
 
 ```html
 <script
-  src="https://remarq.example.com/feedback-layer.js"
-  data-api-url="https://remarq.example.com"
+  src="https://remarq.internal.example.com/feedback-layer.js"
+  data-api-url="https://remarq.internal.example.com"
   data-content-selector="article"
   data-document-uri="doc_7f3a9b2c"
 ></script>

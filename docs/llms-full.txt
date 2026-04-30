@@ -31,7 +31,7 @@ echo "POSTGRES_PASSWORD=a-strong-random-password" > .env
 docker compose -f docker-compose.remarq.yml up --build -d
 ```
 
-Backend runs on port 3333.
+Backend runs on port 3333 and binds to 127.0.0.1 by default. Docker Compose publishes localhost only; set HOST only for private network or trusted reverse-proxy deployments.
 
 ### npm (bring your own Postgres)
 
@@ -64,6 +64,7 @@ DATABASE_URL=postgres://user:pass@localhost:5432/remarq node server/index.js
 |----------|---------|-------------|
 | `DATABASE_URL` | `postgresql://postgres@localhost/postgres` | PostgreSQL connection string |
 | `PORT` | `3333` | Port the server listens on |
+| `HOST` | `127.0.0.1` | Bind host; use only loopback/private addresses in production |
 | `POSTGRES_PASSWORD` | *(required in Docker)* | Password for the bundled Postgres container |
 
 ## API Reference
