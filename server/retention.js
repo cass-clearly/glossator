@@ -19,6 +19,22 @@ async function softDeleteComment(pool, id, recoveryDays) {
   return rows[0] || null;
 }
 
+async function softDeleteCommentThread(pool, id, recoveryDays) {
+  const { rows } = await pool.query(
+    `WITH RECURSIVE thread AS (
+       SELECT id FROM comments WHERE id = $1
+       UNION ALL
+       SELECT c.id FROM comments c JOIN thread t ON c.parent = t.id
+     )
+     UPDATE comments
+     SET deleted_at = NOW(), purge_after = NOW() + ($2::text || ' days')::interval
+     WHERE deleted_at IS NULL AND id IN (SELECT id FROM thread)
+     RETURNING *`,
+    [id, recoveryDays],
+  );
+  return rows.find((row) => row.id === id) || null;
+}
+
 async function softDeleteRepliesOfDeletedParents(pool, recoveryDays) {
   while (true) {
     const result = await pool.query(
@@ -46,5 +62,6 @@ module.exports = {
   retentionConfig,
   runRetention,
   softDeleteComment,
+  softDeleteCommentThread,
   softDeleteRepliesOfDeletedParents,
 };

@@ -15,7 +15,7 @@ const { triggerEvent } = require("./webhooks.js");
 const { registerWebhookRoutes } = require("./webhook-routes.js");
 const path = require("path");
 const openApiSpec = require("./openapi.js");
-const { ensureRetentionColumns, retentionConfig, runRetention, softDeleteComment } = require("./retention.js");
+const { ensureRetentionColumns, retentionConfig, runRetention, softDeleteCommentThread } = require("./retention.js");
 
 const app = express();
 const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(",") : ["http://localhost:3333"];
@@ -482,11 +482,7 @@ app.delete(
   "/comments/:id",
   asyncHandler(async (req, res) => {
     const { recoveryDays } = retentionConfig();
-    await pool.query(
-      "UPDATE comments SET deleted_at = NOW(), purge_after = NOW() + ($2::text || ' days')::interval WHERE parent = $1 AND deleted_at IS NULL",
-      [req.params.id, recoveryDays],
-    );
-    const comment = await softDeleteComment(pool, req.params.id, recoveryDays);
+    const comment = await softDeleteCommentThread(pool, req.params.id, recoveryDays);
     if (!comment) return res.status(404).json(errorResponse("Comment not found"));
     const formatted = formatComment(comment);
     triggerEvent(pool, "comment.deleted", { comment: formatted });

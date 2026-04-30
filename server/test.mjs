@@ -1310,6 +1310,52 @@ describe("API", async () => {
       assert.equal(nested.status, 404);
     });
 
+    it("soft-deletes legacy nested descendants on explicit parent delete", async () => {
+      const parent = await (
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ uri: "https://example.com/legacy-nested", quote: "q", body: "parent", author: "a" }),
+        })
+      ).json();
+      const reply = await (
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            uri: "https://example.com/legacy-nested",
+            body: "reply",
+            author: "a",
+            parent: parent.id,
+          }),
+        })
+      ).json();
+      const grandchildId = `cmt_legacy_${Date.now()}`;
+      await pool.query(
+        `INSERT INTO comments (id, document, parent, quote, prefix, suffix, body, author, status)
+         VALUES ($1, $2, $3, '', NULL, NULL, 'legacy nested', 'a', NULL)`,
+        [grandchildId, parent.document, reply.id],
+      );
+
+      const deleted = await fetch(`${BASE}/comments/${parent.id}`, { method: "DELETE" });
+      assert.equal(deleted.status, 200);
+      const rows = await pool.query("SELECT id, deleted_at, purge_after FROM comments WHERE id = ANY($1) ORDER BY id", [
+        [parent.id, reply.id, grandchildId],
+      ]);
+      assert.equal(rows.rows.length, 3);
+      for (const row of rows.rows) {
+        assert.ok(row.deleted_at);
+        assert.ok(row.purge_after);
+      }
+
+      const react = await fetch(`${BASE}/comments/${grandchildId}/reactions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ emoji: "👍", author: "a" }),
+      });
+      assert.equal(react.status, 404);
+    });
+
     it("does not allow reactions or replies on soft-deleted comments", async () => {
       const c = await (
         await fetch(`${BASE}/comments`, {
