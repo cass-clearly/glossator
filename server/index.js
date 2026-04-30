@@ -36,6 +36,21 @@ const pool = new Pool({ connectionString: DATABASE_URL });
 // Wrap them so unhandled rejections become proper error responses.
 const asyncHandler = (fn) => (req, res, next) => fn(req, res, next).catch(next);
 
+async function withTransaction(fn) {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const result = await fn(client);
+    await client.query("COMMIT");
+    return result;
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
 async function initSchema() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS documents (
@@ -255,7 +270,16 @@ app.get(
 app.delete(
   "/documents/:id",
   asyncHandler(async (req, res) => {
+    const deletedComments = await pool.query("SELECT * FROM comments WHERE document = $1", [req.params.id]);
     await pool.query("DELETE FROM comments WHERE document = $1", [req.params.id]);
+    for (const comment of deletedComments.rows) {
+      await recordAuditEvent(pool, {
+        actor: actorFromRequest(req),
+        action: "comment.deleted",
+        target: comment.id,
+        metadata: { document: comment.document, source: "document.delete" },
+      });
+    }
     const { rows } = await pool.query("DELETE FROM documents WHERE id = $1 RETURNING *", [req.params.id]);
     if (rows.length === 0) return res.status(404).json(errorResponse("Document not found"));
     res.json(formatDocument(rows[0]));
@@ -399,31 +423,33 @@ app.post(
     }
 
     const commentStatus = parent ? null : "open";
-    const comment = await insertWithId("cmt", async (id) => {
-      const { rows } = await pool.query(
-        "INSERT INTO comments (id, document, quote, prefix, suffix, body, author, status, parent, color) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *",
-        [
-          id,
-          documentId,
-          quote || "",
-          prefix || null,
-          suffix || null,
-          cleanBody,
-          cleanAuthor,
-          commentStatus,
-          parent || null,
-          validatedColor,
-        ],
-      );
-      return rows[0];
-    });
-
-    const formatted = formatComment(comment);
-    await recordAuditEvent(pool, {
-      actor: actorFromRequest(req),
-      action: "comment.created",
-      target: formatted.id,
-      metadata: { document: formatted.document },
+    const formatted = await withTransaction(async (client) => {
+      const comment = await insertWithId("cmt", async (id) => {
+        const { rows } = await client.query(
+          "INSERT INTO comments (id, document, quote, prefix, suffix, body, author, status, parent, color) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *",
+          [
+            id,
+            documentId,
+            quote || "",
+            prefix || null,
+            suffix || null,
+            cleanBody,
+            cleanAuthor,
+            commentStatus,
+            parent || null,
+            validatedColor,
+          ],
+        );
+        return rows[0];
+      });
+      const eventComment = formatComment(comment);
+      await recordAuditEvent(client, {
+        actor: actorFromRequest(req),
+        action: "comment.created",
+        target: eventComment.id,
+        metadata: { document: eventComment.document },
+      });
+      return eventComment;
     });
     triggerEvent(pool, "comment.created", { comment: formatted });
     res.status(201).json(formatted);
@@ -469,38 +495,41 @@ app.patch(
       return res.status(400).json(errorResponse('status must be "open" or "closed"'));
     }
 
-    if (color !== undefined) {
-      if (color === null) {
-        await pool.query("UPDATE comments SET color = NULL WHERE id = $1", [req.params.id]);
-      } else {
-        const validatedColor = validateColor(color);
-        if (!validatedColor) {
-          return res
-            .status(400)
-            .json(
-              errorResponse(
-                `color must be a valid hex code (e.g. #ff6b6b) or preset name (${PRESET_NAMES.join(", ")})`,
-              ),
-            );
-        }
-        await pool.query("UPDATE comments SET color = $1 WHERE id = $2", [validatedColor, req.params.id]);
+    let validatedColor;
+    if (color !== undefined && color !== null) {
+      validatedColor = validateColor(color);
+      if (!validatedColor) {
+        return res
+          .status(400)
+          .json(
+            errorResponse(`color must be a valid hex code (e.g. #ff6b6b) or preset name (${PRESET_NAMES.join(", ")})`),
+          );
       }
     }
 
-    if (body !== undefined) {
-      await pool.query("UPDATE comments SET body = $1 WHERE id = $2", [sanitize(body), req.params.id]);
-    }
-    if (status !== undefined) {
-      await pool.query("UPDATE comments SET status = $1 WHERE id = $2", [status, req.params.id]);
-    }
-
-    const updated = await pool.query("SELECT * FROM comments WHERE id = $1", [req.params.id]);
-    const formatted = formatComment(updated.rows[0]);
-    await recordAuditEvent(pool, {
-      actor: actorFromRequest(req),
-      action: "comment.updated",
-      target: formatted.id,
-      metadata: { document: formatted.document, status: formatted.status },
+    const formatted = await withTransaction(async (client) => {
+      if (color !== undefined) {
+        if (color === null) {
+          await client.query("UPDATE comments SET color = NULL WHERE id = $1", [req.params.id]);
+        } else {
+          await client.query("UPDATE comments SET color = $1 WHERE id = $2", [validatedColor, req.params.id]);
+        }
+      }
+      if (body !== undefined) {
+        await client.query("UPDATE comments SET body = $1 WHERE id = $2", [sanitize(body), req.params.id]);
+      }
+      if (status !== undefined) {
+        await client.query("UPDATE comments SET status = $1 WHERE id = $2", [status, req.params.id]);
+      }
+      const updated = await client.query("SELECT * FROM comments WHERE id = $1", [req.params.id]);
+      const eventComment = formatComment(updated.rows[0]);
+      await recordAuditEvent(client, {
+        actor: actorFromRequest(req),
+        action: "comment.updated",
+        target: eventComment.id,
+        metadata: { document: eventComment.document, status: eventComment.status },
+      });
+      return eventComment;
     });
     if (status === "closed") {
       triggerEvent(pool, "comment.resolved", { comment: formatted });
@@ -513,16 +542,28 @@ app.patch(
 app.delete(
   "/comments/:id",
   asyncHandler(async (req, res) => {
-    await pool.query("DELETE FROM comments WHERE parent = $1", [req.params.id]);
-    const { rows } = await pool.query("DELETE FROM comments WHERE id = $1 RETURNING *", [req.params.id]);
-    if (rows.length === 0) return res.status(404).json(errorResponse("Comment not found"));
-    const formatted = formatComment(rows[0]);
-    await recordAuditEvent(pool, {
-      actor: actorFromRequest(req),
-      action: "comment.deleted",
-      target: formatted.id,
-      metadata: { document: formatted.document },
+    const { formatted } = await withTransaction(async (client) => {
+      const deletedReplies = await client.query("DELETE FROM comments WHERE parent = $1 RETURNING *", [req.params.id]);
+      const { rows } = await client.query("DELETE FROM comments WHERE id = $1 RETURNING *", [req.params.id]);
+      if (rows.length === 0) return { formatted: null };
+      for (const reply of deletedReplies.rows) {
+        await recordAuditEvent(client, {
+          actor: actorFromRequest(req),
+          action: "comment.deleted",
+          target: reply.id,
+          metadata: { document: reply.document, parent: req.params.id },
+        });
+      }
+      const eventComment = formatComment(rows[0]);
+      await recordAuditEvent(client, {
+        actor: actorFromRequest(req),
+        action: "comment.deleted",
+        target: eventComment.id,
+        metadata: { document: eventComment.document },
+      });
+      return { formatted: eventComment };
     });
+    if (!formatted) return res.status(404).json(errorResponse("Comment not found"));
     triggerEvent(pool, "comment.deleted", { comment: formatted });
     res.json(formatted);
     broadcast(formatted.document, { type: "comment:deleted", comment: formatted });

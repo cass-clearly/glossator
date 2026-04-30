@@ -134,34 +134,11 @@ describe("validate-color", async () => {
 });
 
 describe("audit-log", async () => {
-  const { actorFromRequest, formatAuditEvent } = await import("./audit-log.js");
+  const { actorFromRequest } = await import("./audit-log.js");
 
   it("uses trusted identity headers before body author", () => {
     const req = { get: (name) => (name === "X-Remarq-User" ? "alice" : null), body: { author: "bob" } };
     assert.equal(actorFromRequest(req), "alice");
-  });
-
-  it("formats audit events", () => {
-    const created = new Date("2026-04-27T00:00:00Z");
-    assert.deepEqual(
-      formatAuditEvent({
-        id: 1,
-        actor: "alice",
-        action: "comment.created",
-        target: "cmt_1",
-        metadata: {},
-        created_at: created,
-      }),
-      {
-        id: "1",
-        object: "audit_event",
-        actor: "alice",
-        action: "comment.created",
-        target: "cmt_1",
-        metadata: {},
-        created_at: "2026-04-27T00:00:00.000Z",
-      },
-    );
   });
 });
 
@@ -1329,6 +1306,26 @@ describe("API", async () => {
       });
       const deleted = await latestAudit("comment.deleted");
       assert.equal(deleted.target, comment.id);
+    });
+
+    it("records comment delete events when deleting a document", async () => {
+      const c = await (
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Remarq-User": "alice@example.com" },
+          body: JSON.stringify({ uri: "https://example.com/audit-doc-delete", quote: "q", body: "b", author: "alice" }),
+        })
+      ).json();
+      await fetch(`${BASE}/documents/${c.document}`, {
+        method: "DELETE",
+        headers: { "X-Remarq-User": "admin@example.com" },
+      });
+      const { rows } = await pool.query("SELECT * FROM audit_events WHERE action = 'comment.deleted' AND target = $1", [
+        c.id,
+      ]);
+      assert.equal(rows.length, 1);
+      assert.equal(rows[0].actor, "admin@example.com");
+      assert.ok(rows[0].created_at);
     });
 
     it("purges audit events older than the 90-day minimum", async () => {

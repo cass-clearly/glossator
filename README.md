@@ -122,7 +122,7 @@ npm install --prefix server
 DATABASE_URL=postgres://user:pass@localhost:5432/remarq node server/index.js
 ```
 
-## Enterprise security
+## Audit logging
 
 Audit logging is available for comment changes and document access. See [docs/audit-logging.md](docs/audit-logging.md).
 
@@ -145,12 +145,6 @@ The spec includes `x-cli` vendor extensions that drive the CLI — every endpoin
 ## API Reference
 
 Stripe-inspired resource pattern. All responses include an `object` field. **Full documentation with request/response schemas, error codes, and curl examples: [docs/api.md](docs/api.md)**
-
-### Audit events
-
-| Method | Endpoint        | Description              |
-| ------ | --------------- | ------------------------ |
-| `GET`  | `/audit-events` | List newest audit events |
 
 ### Documents
 

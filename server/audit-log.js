@@ -25,21 +25,9 @@ async function recordAuditEvent(pool, { actor, action, target, metadata = {} }) 
   return rows[0];
 }
 
-function formatAuditEvent(row) {
-  return {
-    id: String(row.id),
-    object: "audit_event",
-    actor: row.actor,
-    action: row.action,
-    target: row.target,
-    metadata: row.metadata || {},
-    created_at: row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at,
-  };
-}
-
 async function purgeAuditEvents(pool, retentionDays = 90) {
   const days = Math.max(Number(retentionDays) || 90, 90);
   await pool.query("DELETE FROM audit_events WHERE created_at < NOW() - ($1::text || ' days')::interval", [days]);
 }
 
-module.exports = { actorFromRequest, ensureAuditLogTable, formatAuditEvent, purgeAuditEvents, recordAuditEvent };
+module.exports = { actorFromRequest, ensureAuditLogTable, purgeAuditEvents, recordAuditEvent };
