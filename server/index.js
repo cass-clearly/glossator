@@ -15,6 +15,7 @@ const { triggerEvent } = require("./webhooks.js");
 const { registerWebhookRoutes } = require("./webhook-routes.js");
 const path = require("path");
 const openApiSpec = require("./openapi.js");
+const { ensureRetentionColumns, retentionConfig, runRetention, softDeleteCommentThread } = require("./retention.js");
 
 const app = express();
 const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(",") : ["http://localhost:3333"];
@@ -68,6 +69,8 @@ async function initSchema() {
       PRIMARY KEY (comment_id, author, emoji)
     )
   `);
+
+  await ensureRetentionColumns(pool);
 
   // Allow NULL status for replies (idempotent)
   await pool.query(`ALTER TABLE comments ALTER COLUMN status DROP NOT NULL`);
@@ -350,26 +353,30 @@ app.get(
       if (status) {
         ({ rows } = await pool.query(
           `SELECT * FROM comments WHERE document = $1
+          AND deleted_at IS NULL
           AND ((parent IS NULL AND status = $2)
-            OR (parent IN (SELECT id FROM comments WHERE document = $1 AND parent IS NULL AND status = $2)))
+            OR (parent IN (SELECT id FROM comments WHERE document = $1 AND parent IS NULL AND status = $2 AND deleted_at IS NULL)))
           ORDER BY created_at ASC`,
           [resolvedDocId, status],
         ));
       } else {
-        ({ rows } = await pool.query("SELECT * FROM comments WHERE document = $1 ORDER BY created_at ASC", [
-          resolvedDocId,
-        ]));
+        ({ rows } = await pool.query(
+          "SELECT * FROM comments WHERE document = $1 AND deleted_at IS NULL AND (parent IS NULL OR parent IN (SELECT id FROM comments WHERE deleted_at IS NULL)) ORDER BY created_at ASC",
+          [resolvedDocId],
+        ));
       }
     } else if (status) {
       ({ rows } = await pool.query(
         `SELECT * FROM comments
-        WHERE (parent IS NULL AND status = $1)
-          OR (parent IN (SELECT id FROM comments WHERE parent IS NULL AND status = $1))
+        WHERE deleted_at IS NULL AND ((parent IS NULL AND status = $1)
+          OR (parent IN (SELECT id FROM comments WHERE parent IS NULL AND status = $1 AND deleted_at IS NULL)))
         ORDER BY created_at ASC`,
         [status],
       ));
     } else {
-      ({ rows } = await pool.query("SELECT * FROM comments ORDER BY created_at ASC"));
+      ({ rows } = await pool.query(
+        "SELECT * FROM comments WHERE deleted_at IS NULL AND (parent IS NULL OR parent IN (SELECT id FROM comments WHERE deleted_at IS NULL)) ORDER BY created_at ASC",
+      ));
     }
 
     let data = rows.map(formatComment);
@@ -436,6 +443,14 @@ app.post(
       return res.status(400).json(errorResponse(err.message));
     }
 
+    if (parent) {
+      const parentResult = await pool.query(
+        "SELECT id FROM comments WHERE id = $1 AND deleted_at IS NULL AND parent IS NULL",
+        [parent],
+      );
+      if (parentResult.rows.length === 0) return res.status(404).json(errorResponse("Parent comment not found"));
+    }
+
     const commentStatus = parent ? null : "open";
     const comment = await insertWithId("cmt", async (id) => {
       const { rows } = await pool.query(
@@ -466,7 +481,10 @@ app.post(
 app.get(
   "/comments/:id",
   asyncHandler(async (req, res) => {
-    const { rows } = await pool.query("SELECT * FROM comments WHERE id = $1", [req.params.id]);
+    const { rows } = await pool.query(
+      "SELECT * FROM comments WHERE id = $1 AND deleted_at IS NULL AND (parent IS NULL OR parent IN (SELECT id FROM comments WHERE deleted_at IS NULL))",
+      [req.params.id],
+    );
     if (rows.length === 0) return res.status(404).json(errorResponse("Comment not found"));
     let comment = formatComment(rows[0]);
     const reactionsMap = await fetchReactionsForComments([comment.id]);
@@ -482,7 +500,10 @@ app.get(
 app.patch(
   "/comments/:id",
   asyncHandler(async (req, res) => {
-    const { rows } = await pool.query("SELECT * FROM comments WHERE id = $1", [req.params.id]);
+    const { rows } = await pool.query(
+      "SELECT * FROM comments WHERE id = $1 AND deleted_at IS NULL AND (parent IS NULL OR parent IN (SELECT id FROM comments WHERE deleted_at IS NULL))",
+      [req.params.id],
+    );
     if (rows.length === 0) return res.status(404).json(errorResponse("Comment not found"));
 
     const { body, status, color } = req.body;
@@ -533,10 +554,10 @@ app.patch(
 app.delete(
   "/comments/:id",
   asyncHandler(async (req, res) => {
-    await pool.query("DELETE FROM comments WHERE parent = $1", [req.params.id]);
-    const { rows } = await pool.query("DELETE FROM comments WHERE id = $1 RETURNING *", [req.params.id]);
-    if (rows.length === 0) return res.status(404).json(errorResponse("Comment not found"));
-    const formatted = formatComment(rows[0]);
+    const { recoveryDays } = retentionConfig();
+    const comment = await softDeleteCommentThread(pool, req.params.id, recoveryDays);
+    if (!comment) return res.status(404).json(errorResponse("Comment not found"));
+    const formatted = formatComment(comment);
     triggerEvent(pool, "comment.deleted", { comment: formatted });
     res.json(formatted);
     broadcast(formatted.document, { type: "comment:deleted", comment: formatted });
@@ -562,7 +583,9 @@ app.post(
     const cleanAuthor = sanitize(author);
 
     // Verify comment exists
-    const { rows: check } = await pool.query("SELECT id FROM comments WHERE id = $1", [req.params.id]);
+    const { rows: check } = await pool.query("SELECT id FROM comments WHERE id = $1 AND deleted_at IS NULL", [
+      req.params.id,
+    ]);
     if (check.length === 0) return res.status(404).json(errorResponse("Comment not found"));
 
     await pool.query(
@@ -591,7 +614,9 @@ app.delete(
     const cleanAuthor = sanitize(author);
 
     // Verify comment exists
-    const { rows: check } = await pool.query("SELECT id FROM comments WHERE id = $1", [req.params.id]);
+    const { rows: check } = await pool.query("SELECT id FROM comments WHERE id = $1 AND deleted_at IS NULL", [
+      req.params.id,
+    ]);
     if (check.length === 0) return res.status(404).json(errorResponse("Comment not found"));
 
     await pool.query("DELETE FROM reactions WHERE comment_id = $1 AND author = $2 AND emoji = $3", [
@@ -643,6 +668,7 @@ function broadcast(documentId, event) {
 }
 
 const SUBSCRIBE_TIMEOUT_MS = 30000; // Close connections that never subscribe
+const RETENTION_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
 function handleWsConnection(ws) {
   const subscribedDocs = new Set();
@@ -724,6 +750,12 @@ async function start(options = {}) {
   const port = options.port !== undefined ? options.port : process.env.PORT || 3333;
   const host = options.host || "0.0.0.0";
   await initSchema();
+  await runRetention(pool, retentionConfig());
+
+  const retentionTimer = setInterval(() => {
+    runRetention(pool, retentionConfig()).catch((err) => console.error("[retention] Failed to run:", err));
+  }, RETENTION_INTERVAL_MS);
+  retentionTimer.unref();
 
   const server = http.createServer(app);
   const wss = new WebSocketServer({ noServer: true });
@@ -741,6 +773,7 @@ async function start(options = {}) {
 
   // Graceful shutdown: terminate all WebSocket clients before stopping
   server.on("close", () => {
+    clearInterval(retentionTimer);
     for (const ws of wss.clients) {
       ws.terminate();
     }

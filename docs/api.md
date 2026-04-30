@@ -346,7 +346,7 @@ curl "http://localhost:3000/comments?document=doc_k3mXp9q2aBvN&expand=document"
 
 #### `POST /comments`
 
-Create a new comment or reply.
+Create a new comment or reply. Replies are intentionally one level deep: `parent` must reference a top-level/root comment. Missing, deleted, or non-root parent comments return `404 Not Found`.
 
 **Request Body (top-level comment):**
 
@@ -378,7 +378,7 @@ Create a new comment or reply.
 - `author` (string) — Author name
 - `uri` OR `document` (string) — Document URI or ID
 - `quote` (string) — Required for top-level comments; not required for replies
-- `parent` (string, optional) — Parent comment ID (for replies)
+- `parent` (string, optional) — Top-level/root parent comment ID for one-level replies. Missing, deleted, or non-root parent comments return `404 Not Found`.
 
 **Optional Fields:**
 
@@ -407,7 +407,7 @@ Create a new comment or reply.
 
 - `201 Created` — Comment created
 - `400 Bad Request` — Missing required fields or invalid data
-- `404 Not Found` — Referenced document ID does not exist
+- `404 Not Found` — Referenced document ID does not exist, or the requested reply parent is missing, deleted, or not a top-level/root comment
 
 **Error Responses:**
 
@@ -630,7 +630,7 @@ curl -X PATCH http://localhost:3000/comments/cmt_abc123 \
 
 #### `DELETE /comments/:id`
 
-Delete a comment and all its replies.
+Soft-delete a comment and its one-level replies. Replies are one level deep; deleting a top-level comment also soft-deletes its direct replies. Soft-deleted comments are excluded from read/list endpoints and remain recoverable in the database until `purge_after`.
 
 **Parameters:**
 
@@ -667,7 +667,7 @@ curl -X DELETE http://localhost:3000/comments/cmt_abc123
 
 **Notes:**
 
-- Deleting a comment cascades to all replies on that comment
+- Deleting a top-level comment cascades to its one-level replies
 
 ---
 

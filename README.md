@@ -122,6 +122,10 @@ npm install --prefix server
 DATABASE_URL=postgres://user:pass@localhost:5432/remarq node server/index.js
 ```
 
+## Data retention
+
+Configurable comment retention and soft-delete controls are documented in [docs/data-retention.md](docs/data-retention.md).
+
 ## OpenAPI Spec
 
 The server exposes a machine-readable OpenAPI 3.0 spec at:
@@ -153,17 +157,17 @@ Stripe-inspired resource pattern. All responses include an `object` field. **Ful
 
 ### Comments
 
-| Method   | Endpoint                    | Description                                                     |
-| -------- | --------------------------- | --------------------------------------------------------------- |
-| `GET`    | `/comments`                 | List all comments                                               |
-| `GET`    | `/comments?document=<id>`   | List comments by document ID                                    |
-| `GET`    | `/comments?uri=<url>`       | List comments by document URI                                   |
-| `GET`    | `/comments?status=open`     | **The money endpoint.** Get all unresolved feedback.            |
-| `GET`    | `/comments?expand=document` | Hydrate document objects inline                                 |
-| `POST`   | `/comments`                 | Create a comment (set `parent` to reply to an existing comment) |
-| `GET`    | `/comments/:id`             | Retrieve a comment                                              |
-| `PATCH`  | `/comments/:id`             | Update body, status, or color                                   |
-| `DELETE` | `/comments/:id`             | Delete a comment and its replies                                |
+| Method   | Endpoint                    | Description                                                          |
+| -------- | --------------------------- | -------------------------------------------------------------------- |
+| `GET`    | `/comments`                 | List all comments                                                    |
+| `GET`    | `/comments?document=<id>`   | List comments by document ID                                         |
+| `GET`    | `/comments?uri=<url>`       | List comments by document URI                                        |
+| `GET`    | `/comments?status=open`     | **The money endpoint.** Get all unresolved feedback.                 |
+| `GET`    | `/comments?expand=document` | Hydrate document objects inline                                      |
+| `POST`   | `/comments`                 | Create a comment (set `parent` to reply to a top-level/root comment) |
+| `GET`    | `/comments/:id`             | Retrieve a comment                                                   |
+| `PATCH`  | `/comments/:id`             | Update body, status, or color                                        |
+| `DELETE` | `/comments/:id`             | Soft-delete a comment and its one-level replies                      |
 
 ### Webhooks
 
@@ -194,7 +198,7 @@ Status is a thread-level concept — only root comments have status (`"open"` or
 }
 ```
 
-For replies, set `parent` to the parent comment's ID. Replies don't need `quote`/`prefix`/`suffix`.
+For replies, set `parent` to a top-level/root comment ID. Replies are one level deep and do not need `quote`/`prefix`/`suffix`.
 
 ### Highlight Colors
 

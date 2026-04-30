@@ -19,6 +19,7 @@
 
 ### Changed
 
+- Replies are intentionally one level deep; `POST /comments` now requires `parent` to reference a top-level/root comment and returns `404` for missing, deleted, or non-root parents.
 - Landing page rewritten with agent-first positioning: new 3-step workflow (Comment → Agent Revises → Resolved), tabbed Quick Start, and removal of external CSS dependency
 
 ### Fixed
@@ -29,6 +30,7 @@
 
 ### Security
 
+- Added configurable comment retention with soft-delete recovery and scheduled purge.
 - CORS now restricted to trusted origins via `ALLOWED_ORIGINS` env var (previously allowed all origins)
 
 ### Docs

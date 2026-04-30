@@ -104,6 +104,21 @@ describe("sanitize", async () => {
   });
 });
 
+describe("retention", async () => {
+  const { retentionConfig } = await import("./retention.js");
+
+  it("reads configurable retention and recovery windows", () => {
+    assert.deepEqual(retentionConfig({ REMARQ_COMMENT_RETENTION_DAYS: "45", REMARQ_COMMENT_RECOVERY_DAYS: "7" }), {
+      retentionDays: 45,
+      recoveryDays: 7,
+    });
+  });
+
+  it("uses safe defaults", () => {
+    assert.deepEqual(retentionConfig({}), { retentionDays: 365, recoveryDays: 30 });
+  });
+});
+
 describe("validate-color", async () => {
   const { validateColor } = await import("./validate-color.js");
 
@@ -1249,6 +1264,192 @@ describe("API", async () => {
     it("returns 404 for missing comment", async () => {
       const res = await fetch(`${BASE}/comments/cmt_nonexistent`, { method: "DELETE" });
       assert.equal(res.status, 404);
+    });
+  });
+
+  describe("comment retention and soft delete", () => {
+    it("soft-deletes comments, hides them, and makes repeated delete 404", async () => {
+      const c = await (
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ uri: "https://example.com/soft-delete", quote: "q", body: "b", author: "a" }),
+        })
+      ).json();
+
+      const del = await fetch(`${BASE}/comments/${c.id}`, { method: "DELETE" });
+      assert.equal(del.status, 200);
+      const { rows } = await pool.query("SELECT deleted_at, purge_after FROM comments WHERE id = $1", [c.id]);
+      assert.ok(rows[0].deleted_at);
+      assert.ok(rows[0].purge_after);
+
+      assert.equal((await fetch(`${BASE}/comments/${c.id}`)).status, 404);
+      assert.equal((await fetch(`${BASE}/comments/${c.id}`, { method: "DELETE" })).status, 404);
+    });
+
+    it("rejects replies to replies so threads stay one level deep", async () => {
+      const parent = await (
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ uri: "https://example.com/no-nested", quote: "q", body: "parent", author: "a" }),
+        })
+      ).json();
+      const reply = await (
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ uri: "https://example.com/no-nested", body: "reply", author: "a", parent: parent.id }),
+        })
+      ).json();
+      const nested = await fetch(`${BASE}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uri: "https://example.com/no-nested", body: "nested", author: "a", parent: reply.id }),
+      });
+      assert.equal(nested.status, 404);
+    });
+
+    it("soft-deletes legacy nested descendants on explicit parent delete", async () => {
+      const parent = await (
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ uri: "https://example.com/legacy-nested", quote: "q", body: "parent", author: "a" }),
+        })
+      ).json();
+      const reply = await (
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            uri: "https://example.com/legacy-nested",
+            body: "reply",
+            author: "a",
+            parent: parent.id,
+          }),
+        })
+      ).json();
+      const grandchildId = `cmt_legacy_${Date.now()}`;
+      await pool.query(
+        `INSERT INTO comments (id, document, parent, quote, prefix, suffix, body, author, status)
+         VALUES ($1, $2, $3, '', NULL, NULL, 'legacy nested', 'a', NULL)`,
+        [grandchildId, parent.document, reply.id],
+      );
+
+      const deleted = await fetch(`${BASE}/comments/${parent.id}`, { method: "DELETE" });
+      assert.equal(deleted.status, 200);
+      const rows = await pool.query("SELECT id, deleted_at, purge_after FROM comments WHERE id = ANY($1) ORDER BY id", [
+        [parent.id, reply.id, grandchildId],
+      ]);
+      assert.equal(rows.rows.length, 3);
+      for (const row of rows.rows) {
+        assert.ok(row.deleted_at);
+        assert.ok(row.purge_after);
+      }
+
+      const react = await fetch(`${BASE}/comments/${grandchildId}/reactions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ emoji: "👍", author: "a" }),
+      });
+      assert.equal(react.status, 404);
+    });
+
+    it("does not allow reactions or replies on soft-deleted comments", async () => {
+      const c = await (
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ uri: "https://example.com/deleted-mutate", quote: "q", body: "b", author: "a" }),
+        })
+      ).json();
+      await fetch(`${BASE}/comments/${c.id}`, { method: "DELETE" });
+
+      const reaction = await fetch(`${BASE}/comments/${c.id}/reactions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ emoji: "👍", author: "a" }),
+      });
+      assert.equal(reaction.status, 404);
+
+      const reply = await fetch(`${BASE}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uri: "https://example.com/deleted-mutate", body: "reply", author: "a", parent: c.id }),
+      });
+      assert.equal(reply.status, 404);
+    });
+
+    it("retention soft-deletes old parent threads and purges children before parents", async () => {
+      const { runRetention } = await import("./retention.js");
+      const parent = await (
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            uri: "https://example.com/retention-thread",
+            quote: "q",
+            body: "parent",
+            author: "a",
+          }),
+        })
+      ).json();
+      const reply = await (
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            uri: "https://example.com/retention-thread",
+            body: "reply",
+            author: "a",
+            parent: parent.id,
+          }),
+        })
+      ).json();
+      await pool.query("UPDATE comments SET created_at = NOW() - INTERVAL '10 days' WHERE id = $1", [parent.id]);
+      await runRetention(pool, { retentionDays: 1, recoveryDays: 30 });
+      const retained = await pool.query("SELECT id, deleted_at FROM comments WHERE id = ANY($1)", [
+        [parent.id, reply.id],
+      ]);
+      assert.equal(retained.rows.length, 2);
+      retained.rows.forEach((row) => assert.ok(row.deleted_at));
+
+      const visible = await (await fetch(`${BASE}/comments?document=${parent.document}`)).json();
+      assert.deepEqual(visible.data, []);
+
+      await pool.query("UPDATE comments SET purge_after = NOW() - INTERVAL '1 minute' WHERE id = ANY($1)", [
+        [parent.id, reply.id],
+      ]);
+      await runRetention(pool, { retentionDays: 1, recoveryDays: 30 });
+      const purged = await pool.query("SELECT id FROM comments WHERE id = ANY($1)", [[parent.id, reply.id]]);
+      assert.equal(purged.rows.length, 0);
+    });
+
+    it("status filters do not leak soft-deleted replies", async () => {
+      const parent = await (
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ uri: "https://example.com/status-soft", quote: "q", body: "parent", author: "a" }),
+        })
+      ).json();
+      const reply = await (
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            uri: "https://example.com/status-soft",
+            body: "reply",
+            author: "a",
+            parent: parent.id,
+          }),
+        })
+      ).json();
+      await fetch(`${BASE}/comments/${reply.id}`, { method: "DELETE" });
+      const res = await fetch(`${BASE}/comments?status=open`);
+      const json = await res.json();
+      assert.ok(!json.data.some((comment) => comment.id === reply.id));
     });
   });
 

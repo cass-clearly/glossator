@@ -298,11 +298,11 @@ const spec = {
           {
             group: "comments",
             command: "reply <parent-id>",
-            describe: "Reply to a comment",
+            describe: "Reply to a top-level/root comment",
             positional: [
               {
                 name: "parent-id",
-                describe: "Parent comment ID",
+                describe: "Top-level/root parent comment ID",
                 from: "body",
                 field: "parent",
               },
@@ -325,7 +325,7 @@ const spec = {
               suffix: { type: "string" },
               body: { type: "string" },
               author: { type: "string" },
-              parent: { type: "string", description: "Parent comment ID (for replies)" },
+              parent: { type: "string", description: "Top-level/root parent comment ID (for one-level replies)" },
               color: { type: "string", description: "Preset name or #rrggbb hex" },
             },
           }),
@@ -333,7 +333,7 @@ const spec = {
         responses: {
           201: { description: "Comment created", content: jsonContent(commentSchema) },
           400: { description: "Bad request", content: jsonContent(errorSchema) },
-          404: { description: "Document not found", content: jsonContent(errorSchema) },
+          404: { description: "Document or top-level parent comment not found", content: jsonContent(errorSchema) },
         },
       },
     },
@@ -415,12 +415,14 @@ const spec = {
 
       delete: {
         operationId: "deleteComment",
-        summary: "Delete a comment and its replies",
+        summary: "Soft-delete a comment and its one-level replies",
+        description:
+          "Marks a comment thread as deleted. Soft-deleted comments are hidden from read/list/mutation paths and remain recoverable in the database until the configured purge window expires.",
         tags: ["comments"],
         "x-cli": {
           group: "comments",
           command: "delete <id>",
-          describe: "Delete a comment",
+          describe: "Soft-delete a comment",
           positional: [{ name: "id", describe: "Comment ID", from: "path", paramName: "id" }],
         },
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
