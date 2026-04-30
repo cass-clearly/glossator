@@ -29,6 +29,7 @@
 
 ### Security
 
+- Added durable audit records for comment create/update/delete events and document access, with 90-day minimum retention.
 - CORS now restricted to trusted origins via `ALLOWED_ORIGINS` env var (previously allowed all origins)
 
 ### Docs

@@ -122,6 +122,10 @@ npm install --prefix server
 DATABASE_URL=postgres://user:pass@localhost:5432/remarq node server/index.js
 ```
 
+## Audit logging
+
+Audit logging is available for comment changes and document access. See [docs/audit-logging.md](docs/audit-logging.md).
+
 ## OpenAPI Spec
 
 The server exposes a machine-readable OpenAPI 3.0 spec at:
