@@ -56,7 +56,7 @@ When deployed, replace with your server's URL.
 
 #### `GET /me/permissions`
 
-Returns the current actor's role and permissions. In trusted-header deployments, the actor is identified by `X-Remarq-User` or `X-Forwarded-User`.
+Returns the current actor's role and permissions. In trusted-header deployments, the actor is identified by `X-Remarq-User` or `X-Forwarded-User`. Unknown authenticated users default to `viewer`; the example response below assumes `alice@example.com` has already been assigned the `commenter` role.
 
 **Response:**
 
@@ -72,6 +72,11 @@ Returns the current actor's role and permissions. In trusted-header deployments,
 **Example:**
 
 ```bash
+# Local unauthenticated admin-compatible mode can assign the example role first.
+curl -X PUT http://localhost:3333/users/alice@example.com/role \
+  -H 'Content-Type: application/json' \
+  -d '{"role":"commenter"}'
+
 curl -H 'X-Remarq-User: alice@example.com' http://localhost:3333/me/permissions
 ```
 
@@ -749,6 +754,7 @@ All errors follow this format:
 - `200 OK` — Request succeeded
 - `201 Created` — Resource created
 - `400 Bad Request` — Invalid request (missing fields, invalid values)
+- `403 Forbidden` — Current actor does not have the required RBAC permission
 - `404 Not Found` — Resource not found
 - `500 Internal Server Error` — Server error
 
