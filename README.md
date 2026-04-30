@@ -120,6 +120,7 @@ Or:
 ```bash
 npm install --prefix server
 DATABASE_URL=postgres://user:pass@localhost:5432/remarq node server/index.js
+# Binds to 127.0.0.1 by default. Set HOST only for private networks/reverse proxies.
 ```
 
 ## Enterprise security

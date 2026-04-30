@@ -647,9 +647,15 @@ function handleWsConnection(ws) {
 
 // ── Start server ────────────────────────────────────────────────────
 
+function resolveListenOptions(options = {}, env = process.env) {
+  return {
+    port: options.port !== undefined ? options.port : env.PORT || 3333,
+    host: options.host || env.HOST || "127.0.0.1",
+  };
+}
+
 async function start(options = {}) {
-  const port = options.port !== undefined ? options.port : process.env.PORT || 3333;
-  const host = options.host || process.env.HOST || "127.0.0.1";
+  const { port, host } = resolveListenOptions(options);
   await initSchema();
 
   const server = http.createServer(app);
@@ -676,7 +682,10 @@ async function start(options = {}) {
 
   return new Promise((resolve) => {
     server.listen(port, host, () => {
-      console.log(`Remarq server listening on http://localhost:${port}`);
+      const address = server.address();
+      const actualHost = typeof address === "object" && address ? address.address : host;
+      const actualPort = typeof address === "object" && address ? address.port : port;
+      console.log(`Remarq server listening on http://${actualHost}:${actualPort}`);
       resolve(server);
     });
   });
@@ -689,4 +698,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { start, app, pool, initSchema };
+module.exports = { start, app, pool, initSchema, resolveListenOptions };

@@ -13,7 +13,7 @@ Set `HOST=0.0.0.0` only inside a private container network or behind a VPN/corpo
 ## Supported architecture
 
 ```text
-User on VPN/corp network -> internal LB / reverse proxy -> Remarq -> private Postgres
+User on VPN or corporate network -> internal load balancer / reverse proxy -> Remarq -> private Postgres
 Internet -> firewall deny
 ```
 
@@ -27,14 +27,15 @@ Firewall / ingress requirements:
 ## Verification
 
 ```bash
-# On the host: should work
+# On the host: should work.
 curl http://127.0.0.1:3333/health
+# Expected: {"status":"ok"}
 
-# From outside VPN/corp network: must fail or time out
+# From outside VPN/corporate network: must fail or time out.
 curl https://remarq.internal.example.com/health
 
-# Confirm no public listener on Linux
+# Confirm no public listener on Linux.
 ss -ltnp | grep 3333
+# Passing: 127.0.0.1:3333
+# Failing: 0.0.0.0:3333 or :::3333
 ```
-
-Closes #278.
