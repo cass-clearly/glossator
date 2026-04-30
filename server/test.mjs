@@ -1287,6 +1287,29 @@ describe("API", async () => {
       assert.equal((await fetch(`${BASE}/comments/${c.id}`, { method: "DELETE" })).status, 404);
     });
 
+    it("rejects replies to replies so threads stay one level deep", async () => {
+      const parent = await (
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ uri: "https://example.com/no-nested", quote: "q", body: "parent", author: "a" }),
+        })
+      ).json();
+      const reply = await (
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ uri: "https://example.com/no-nested", body: "reply", author: "a", parent: parent.id }),
+        })
+      ).json();
+      const nested = await fetch(`${BASE}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uri: "https://example.com/no-nested", body: "nested", author: "a", parent: reply.id }),
+      });
+      assert.equal(nested.status, 404);
+    });
+
     it("does not allow reactions or replies on soft-deleted comments", async () => {
       const c = await (
         await fetch(`${BASE}/comments`, {

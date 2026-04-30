@@ -371,7 +371,10 @@ app.post(
     }
 
     if (parent) {
-      const parentResult = await pool.query("SELECT id FROM comments WHERE id = $1 AND deleted_at IS NULL", [parent]);
+      const parentResult = await pool.query(
+        "SELECT id FROM comments WHERE id = $1 AND deleted_at IS NULL AND parent IS NULL",
+        [parent],
+      );
       if (parentResult.rows.length === 0) return res.status(404).json(errorResponse("Parent comment not found"));
     }
 
