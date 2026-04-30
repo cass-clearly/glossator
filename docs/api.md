@@ -52,6 +52,48 @@ When deployed, replace with your server's URL.
 
 ## Endpoints
 
+### Authentication
+
+#### `GET /login`
+
+Redirects to Okta when enterprise authentication is enabled. Returns `204 No Content` when auth is disabled.
+
+**Status Codes:**
+
+- `204 No Content` — Authentication disabled
+- `302 Found` — Redirect to Okta authorization endpoint and set `remarq_oauth_state`
+- `500 Internal Server Error` — Authentication is required but neither Okta nor a trusted header is configured
+
+**Example:**
+
+```bash
+curl -i https://remarq.internal.example.com/login
+```
+
+#### `GET /auth/callback`
+
+Completes the Okta authorization-code callback and sets the `remarq_session` HTTP-only cookie.
+
+**Query Parameters:**
+
+| Name    | Required | Description                   |
+| ------- | -------- | ----------------------------- |
+| `code`  | yes      | Okta authorization code       |
+| `state` | yes      | Must match OAuth state cookie |
+
+**Status Codes:**
+
+- `302 Found` — Session cookie issued and browser redirected
+- `400 Bad Request` — Missing/invalid code or state
+- `500 Internal Server Error` — Auth configuration or Okta exchange failure
+
+**Example:**
+
+```bash
+curl -i 'https://remarq.internal.example.com/auth/callback?code=abc&state=xyz' \
+  -H 'Cookie: remarq_oauth_state=xyz'
+```
+
 ### Health Check
 
 #### `GET /health`

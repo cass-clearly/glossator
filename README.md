@@ -122,6 +122,10 @@ npm install --prefix server
 DATABASE_URL=postgres://user:pass@localhost:5432/remarq node server/index.js
 ```
 
+## Enterprise security
+
+For internal enterprise deployments, enable Okta SSO before exposing Remarq to users. See [docs/okta-auth.md](docs/okta-auth.md).
+
 ## OpenAPI Spec
 
 The server exposes a machine-readable OpenAPI 3.0 spec at:
@@ -141,6 +145,13 @@ The spec includes `x-cli` vendor extensions that drive the CLI — every endpoin
 ## API Reference
 
 Stripe-inspired resource pattern. All responses include an `object` field. **Full documentation with request/response schemas, error codes, and curl examples: [docs/api.md](docs/api.md)**
+
+### Authentication
+
+| Method | Endpoint         | Description                |
+| ------ | ---------------- | -------------------------- |
+| `GET`  | `/login`         | Start Okta SSO             |
+| `GET`  | `/auth/callback` | Complete Okta SSO callback |
 
 ### Documents
 

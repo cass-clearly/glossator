@@ -129,6 +129,41 @@ const spec = {
   servers: [{ url: "/" }],
 
   paths: {
+    // ── Authentication ──────────────────────────────────────────────
+
+    "/login": {
+      get: {
+        operationId: "login",
+        summary: "Start Okta SSO",
+        tags: ["authentication"],
+        responses: {
+          204: { description: "Authentication disabled" },
+          302: { description: "Redirect to Okta authorization endpoint" },
+          500: { description: "Authentication configuration error", content: jsonContent(errorSchema) },
+        },
+      },
+    },
+
+    "/auth/callback": {
+      get: {
+        operationId: "authCallback",
+        summary: "Complete Okta SSO callback",
+        tags: ["authentication"],
+        parameters: [
+          { name: "code", in: "query", required: true, schema: { type: "string" } },
+          { name: "state", in: "query", required: true, schema: { type: "string" } },
+        ],
+        responses: {
+          302: { description: "Session cookie issued and browser redirected" },
+          400: { description: "Invalid callback state or missing code", content: jsonContent(errorSchema) },
+          500: {
+            description: "Authentication configuration or Okta exchange error",
+            content: jsonContent(errorSchema),
+          },
+        },
+      },
+    },
+
     // ── Health ──────────────────────────────────────────────────────
 
     "/health": {

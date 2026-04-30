@@ -29,6 +29,7 @@
 
 ### Security
 
+- Added enterprise authentication mode with Okta SSO, trusted identity header support, session expiration, and WebSocket auth enforcement.
 - CORS now restricted to trusted origins via `ALLOWED_ORIGINS` env var (previously allowed all origins)
 
 ### Docs

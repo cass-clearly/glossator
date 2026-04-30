@@ -15,6 +15,7 @@ const { triggerEvent } = require("./webhooks.js");
 const { registerWebhookRoutes } = require("./webhook-routes.js");
 const path = require("path");
 const openApiSpec = require("./openapi.js");
+const { authenticateRequest, createAuthMiddleware, createSessionStore, registerAuthRoutes } = require("./auth.js");
 
 const app = express();
 const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(",") : ["http://localhost:3333"];
@@ -26,6 +27,9 @@ app.use(
     crossOriginResourcePolicy: false,
   }),
 );
+const authStore = createSessionStore();
+registerAuthRoutes(app, { store: authStore });
+app.use(createAuthMiddleware({ store: authStore }));
 app.use(express.json());
 
 const DATABASE_URL = process.env.DATABASE_URL || "postgresql://postgres@localhost/postgres";
@@ -731,7 +735,14 @@ async function start(options = {}) {
   server.on("upgrade", (req, socket, head) => {
     const { pathname } = new URL(req.url, `http://${req.headers.host}`);
     if (pathname === "/ws") {
+      const result = authenticateRequest(req, { store: authStore });
+      if (!result.authenticated) {
+        socket.write("HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n");
+        socket.destroy();
+        return;
+      }
       wss.handleUpgrade(req, socket, head, (ws) => {
+        ws.user = result.user;
         handleWsConnection(ws);
       });
     } else {
