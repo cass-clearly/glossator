@@ -104,6 +104,15 @@ describe("sanitize", async () => {
   });
 });
 
+describe("schema init config", async () => {
+  const { shouldInitSchema } = await import("./index.js");
+
+  it("allows runtime deployments to skip schema DDL", () => {
+    assert.equal(shouldInitSchema({}), true);
+    assert.equal(shouldInitSchema({ REMARQ_SKIP_SCHEMA_INIT: "true" }), false);
+  });
+});
+
 describe("validate-color", async () => {
   const { validateColor } = await import("./validate-color.js");
 
