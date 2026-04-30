@@ -234,7 +234,7 @@ Query params can be combined (e.g., `?document=<id>&status=open&expand=document`
 
 ### POST /comments
 
-Create a new comment or reply.
+Create a new comment or reply. Replies are intentionally one level deep: `parent` must reference a top-level/root comment. Missing, deleted, or non-root parent comments return `404 Not Found`.
 
 **Request Body (top-level comment):**
 ```json
@@ -267,7 +267,7 @@ Create a new comment or reply.
 **Optional fields:**
 - `prefix` — Text context before the quote
 - `suffix` — Text context after the quote
-- `parent` — Parent comment ID (makes this a reply)
+- `parent` — Top-level/root parent comment ID for a one-level reply; missing, deleted, or non-root parents return `404`
 
 **Response (201 Created):**
 ```json
@@ -292,7 +292,7 @@ Create a new comment or reply.
 - Replies have `status: null` and cannot be resolved independently.
 - HTML tags in `body` and `author` are stripped for safety.
 
-**Errors:** `400` for missing required fields, `404` if referenced document ID doesn't exist.
+**Errors:** `400` for missing required fields, `404` if referenced document ID doesn't exist or a reply parent is missing, deleted, or not top-level/root.
 
 ---
 
@@ -361,11 +361,11 @@ Both fields are optional. `status` accepts `"open"` or `"closed"` and can only b
 
 ### DELETE /comments/:id
 
-Soft-delete a comment and all its replies. Soft-deleted comments are excluded from read/list endpoints and remain recoverable in the database until `purge_after`.
+Soft-delete a comment and its one-level replies. Replies are intentionally one level deep; deleting a top-level/root comment also soft-deletes its direct replies. Soft-deleted comments are excluded from read/list endpoints and remain recoverable in the database until `purge_after`.
 
 **Response (200):** Returns the deleted comment object. Returns `404` if not found.
 
-Deleting a comment cascades to all replies.
+Deleting a top-level comment cascades to its one-level replies.
 
 ---
 
