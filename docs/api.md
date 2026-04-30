@@ -85,6 +85,16 @@ Admin-only endpoint to assign a persisted role. Valid roles: `viewer`, `commente
 { "role": "commenter" }
 ```
 
+**Response:**
+
+```json
+{
+  "object": "user",
+  "id": "alice@example.com",
+  "role": "commenter"
+}
+```
+
 **Status Codes:**
 
 - `200 OK` — Role assigned
@@ -869,7 +879,7 @@ if (signature !== expected) throw new Error("Invalid signature");
 
 ### `GET /webhooks`
 
-List all registered webhooks.
+Admin-only. List all registered webhooks. Returns `403 Forbidden` when the current actor cannot manage users/webhooks.
 
 **Response:**
 
@@ -893,7 +903,7 @@ List all registered webhooks.
 
 ### `POST /webhooks`
 
-Register a new webhook.
+Admin-only. Register a new webhook. Returns `403 Forbidden` when the current actor cannot manage users/webhooks.
 
 **Request body:**
 
@@ -907,13 +917,13 @@ Register a new webhook.
 
 ### `GET /webhooks/:id`
 
-Retrieve a single webhook.
+Admin-only. Retrieve a single webhook. Returns `403 Forbidden` when the current actor cannot manage users/webhooks.
 
 **Response:** Webhook object. Returns `404` if not found.
 
 ### `PATCH /webhooks/:id`
 
-Update a webhook. All fields are optional.
+Admin-only. Update a webhook. All fields are optional. Returns `403 Forbidden` when the current actor cannot manage users/webhooks.
 
 **Request body:**
 
@@ -927,6 +937,6 @@ Update a webhook. All fields are optional.
 
 ### `DELETE /webhooks/:id`
 
-Delete a webhook.
+Admin-only. Delete a webhook. Returns `403 Forbidden` when the current actor cannot manage users/webhooks.
 
 **Response:** Deleted webhook object. Returns `404` if not found.

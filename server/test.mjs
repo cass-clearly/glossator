@@ -1655,6 +1655,31 @@ describe("API", async () => {
       assert.ok(json.paths["/comments/{id}"]);
       assert.ok(json.paths["/comments/{id}/reactions"]);
       assert.ok(json.paths["/comments/{id}/reactions/{emoji}"]);
+      assert.ok(json.paths["/webhooks"]);
+      assert.ok(json.paths["/webhooks/{id}"]);
+    });
+
+    it("documents 403 responses for RBAC-protected operations", async () => {
+      const res = await fetch(`${BASE}/openapi.json`);
+      const json = await res.json();
+      const protectedOperations = [
+        json.paths["/documents/{id}"].delete,
+        json.paths["/comments"].post,
+        json.paths["/comments/{id}"].patch,
+        json.paths["/comments/{id}"].delete,
+        json.paths["/comments/{id}/reactions"].post,
+        json.paths["/comments/{id}/reactions/{emoji}"].delete,
+        json.paths["/webhooks"].get,
+        json.paths["/webhooks"].post,
+        json.paths["/webhooks/{id}"].get,
+        json.paths["/webhooks/{id}"].patch,
+        json.paths["/webhooks/{id}"].delete,
+      ];
+      for (const operation of protectedOperations) {
+        assert.ok(operation.responses[403]);
+        assert.ok(operation.responses[403].content["application/json"].schema.properties.error);
+      }
+      assert.ok(json.paths["/users/{id}/role"].put.responses[200].content["application/json"].schema);
     });
 
     it("includes x-cli extensions on operations", async () => {

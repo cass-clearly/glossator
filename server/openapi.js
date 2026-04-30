@@ -69,6 +69,27 @@ const commentSchema = {
   },
 };
 
+const userRoleSchema = {
+  type: "object",
+  properties: {
+    object: { type: "string", enum: ["user"] },
+    id: { type: "string" },
+    role: { type: "string", enum: ["viewer", "commenter", "resolver", "admin"] },
+  },
+};
+
+const webhookSchema = {
+  type: "object",
+  properties: {
+    id: { type: "string" },
+    object: { type: "string", enum: ["webhook"] },
+    url: { type: "string" },
+    events: { type: "array", items: { type: "string" } },
+    active: { type: "boolean" },
+    created_at: { type: "string", format: "date-time" },
+  },
+};
+
 const reactionsResponseSchema = {
   type: "object",
   properties: {
@@ -168,7 +189,7 @@ const spec = {
           }),
         },
         responses: {
-          200: { description: "Role assigned" },
+          200: { description: "Role assigned", content: jsonContent(userRoleSchema) },
           400: { description: "Invalid role", content: jsonContent(errorSchema) },
           403: { description: "Forbidden", content: jsonContent(errorSchema) },
         },
@@ -282,6 +303,7 @@ const spec = {
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
         responses: {
           200: { description: "Deleted document", content: jsonContent(documentSchema) },
+          403: { description: "Forbidden", content: jsonContent(errorSchema) },
           404: { description: "Not found", content: jsonContent(errorSchema) },
         },
       },
@@ -379,6 +401,7 @@ const spec = {
         responses: {
           201: { description: "Comment created", content: jsonContent(commentSchema) },
           400: { description: "Bad request", content: jsonContent(errorSchema) },
+          403: { description: "Forbidden", content: jsonContent(errorSchema) },
           404: { description: "Document not found", content: jsonContent(errorSchema) },
         },
       },
@@ -455,6 +478,7 @@ const spec = {
         responses: {
           200: { description: "Updated comment", content: jsonContent(commentSchema) },
           400: { description: "Bad request", content: jsonContent(errorSchema) },
+          403: { description: "Forbidden", content: jsonContent(errorSchema) },
           404: { description: "Not found", content: jsonContent(errorSchema) },
         },
       },
@@ -472,6 +496,7 @@ const spec = {
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
         responses: {
           200: { description: "Deleted comment", content: jsonContent(commentSchema) },
+          403: { description: "Forbidden", content: jsonContent(errorSchema) },
           404: { description: "Not found", content: jsonContent(errorSchema) },
         },
       },
@@ -515,6 +540,7 @@ const spec = {
         responses: {
           201: { description: "Reaction added", content: jsonContent(reactionsResponseSchema) },
           400: { description: "Bad request", content: jsonContent(errorSchema) },
+          403: { description: "Forbidden", content: jsonContent(errorSchema) },
           404: { description: "Comment not found", content: jsonContent(errorSchema) },
         },
       },
@@ -554,7 +580,83 @@ const spec = {
         responses: {
           200: { description: "Reaction removed", content: jsonContent(reactionsResponseSchema) },
           400: { description: "Bad request", content: jsonContent(errorSchema) },
+          403: { description: "Forbidden", content: jsonContent(errorSchema) },
           404: { description: "Comment not found", content: jsonContent(errorSchema) },
+        },
+      },
+    },
+
+    // ── Webhooks ────────────────────────────────────────────────────
+
+    "/webhooks": {
+      get: {
+        operationId: "listWebhooks",
+        summary: "List webhooks (admin only)",
+        tags: ["webhooks"],
+        responses: {
+          200: { description: "List of webhooks", content: jsonContent(listResponse(webhookSchema)) },
+          403: { description: "Forbidden", content: jsonContent(errorSchema) },
+        },
+      },
+      post: {
+        operationId: "createWebhook",
+        summary: "Create a webhook (admin only)",
+        tags: ["webhooks"],
+        requestBody: {
+          required: true,
+          content: jsonContent({
+            type: "object",
+            required: ["url", "secret", "events"],
+            properties: {
+              url: { type: "string" },
+              secret: { type: "string" },
+              events: { type: "array", items: { type: "string" } },
+            },
+          }),
+        },
+        responses: {
+          201: { description: "Webhook created", content: jsonContent(webhookSchema) },
+          400: { description: "Bad request", content: jsonContent(errorSchema) },
+          403: { description: "Forbidden", content: jsonContent(errorSchema) },
+          409: { description: "Conflict", content: jsonContent(errorSchema) },
+        },
+      },
+    },
+
+    "/webhooks/{id}": {
+      get: {
+        operationId: "getWebhook",
+        summary: "Retrieve a webhook (admin only)",
+        tags: ["webhooks"],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+        responses: {
+          200: { description: "Webhook", content: jsonContent(webhookSchema) },
+          403: { description: "Forbidden", content: jsonContent(errorSchema) },
+          404: { description: "Not found", content: jsonContent(errorSchema) },
+        },
+      },
+      patch: {
+        operationId: "updateWebhook",
+        summary: "Update a webhook (admin only)",
+        tags: ["webhooks"],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+        responses: {
+          200: { description: "Updated webhook", content: jsonContent(webhookSchema) },
+          400: { description: "Bad request", content: jsonContent(errorSchema) },
+          403: { description: "Forbidden", content: jsonContent(errorSchema) },
+          404: { description: "Not found", content: jsonContent(errorSchema) },
+          409: { description: "Conflict", content: jsonContent(errorSchema) },
+        },
+      },
+      delete: {
+        operationId: "deleteWebhook",
+        summary: "Delete a webhook (admin only)",
+        tags: ["webhooks"],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+        responses: {
+          200: { description: "Deleted webhook", content: jsonContent(webhookSchema) },
+          403: { description: "Forbidden", content: jsonContent(errorSchema) },
+          404: { description: "Not found", content: jsonContent(errorSchema) },
         },
       },
     },
@@ -565,6 +667,8 @@ const spec = {
     { name: "documents", description: "Document management" },
     { name: "comments", description: "Comment and reply management" },
     { name: "reactions", description: "Emoji reactions on comments" },
+    { name: "users", description: "Users and permissions" },
+    { name: "webhooks", description: "Webhook management" },
   ],
 };
 
