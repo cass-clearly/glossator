@@ -104,6 +104,22 @@ describe("sanitize", async () => {
   });
 });
 
+describe("listen options", async () => {
+  const { resolveListenOptions } = await import("./index.js");
+
+  it("defaults to loopback", () => {
+    assert.deepEqual(resolveListenOptions({}, {}), { port: 3333, host: "127.0.0.1" });
+  });
+
+  it("allows HOST and explicit host overrides", () => {
+    assert.deepEqual(resolveListenOptions({}, { PORT: "4444", HOST: "10.0.0.5" }), { port: "4444", host: "10.0.0.5" });
+    assert.deepEqual(resolveListenOptions({ port: 0, host: "0.0.0.0" }, { PORT: "4444", HOST: "10.0.0.5" }), {
+      port: 0,
+      host: "0.0.0.0",
+    });
+  });
+});
+
 describe("validate-color", async () => {
   const { validateColor } = await import("./validate-color.js");
 

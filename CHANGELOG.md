@@ -29,6 +29,7 @@
 
 ### Security
 
+- Changed the default server bind host to `127.0.0.1`; set `HOST` only for private network or trusted reverse-proxy deployments.
 - CORS now restricted to trusted origins via `ALLOWED_ORIGINS` env var (previously allowed all origins)
 
 ### Docs
