@@ -21,18 +21,21 @@ Minimum backup posture:
 - 30+ day backup retention unless company policy requires longer
 - quarterly restore test into an isolated environment
 
-Example self-hosted backup:
+Example self-hosted encrypted backup:
 
 ```bash
-pg_dump "$DATABASE_URL" --format=custom --file="remarq-$(date +%F).dump"
+pg_dump "$DATABASE_URL" --format=custom | \
+  gpg --symmetric --cipher-algo AES256 --output "remarq-$(date +%F).dump.gpg"
 ```
 
 Restore verification:
 
 ```bash
+gpg --decrypt remarq-YYYY-MM-DD.dump.gpg > /tmp/remarq-restore.dump
 createdb remarq_restore_test
-pg_restore --dbname=remarq_restore_test remarq-YYYY-MM-DD.dump
+pg_restore --dbname=remarq_restore_test /tmp/remarq-restore.dump
 psql remarq_restore_test -c 'select count(*) from documents;'
+rm /tmp/remarq-restore.dump
 ```
 
 ## Least privilege
