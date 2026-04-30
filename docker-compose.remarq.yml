@@ -20,7 +20,7 @@ services:
       context: .
       dockerfile: server/Dockerfile
     ports:
-      - "0.0.0.0:3333:3333"
+      - "127.0.0.1:3333:3333"
     environment:
       DATABASE_URL: postgres://remarq:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres/remarq
       PORT: "3333"

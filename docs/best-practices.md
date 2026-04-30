@@ -58,13 +58,14 @@ The `.env` file is read automatically by Docker Compose. Use a strong, random pa
 
 ### Reverse proxy (HTTPS)
 
-In production, put Remarq behind a reverse proxy that terminates TLS.
+In production, put Remarq behind a reverse proxy that terminates TLS 1.2+ and keep Remarq bound to loopback/private networks. See [transport security](transport-security.md).
 
 **Nginx:**
 
 ```nginx
 server {
     listen 443 ssl;
+    ssl_protocols TLSv1.2 TLSv1.3;
     server_name remarq.example.com;
 
     ssl_certificate     /etc/letsencrypt/live/remarq.example.com/fullchain.pem;
