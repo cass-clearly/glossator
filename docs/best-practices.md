@@ -50,12 +50,11 @@ The `.env` file is read automatically by Docker Compose. Use a strong, random pa
 
 ### Environment variables
 
-| Variable            | Default                                    | Description                                            |
-| ------------------- | ------------------------------------------ | ------------------------------------------------------ |
-| `DATABASE_URL`      | `postgresql://postgres@localhost/postgres` | PostgreSQL connection string                           |
-| `PORT`              | `3333`                                     | Port the server listens on                             |
-| `HOST`              | `0.0.0.0`                                  | Bind host; use loopback/private networks in production |
-| `POSTGRES_PASSWORD` | _(required in Docker)_                     | Password for the bundled Postgres container            |
+| Variable            | Default                                    | Description                                 |
+| ------------------- | ------------------------------------------ | ------------------------------------------- |
+| `DATABASE_URL`      | `postgresql://postgres@localhost/postgres` | PostgreSQL connection string                |
+| `PORT`              | `3333`                                     | Port the server listens on                  |
+| `POSTGRES_PASSWORD` | _(required in Docker)_                     | Password for the bundled Postgres container |
 
 ### Reverse proxy (HTTPS)
 
