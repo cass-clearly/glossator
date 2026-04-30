@@ -1312,6 +1312,51 @@ describe("API", async () => {
       assert.equal(reply.status, 404);
     });
 
+    it("retention soft-deletes old parent threads and purges children before parents", async () => {
+      const { runRetention } = await import("./retention.js");
+      const parent = await (
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            uri: "https://example.com/retention-thread",
+            quote: "q",
+            body: "parent",
+            author: "a",
+          }),
+        })
+      ).json();
+      const reply = await (
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            uri: "https://example.com/retention-thread",
+            body: "reply",
+            author: "a",
+            parent: parent.id,
+          }),
+        })
+      ).json();
+      await pool.query("UPDATE comments SET created_at = NOW() - INTERVAL '10 days' WHERE id = $1", [parent.id]);
+      await runRetention(pool, { retentionDays: 1, recoveryDays: 30 });
+      const retained = await pool.query("SELECT id, deleted_at FROM comments WHERE id = ANY($1)", [
+        [parent.id, reply.id],
+      ]);
+      assert.equal(retained.rows.length, 2);
+      retained.rows.forEach((row) => assert.ok(row.deleted_at));
+
+      const visible = await (await fetch(`${BASE}/comments?document=${parent.document}`)).json();
+      assert.deepEqual(visible.data, []);
+
+      await pool.query("UPDATE comments SET purge_after = NOW() - INTERVAL '1 minute' WHERE id = ANY($1)", [
+        [parent.id, reply.id],
+      ]);
+      await runRetention(pool, { retentionDays: 1, recoveryDays: 30 });
+      const purged = await pool.query("SELECT id FROM comments WHERE id = ANY($1)", [[parent.id, reply.id]]);
+      assert.equal(purged.rows.length, 0);
+    });
+
     it("status filters do not leak soft-deleted replies", async () => {
       const parent = await (
         await fetch(`${BASE}/comments`, {

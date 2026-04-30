@@ -19,16 +19,32 @@ async function softDeleteComment(pool, id, recoveryDays) {
   return rows[0] || null;
 }
 
+async function softDeleteRepliesOfDeletedParents(pool, recoveryDays) {
+  while (true) {
+    const result = await pool.query(
+      `UPDATE comments SET deleted_at = NOW(), purge_after = NOW() + ($1::text || ' days')::interval
+       WHERE deleted_at IS NULL
+       AND parent IN (SELECT id FROM comments WHERE deleted_at IS NOT NULL)`,
+      [recoveryDays],
+    );
+    if (result.rowCount === 0) break;
+  }
+}
+
 async function runRetention(pool, { retentionDays, recoveryDays } = retentionConfig()) {
   await pool.query(
-    `UPDATE comments SET deleted_at = NOW(), purge_after = NOW() + ($2::text || ' days')::interval
-     WHERE deleted_at IS NULL AND (
-       created_at < NOW() - ($1::text || ' days')::interval
-       OR parent IN (SELECT id FROM comments WHERE deleted_at IS NOT NULL)
-     )`,
+    "UPDATE comments SET deleted_at = NOW(), purge_after = NOW() + ($2::text || ' days')::interval WHERE deleted_at IS NULL AND created_at < NOW() - ($1::text || ' days')::interval",
     [retentionDays, recoveryDays],
   );
+  await softDeleteRepliesOfDeletedParents(pool, recoveryDays);
+  await pool.query("DELETE FROM comments WHERE deleted_at IS NOT NULL AND purge_after <= NOW() AND parent IS NOT NULL");
   await pool.query("DELETE FROM comments WHERE deleted_at IS NOT NULL AND purge_after <= NOW()");
 }
 
-module.exports = { ensureRetentionColumns, retentionConfig, runRetention, softDeleteComment };
+module.exports = {
+  ensureRetentionColumns,
+  retentionConfig,
+  runRetention,
+  softDeleteComment,
+  softDeleteRepliesOfDeletedParents,
+};

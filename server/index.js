@@ -288,7 +288,7 @@ app.get(
         ));
       } else {
         ({ rows } = await pool.query(
-          "SELECT * FROM comments WHERE document = $1 AND deleted_at IS NULL ORDER BY created_at ASC",
+          "SELECT * FROM comments WHERE document = $1 AND deleted_at IS NULL AND (parent IS NULL OR parent IN (SELECT id FROM comments WHERE deleted_at IS NULL)) ORDER BY created_at ASC",
           [resolvedDocId],
         ));
       }
@@ -301,7 +301,9 @@ app.get(
         [status],
       ));
     } else {
-      ({ rows } = await pool.query("SELECT * FROM comments WHERE deleted_at IS NULL ORDER BY created_at ASC"));
+      ({ rows } = await pool.query(
+        "SELECT * FROM comments WHERE deleted_at IS NULL AND (parent IS NULL OR parent IN (SELECT id FROM comments WHERE deleted_at IS NULL)) ORDER BY created_at ASC",
+      ));
     }
 
     let data = rows.map(formatComment);
@@ -403,7 +405,10 @@ app.post(
 app.get(
   "/comments/:id",
   asyncHandler(async (req, res) => {
-    const { rows } = await pool.query("SELECT * FROM comments WHERE id = $1 AND deleted_at IS NULL", [req.params.id]);
+    const { rows } = await pool.query(
+      "SELECT * FROM comments WHERE id = $1 AND deleted_at IS NULL AND (parent IS NULL OR parent IN (SELECT id FROM comments WHERE deleted_at IS NULL))",
+      [req.params.id],
+    );
     if (rows.length === 0) return res.status(404).json(errorResponse("Comment not found"));
     let comment = formatComment(rows[0]);
     const reactionsMap = await fetchReactionsForComments([comment.id]);
@@ -419,7 +424,10 @@ app.get(
 app.patch(
   "/comments/:id",
   asyncHandler(async (req, res) => {
-    const { rows } = await pool.query("SELECT * FROM comments WHERE id = $1 AND deleted_at IS NULL", [req.params.id]);
+    const { rows } = await pool.query(
+      "SELECT * FROM comments WHERE id = $1 AND deleted_at IS NULL AND (parent IS NULL OR parent IN (SELECT id FROM comments WHERE deleted_at IS NULL))",
+      [req.params.id],
+    );
     if (rows.length === 0) return res.status(404).json(errorResponse("Comment not found"));
 
     const { body, status, color } = req.body;

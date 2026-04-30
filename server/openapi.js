@@ -416,6 +416,8 @@ const spec = {
       delete: {
         operationId: "deleteComment",
         summary: "Soft-delete a comment and its replies",
+        description:
+          "Marks a comment thread as deleted. Soft-deleted comments are hidden from read/list/mutation paths and remain recoverable in the database until the configured purge window expires.",
         tags: ["comments"],
         "x-cli": {
           group: "comments",
