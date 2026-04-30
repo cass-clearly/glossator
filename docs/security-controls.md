@@ -1,30 +1,33 @@
 # Security controls
 
-## Access control
+This page separates controls Remarq provides today from controls the enterprise platform must provide around it.
 
-- Anonymous access disabled in enterprise deployments.
-- Okta SSO authenticates users.
-- RBAC gates read, create, edit-own, resolve, delete, and user-management actions.
+## Provided by Remarq
 
-## Transport and network
+- API persistence in PostgreSQL via `DATABASE_URL`
+- CORS allowlist via `ALLOWED_ORIGINS`
+- Security headers from Helmet
+- HMAC signatures on outbound webhook payloads
+- Health check at `/health`
 
-- HTTPS-only with TLS 1.2+ at the internal reverse proxy.
-- Remarq is reachable only from VPN/corporate network paths.
-- Postgres is private to Remarq and operator networks.
+## Required external controls
 
-## Data protection
+### Access control
 
-- PostgreSQL encryption at rest is required.
-- Daily encrypted backups are required.
-- Comment retention and soft-delete recovery windows are configurable.
+Place Remarq behind an SSO-aware reverse proxy, identity-aware proxy, or VPN/corporate network gateway. The proxy must reject anonymous traffic before it reaches Remarq.
 
-## Auditability
+### Transport and network
 
-- Comment create/update/status/delete events are logged.
-- Document access is logged.
-- Audit events include actor, action, target, metadata, and timestamp.
-- Audit logs retain for at least 90 days.
+Terminate TLS 1.2+ at an internal proxy or load balancer. Restrict inbound access to VPN/corporate networks. Keep PostgreSQL private to Remarq and operator networks.
+
+### Data protection
+
+Enable PostgreSQL/storage encryption at rest. Configure encrypted backups and periodic restore tests in the database platform.
+
+### Auditability
+
+Collect access logs from the reverse proxy, identity provider, deployment platform, and PostgreSQL. Retain those logs according to the organization's audit policy.
 
 ## Verification
 
-Operators should verify these controls before production approval and after any deployment topology change.
+Operators should verify each control at its enforcement point before production approval and after any topology change.
