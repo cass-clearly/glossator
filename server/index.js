@@ -15,13 +15,7 @@ const { triggerEvent } = require("./webhooks.js");
 const { registerWebhookRoutes } = require("./webhook-routes.js");
 const path = require("path");
 const openApiSpec = require("./openapi.js");
-const {
-  actorFromRequest,
-  ensureAuditLogTable,
-  formatAuditEvent,
-  purgeAuditEvents,
-  recordAuditEvent,
-} = require("./audit-log.js");
+const { actorFromRequest, ensureAuditLogTable, purgeAuditEvents, recordAuditEvent } = require("./audit-log.js");
 
 const app = express();
 const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(",") : ["http://localhost:3333"];
@@ -214,8 +208,16 @@ app.get("/health", (_req, res) => {
 
 app.get(
   "/documents",
-  asyncHandler(async (_req, res) => {
+  asyncHandler(async (req, res) => {
     const { rows } = await pool.query("SELECT * FROM documents ORDER BY created_at ASC");
+    for (const row of rows) {
+      await recordAuditEvent(pool, {
+        actor: actorFromRequest(req),
+        action: "document.accessed",
+        target: row.id,
+        metadata: { uri: row.uri, source: "documents.list" },
+      });
+    }
     res.json(listResponse(rows.map(formatDocument)));
   }),
 );
@@ -257,17 +259,6 @@ app.delete(
     const { rows } = await pool.query("DELETE FROM documents WHERE id = $1 RETURNING *", [req.params.id]);
     if (rows.length === 0) return res.status(404).json(errorResponse("Document not found"));
     res.json(formatDocument(rows[0]));
-  }),
-);
-
-// ── Audit endpoints ───────────────────────────────────────────────
-
-app.get(
-  "/audit-events",
-  asyncHandler(async (req, res) => {
-    const limit = Math.min(Number(req.query.limit) || 100, 500);
-    const { rows } = await pool.query("SELECT * FROM audit_events ORDER BY created_at DESC LIMIT $1", [limit]);
-    res.json(listResponse(rows.map(formatAuditEvent)));
   }),
 );
 
@@ -332,6 +323,15 @@ app.get(
         target: resolvedDocId,
         metadata: { source: "comments.list" },
       });
+    } else {
+      for (const documentId of [...new Set(rows.map((row) => row.document))]) {
+        await recordAuditEvent(pool, {
+          actor: actorFromRequest(req),
+          action: "document.accessed",
+          target: documentId,
+          metadata: { source: "comments.list" },
+        });
+      }
     }
 
     let data = rows.map(formatComment);
@@ -498,7 +498,7 @@ app.patch(
     const formatted = formatComment(updated.rows[0]);
     await recordAuditEvent(pool, {
       actor: actorFromRequest(req),
-      action: body !== undefined || color !== undefined ? "comment.updated" : "comment.status_changed",
+      action: "comment.updated",
       target: formatted.id,
       metadata: { document: formatted.document, status: formatted.status },
     });

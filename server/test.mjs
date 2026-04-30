@@ -1285,6 +1285,63 @@ describe("API", async () => {
     });
   });
 
+  // ── Audit logging ──────────────────────────────────────────────
+
+  describe("audit logging", () => {
+    async function latestAudit(action) {
+      const { rows } = await pool.query(
+        "SELECT * FROM audit_events WHERE action = $1 ORDER BY created_at DESC LIMIT 1",
+        [action],
+      );
+      return rows[0];
+    }
+
+    it("records comment create, update, delete, and document access events", async () => {
+      const create = await fetch(`${BASE}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Remarq-User": "alice@example.com" },
+        body: JSON.stringify({ uri: "https://example.com/audit", quote: "q", body: "b", author: "alice" }),
+      });
+      const comment = await create.json();
+
+      const created = await latestAudit("comment.created");
+      assert.equal(created.actor, "alice@example.com");
+      assert.equal(created.target, comment.id);
+      assert.ok(created.created_at);
+
+      await fetch(`${BASE}/comments/${comment.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", "X-Remarq-User": "alice@example.com" },
+        body: JSON.stringify({ body: "updated", status: "closed" }),
+      });
+      const updated = await latestAudit("comment.updated");
+      assert.equal(updated.target, comment.id);
+      assert.equal(updated.metadata.status, "closed");
+
+      await fetch(`${BASE}/comments/${comment.id}`, { headers: { "X-Remarq-User": "bob@example.com" } });
+      const accessed = await latestAudit("document.accessed");
+      assert.equal(accessed.actor, "bob@example.com");
+      assert.equal(accessed.target, comment.document);
+
+      await fetch(`${BASE}/comments/${comment.id}`, {
+        method: "DELETE",
+        headers: { "X-Remarq-User": "alice@example.com" },
+      });
+      const deleted = await latestAudit("comment.deleted");
+      assert.equal(deleted.target, comment.id);
+    });
+
+    it("purges audit events older than the 90-day minimum", async () => {
+      await pool.query(
+        "INSERT INTO audit_events (actor, action, target, created_at) VALUES ('a', 'comment.created', 'old', NOW() - INTERVAL '91 days')",
+      );
+      const { purgeAuditEvents } = await import("./audit-log.js");
+      await purgeAuditEvents(pool, 1);
+      const { rows } = await pool.query("SELECT * FROM audit_events WHERE target = 'old'");
+      assert.equal(rows.length, 0);
+    });
+  });
+
   // ── Reactions ────────────────────────────────────────────────────
 
   describe("POST /comments/:id/reactions", () => {

@@ -52,12 +52,6 @@ When deployed, replace with your server's URL.
 
 ## Endpoints
 
-### Audit Events
-
-#### `GET /audit-events?limit=100`
-
-Lists newest audit events. Each record includes `actor`, `action`, `target`, `metadata`, and `created_at`.
-
 ### Health Check
 
 #### `GET /health`
