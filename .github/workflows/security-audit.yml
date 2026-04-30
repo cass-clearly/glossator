@@ -1,0 +1,28 @@
+name: Security audit
+
+on:
+  pull_request:
+  schedule:
+    - cron: "17 9 * * 1"
+  workflow_dispatch:
+
+jobs:
+  npm-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Audit production dependencies for every lockfile
+        run: |
+          set -euo pipefail
+          git ls-files 'package-lock.json' '*/package-lock.json' | while read -r lockfile; do
+            prefix="$(dirname "$lockfile")"
+            if [ "$prefix" = "." ]; then
+              npm audit --audit-level=high --omit=dev
+            else
+              npm audit --audit-level=high --omit=dev --prefix "$prefix"
+            fi
+          done

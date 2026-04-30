@@ -122,6 +122,10 @@ npm install --prefix server
 DATABASE_URL=postgres://user:pass@localhost:5432/remarq node server/index.js
 ```
 
+## Maintenance
+
+Update cadence, patch handling, and vulnerability scanning are documented in [docs/maintenance-plan.md](docs/maintenance-plan.md).
+
 ## OpenAPI Spec
 
 The server exposes a machine-readable OpenAPI 3.0 spec at:

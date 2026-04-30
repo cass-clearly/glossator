@@ -24,9 +24,6 @@ Thumbs.db
 # Test coverage
 coverage/
 
-# Agent loop (reference impl — users install their own deps)
-agent-loop/package-lock.json
-
 # Temp files
 *.tmp.*
 .ralph/
