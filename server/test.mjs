@@ -104,24 +104,6 @@ describe("sanitize", async () => {
   });
 });
 
-describe("transport-security", async () => {
-  const { isHttpsRequired, isSecureRequest } = await import("./transport-security.js");
-
-  it("requires HTTPS only when configured", () => {
-    assert.equal(isHttpsRequired({ REMARQ_ENFORCE_HTTPS: "true" }), true);
-    assert.equal(isHttpsRequired({}), false);
-  });
-
-  it("trusts secure requests and x-forwarded-proto", () => {
-    assert.equal(isSecureRequest({ secure: true, get: () => null }), true);
-    assert.equal(
-      isSecureRequest({ secure: false, get: (name) => (name === "x-forwarded-proto" ? "https" : null) }),
-      true,
-    );
-    assert.equal(isSecureRequest({ secure: false, get: () => "http" }), false);
-  });
-});
-
 describe("validate-color", async () => {
   const { validateColor } = await import("./validate-color.js");
 

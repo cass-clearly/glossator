@@ -50,21 +50,23 @@ The `.env` file is read automatically by Docker Compose. Use a strong, random pa
 
 ### Environment variables
 
-| Variable            | Default                                    | Description                                 |
-| ------------------- | ------------------------------------------ | ------------------------------------------- |
-| `DATABASE_URL`      | `postgresql://postgres@localhost/postgres` | PostgreSQL connection string                |
-| `PORT`              | `3333`                                     | Port the server listens on                  |
-| `POSTGRES_PASSWORD` | _(required in Docker)_                     | Password for the bundled Postgres container |
+| Variable            | Default                                    | Description                                            |
+| ------------------- | ------------------------------------------ | ------------------------------------------------------ |
+| `DATABASE_URL`      | `postgresql://postgres@localhost/postgres` | PostgreSQL connection string                           |
+| `PORT`              | `3333`                                     | Port the server listens on                             |
+| `HOST`              | `0.0.0.0`                                  | Bind host; use loopback/private networks in production |
+| `POSTGRES_PASSWORD` | _(required in Docker)_                     | Password for the bundled Postgres container            |
 
 ### Reverse proxy (HTTPS)
 
-In production, put Remarq behind a reverse proxy that terminates TLS.
+In production, put Remarq behind a reverse proxy that terminates TLS 1.2+ and keep Remarq bound to loopback/private networks. See [transport security](transport-security.md).
 
 **Nginx:**
 
 ```nginx
 server {
     listen 443 ssl;
+    ssl_protocols TLSv1.2 TLSv1.3;
     server_name remarq.example.com;
 
     ssl_certificate     /etc/letsencrypt/live/remarq.example.com/fullchain.pem;

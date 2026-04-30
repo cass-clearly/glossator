@@ -29,6 +29,7 @@
 
 ### Security
 
+- Documented the supported HTTPS-only deployment posture with TLS 1.2+ termination at an internal reverse proxy.
 - CORS now restricted to trusted origins via `ALLOWED_ORIGINS` env var (previously allowed all origins)
 
 ### Docs

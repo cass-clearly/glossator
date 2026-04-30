@@ -1,20 +1,12 @@
 # HTTPS and TLS
 
-Production Remarq deployments must be HTTPS-only. The supported pattern is TLS termination at an internal load balancer or reverse proxy, then HTTP from the proxy to Remarq on a private loopback/container network.
+Production Remarq deployments must be HTTPS-only. Remarq does not terminate TLS itself; the supported pattern is:
 
-## Required settings
-
-```bash
-REMARQ_ENFORCE_HTTPS=true
+```text
+client -> internal TLS 1.2+ reverse proxy -> Remarq on loopback/private network
 ```
 
-When enabled, Remarq rejects requests unless Express marks them secure or the trusted proxy sets:
-
-```http
-X-Forwarded-Proto: https
-```
-
-HTTP requests receive `426 HTTPS required`; there is no insecure fallback.
+The reverse proxy owns certificate selection, TLS protocol policy, and HTTP redirect/reject behavior. Remarq must not be directly reachable from untrusted networks.
 
 ## TLS 1.2+ reverse proxy example
 
@@ -44,10 +36,19 @@ server {
 ## Verification
 
 ```bash
+# Public HTTP redirects to HTTPS at the proxy.
 curl -I http://remarq.internal.example.com/health
-curl --tlsv1.2 -I https://remarq.internal.example.com/health
-openssl s_client -connect remarq.internal.example.com:443 -tls1_1
-# must fail
-```
+# Expected: HTTP/1.1 301 Moved Permanently with Location: https://...
 
-Closes #277.
+# TLS 1.2 succeeds.
+curl --tlsv1.2 -I https://remarq.internal.example.com/health
+# Expected: HTTP/2 200 or HTTP/1.1 200 OK
+
+# TLS 1.1 fails.
+openssl s_client -connect remarq.internal.example.com:443 -tls1_1
+# Expected: handshake failure
+
+# Remarq is not publicly reachable without the proxy.
+ss -ltnp | grep 3333
+# Expected on a single-host deployment: 127.0.0.1:3333, not 0.0.0.0:3333
+```
