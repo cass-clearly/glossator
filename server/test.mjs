@@ -364,6 +364,137 @@ describe("API", async () => {
     });
   });
 
+  // ── Authentication ────────────────────────────────────────────
+
+  function setAuthEnv(values) {
+    const keys = [
+      "REMARQ_AUTH_REQUIRED",
+      "REMARQ_TRUSTED_AUTH_HEADER",
+      "OKTA_ISSUER",
+      "OKTA_CLIENT_ID",
+      "OKTA_CLIENT_SECRET",
+      "OKTA_REDIRECT_URI",
+    ];
+    const previous = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
+    for (const key of keys) delete process.env[key];
+    Object.assign(process.env, values);
+    return () => {
+      for (const key of keys) {
+        if (previous[key] === undefined) delete process.env[key];
+        else process.env[key] = previous[key];
+      }
+    };
+  }
+
+  describe("authentication", () => {
+    it("rejects anonymous protected API requests before parsing JSON", async () => {
+      const restore = setAuthEnv({ REMARQ_AUTH_REQUIRED: "true", REMARQ_TRUSTED_AUTH_HEADER: "X-Remarq-User" });
+      try {
+        const res = await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: "{not json",
+        });
+        assert.equal(res.status, 401);
+        const json = await res.json();
+        assert.equal(json.error.message, "Authentication required");
+      } finally {
+        restore();
+      }
+    });
+
+    it("allows trusted-header authenticated API requests", async () => {
+      const restore = setAuthEnv({ REMARQ_AUTH_REQUIRED: "true", REMARQ_TRUSTED_AUTH_HEADER: "X-Remarq-User" });
+      try {
+        const res = await fetch(`${BASE}/comments`, { headers: { "X-Remarq-User": "alice@example.com" } });
+        assert.equal(res.status, 200);
+      } finally {
+        restore();
+      }
+    });
+
+    it("redirects login to Okta and sets oauth state", async () => {
+      const restore = setAuthEnv({
+        REMARQ_AUTH_REQUIRED: "true",
+        OKTA_ISSUER: "https://okta.example/oauth2/default",
+        OKTA_CLIENT_ID: "client",
+        OKTA_CLIENT_SECRET: "secret",
+        OKTA_REDIRECT_URI: `${BASE}/auth/callback`,
+      });
+      try {
+        const res = await fetch(`${BASE}/login`, { redirect: "manual" });
+        assert.equal(res.status, 302);
+        assert.ok(res.headers.get("set-cookie").includes("remarq_oauth_state="));
+        assert.ok(res.headers.get("location").startsWith("https://okta.example/oauth2/default/v1/authorize?"));
+      } finally {
+        restore();
+      }
+    });
+
+    it("rejects invalid Okta callback state", async () => {
+      const restore = setAuthEnv({
+        REMARQ_AUTH_REQUIRED: "true",
+        OKTA_ISSUER: "https://okta.example/oauth2/default",
+        OKTA_CLIENT_ID: "client",
+        OKTA_CLIENT_SECRET: "secret",
+        OKTA_REDIRECT_URI: `${BASE}/auth/callback`,
+      });
+      try {
+        const res = await fetch(`${BASE}/auth/callback?code=abc&state=bad`, {
+          headers: { Cookie: "remarq_oauth_state=good" },
+        });
+        assert.equal(res.status, 400);
+      } finally {
+        restore();
+      }
+    });
+
+    it("rejects anonymous WebSocket upgrades when auth is required", async () => {
+      const restore = setAuthEnv({ REMARQ_AUTH_REQUIRED: "true", REMARQ_TRUSTED_AUTH_HEADER: "X-Remarq-User" });
+      try {
+        await assert.rejects(
+          () =>
+            new Promise((resolve, reject) => {
+              const ws = new WebSocket(BASE.replace("http", "ws") + "/ws");
+              ws.on("open", () => {
+                ws.close();
+                resolve();
+              });
+              ws.on("error", reject);
+            }),
+          /401/,
+        );
+      } finally {
+        restore();
+      }
+    });
+
+    it("allows authenticated WebSocket upgrades", async () => {
+      const restore = setAuthEnv({ REMARQ_AUTH_REQUIRED: "true", REMARQ_TRUSTED_AUTH_HEADER: "X-Remarq-User" });
+      try {
+        const docRes = await fetch(`${BASE}/documents`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Remarq-User": "alice@example.com" },
+          body: JSON.stringify({ uri: "https://example.com/auth-ws" }),
+        });
+        const doc = await docRes.json();
+        const ws = new WebSocket(BASE.replace("http", "ws") + "/ws", {
+          headers: { "X-Remarq-User": "alice@example.com" },
+        });
+        try {
+          await new Promise((resolve) => ws.once("open", resolve));
+          ws.send(JSON.stringify({ type: "subscribe", documentId: doc.id }));
+          const message = await new Promise((resolve) => ws.once("message", (data) => resolve(JSON.parse(data))));
+          assert.equal(message.type, "subscribed");
+        } finally {
+          ws.close();
+        }
+      } finally {
+        restore();
+      }
+    });
+  });
+
   // ── Documents ─────────────────────────────────────────────────
 
   describe("GET /documents", () => {

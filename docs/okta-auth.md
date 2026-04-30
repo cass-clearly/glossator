@@ -2,6 +2,14 @@
 
 Remarq can require Okta SSO before serving the UI or API.
 
+## Okta application setup
+
+Create an Okta OIDC application with:
+
+- Authorization Code flow enabled
+- Redirect URI exactly matching `OKTA_REDIRECT_URI`
+- Scopes: `openid profile email`
+
 ## Required configuration
 
 Set these environment variables in production:
@@ -13,6 +21,8 @@ OKTA_CLIENT_ID=...
 OKTA_CLIENT_SECRET=...
 OKTA_REDIRECT_URI=https://remarq.internal.example.com/auth/callback
 REMARQ_SESSION_TIMEOUT_MINUTES=480
+REMARQ_POST_LOGIN_REDIRECT=/
+OKTA_TIMEOUT_MS=10000
 ```
 
 When authentication is enabled:
@@ -46,5 +56,3 @@ curl -i https://remarq.internal.example.com/login
 # HTTP/1.1 302 Found
 # Location: https://your-org.okta.com/oauth2/default/v1/authorize?...
 ```
-
-Closes #275.

@@ -1,12 +1,27 @@
 const crypto = require("crypto");
 
 const DEFAULT_SESSION_TIMEOUT_MS = 8 * 60 * 60 * 1000;
-const PUBLIC_PATHS = new Set(["/health", "/login", "/auth/callback", "/openapi.json"]);
+const DEFAULT_OKTA_TIMEOUT_MS = 10000;
+const PUBLIC_PATHS = new Set(["/health", "/login", "/auth/callback"]);
 
 function isAuthRequired(env = process.env) {
   return (
     env.REMARQ_AUTH_REQUIRED === "true" || Boolean(env.OKTA_ISSUER && env.OKTA_CLIENT_ID && env.OKTA_CLIENT_SECRET)
   );
+}
+
+function hasOktaConfig(env = process.env) {
+  return Boolean(env.OKTA_ISSUER && env.OKTA_CLIENT_ID && env.OKTA_CLIENT_SECRET && env.OKTA_REDIRECT_URI);
+}
+
+function hasTrustedHeaderConfig(env = process.env) {
+  return Boolean(env.REMARQ_TRUSTED_AUTH_HEADER);
+}
+
+function authConfigError(env = process.env) {
+  if (!isAuthRequired(env)) return null;
+  if (hasOktaConfig(env) || hasTrustedHeaderConfig(env)) return null;
+  return "Authentication requires Okta settings or REMARQ_TRUSTED_AUTH_HEADER";
 }
 
 function sessionTimeoutMs(env = process.env) {
@@ -15,16 +30,25 @@ function sessionTimeoutMs(env = process.env) {
 }
 
 function parseCookies(header = "") {
-  return Object.fromEntries(
-    header
-      .split(";")
-      .map((part) => part.trim())
-      .filter(Boolean)
-      .map((part) => {
-        const index = part.indexOf("=");
-        return [part.slice(0, index), decodeURIComponent(part.slice(index + 1))];
-      }),
-  );
+  const cookies = {};
+  for (const rawPart of header.split(";")) {
+    const part = rawPart.trim();
+    if (!part) continue;
+    const index = part.indexOf("=");
+    if (index <= 0) continue;
+    try {
+      cookies[part.slice(0, index)] = decodeURIComponent(part.slice(index + 1));
+    } catch {
+      cookies[part.slice(0, index)] = part.slice(index + 1);
+    }
+  }
+  return cookies;
+}
+
+function requestHeader(req, name) {
+  if (typeof req.get === "function") return req.get(name);
+  const lower = name.toLowerCase();
+  return req.headers?.[lower];
 }
 
 function createSessionStore() {
@@ -63,8 +87,19 @@ function oktaAuthorizeUrl(env = process.env, state) {
   return `${issuer}/v1/authorize?${params.toString()}`;
 }
 
-async function exchangeOktaCode(code, env = process.env) {
+async function fetchWithTimeout(url, options = {}, timeoutMs = DEFAULT_OKTA_TIMEOUT_MS) {
+  const controller = new globalThis.AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function exchangeOktaCode(code, env = process.env, { fetchFn = fetchWithTimeout } = {}) {
   const issuer = env.OKTA_ISSUER?.replace(/\/$/, "");
+  const timeoutMs = Number(env.OKTA_TIMEOUT_MS || DEFAULT_OKTA_TIMEOUT_MS);
   const body = new URLSearchParams({
     grant_type: "authorization_code",
     code,
@@ -72,14 +107,22 @@ async function exchangeOktaCode(code, env = process.env) {
     client_id: env.OKTA_CLIENT_ID,
     client_secret: env.OKTA_CLIENT_SECRET,
   });
-  const tokenRes = await fetch(`${issuer}/v1/token`, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body,
-  });
+  const tokenRes = await fetchFn(
+    `${issuer}/v1/token`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body,
+    },
+    timeoutMs,
+  );
   if (!tokenRes.ok) throw new Error(`Okta token exchange failed: ${tokenRes.status}`);
   const token = await tokenRes.json();
-  const userRes = await fetch(`${issuer}/v1/userinfo`, { headers: { Authorization: `Bearer ${token.access_token}` } });
+  const userRes = await fetchFn(
+    `${issuer}/v1/userinfo`,
+    { headers: { Authorization: `Bearer ${token.access_token}` } },
+    timeoutMs,
+  );
   if (!userRes.ok) throw new Error(`Okta userinfo failed: ${userRes.status}`);
   const profile = await userRes.json();
   return {
@@ -89,30 +132,44 @@ async function exchangeOktaCode(code, env = process.env) {
   };
 }
 
+function authenticateRequest(req, { env = process.env, store = createSessionStore() } = {}) {
+  if (!isAuthRequired(env)) return { authenticated: true, user: null };
+
+  const trustedHeader = env.REMARQ_TRUSTED_AUTH_HEADER;
+  const trustedUser = trustedHeader && requestHeader(req, trustedHeader);
+  if (trustedUser) {
+    return { authenticated: true, user: { id: trustedUser, email: trustedUser, name: trustedUser } };
+  }
+
+  const cookies = parseCookies(req.headers?.cookie || "");
+  const user = cookies.remarq_session ? store.get(cookies.remarq_session) : null;
+  if (user) return { authenticated: true, user };
+  return { authenticated: false, user: null };
+}
+
 function createAuthMiddleware({ env = process.env, store = createSessionStore() } = {}) {
   return async function authMiddleware(req, res, next) {
-    if (!isAuthRequired(env) || PUBLIC_PATHS.has(req.path) || req.path.startsWith("/serve/")) return next();
-
-    const trustedUser = env.REMARQ_TRUSTED_AUTH_HEADER && req.get(env.REMARQ_TRUSTED_AUTH_HEADER);
-    if (trustedUser) {
-      req.user = { id: trustedUser, email: trustedUser, name: trustedUser };
+    if (PUBLIC_PATHS.has(req.path)) return next();
+    const configError = authConfigError(env);
+    if (configError) return res.status(500).json({ error: { message: configError } });
+    const result = authenticateRequest(req, { env, store });
+    if (result.authenticated) {
+      req.user = result.user;
       return next();
     }
-
-    const cookies = parseCookies(req.headers.cookie || "");
-    const user = cookies.remarq_session ? store.get(cookies.remarq_session) : null;
-    if (user) {
-      req.user = user;
-      return next();
-    }
-
     return res.status(401).json({ error: { message: "Authentication required" } });
   };
 }
 
-function registerAuthRoutes(app, { env = process.env, store = createSessionStore() } = {}) {
+function registerAuthRoutes(
+  app,
+  { env = process.env, store = createSessionStore(), codeExchanger = exchangeOktaCode } = {},
+) {
   app.get("/login", (req, res) => {
     if (!isAuthRequired(env)) return res.status(204).end();
+    const configError = authConfigError(env);
+    if (configError) return res.status(500).json({ error: { message: configError } });
+    if (!hasOktaConfig(env)) return res.status(404).json({ error: { message: "Okta login is not configured" } });
     const state = crypto.randomBytes(16).toString("base64url");
     res.cookie("remarq_oauth_state", state, { httpOnly: true, sameSite: "lax", secure: env.NODE_ENV === "production" });
     res.redirect(oktaAuthorizeUrl(env, state));
@@ -120,11 +177,13 @@ function registerAuthRoutes(app, { env = process.env, store = createSessionStore
 
   app.get("/auth/callback", async (req, res, next) => {
     try {
+      const configError = authConfigError(env);
+      if (configError) return res.status(500).json({ error: { message: configError } });
       const cookies = parseCookies(req.headers.cookie || "");
       if (!req.query.code || !req.query.state || req.query.state !== cookies.remarq_oauth_state) {
         return res.status(400).json({ error: { message: "Invalid Okta callback" } });
       }
-      const user = await exchangeOktaCode(req.query.code, env);
+      const user = await codeExchanger(req.query.code, env);
       const sid = store.create(user, sessionTimeoutMs(env));
       res.cookie("remarq_session", sid, {
         httpOnly: true,
@@ -141,9 +200,13 @@ function registerAuthRoutes(app, { env = process.env, store = createSessionStore
 }
 
 module.exports = {
+  authenticateRequest,
+  authConfigError,
   createAuthMiddleware,
   createSessionStore,
   exchangeOktaCode,
+  fetchWithTimeout,
+  hasOktaConfig,
   isAuthRequired,
   oktaAuthorizeUrl,
   parseCookies,
