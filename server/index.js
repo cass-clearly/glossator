@@ -647,10 +647,14 @@ function handleWsConnection(ws) {
 
 // ── Start server ────────────────────────────────────────────────────
 
+function shouldInitSchema(env = process.env) {
+  return env.REMARQ_SKIP_SCHEMA_INIT !== "true";
+}
+
 async function start(options = {}) {
   const port = options.port !== undefined ? options.port : process.env.PORT || 3333;
   const host = options.host || "0.0.0.0";
-  await initSchema();
+  if (shouldInitSchema()) await initSchema();
 
   const server = http.createServer(app);
   const wss = new WebSocketServer({ noServer: true });
@@ -689,4 +693,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { start, app, pool, initSchema };
+module.exports = { start, app, pool, initSchema, shouldInitSchema };

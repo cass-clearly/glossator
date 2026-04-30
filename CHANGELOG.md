@@ -29,6 +29,7 @@
 
 ### Security
 
+- Added `REMARQ_SKIP_SCHEMA_INIT` for hardened Postgres deployments that separate schema bootstrap from no-DDL runtime roles.
 - CORS now restricted to trusted origins via `ALLOWED_ORIGINS` env var (previously allowed all origins)
 
 ### Docs

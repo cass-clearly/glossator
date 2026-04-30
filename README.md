@@ -97,7 +97,7 @@ Configure via `data-` attributes on the script tag:
 
 ## Production
 
-### Docker Compose (recommended)
+### Docker Compose (local/simple deployments)
 
 Create a `.env` file next to `docker-compose.remarq.yml` (docker compose reads it automatically):
 
@@ -124,7 +124,7 @@ DATABASE_URL=postgres://user:pass@localhost:5432/remarq node server/index.js
 
 ## Enterprise security
 
-PostgreSQL deployments must use encryption at rest, daily backups, and least-privilege roles. See [docs/postgres-hardening.md](docs/postgres-hardening.md).
+PostgreSQL deployments must use encryption at rest, daily backups, and a bootstrap/runtime role split. See [docs/postgres-hardening.md](docs/postgres-hardening.md).
 
 ## OpenAPI Spec
 

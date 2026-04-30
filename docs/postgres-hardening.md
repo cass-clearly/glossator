@@ -37,20 +37,40 @@ psql remarq_restore_test -c 'select count(*) from documents;'
 
 ## Least privilege
 
-Create separate owner and runtime roles. The application should connect as the runtime role, not a superuser.
+Remarq normally initializes and migrates its schema at startup. Hardened deployments should split that into two phases:
+
+1. **Bootstrap/migration phase** — run Remarq once with an owner or migration role so `initSchema()` can create/alter tables.
+2. **Runtime phase** — run Remarq with `REMARQ_SKIP_SCHEMA_INIT=true` and a runtime role that has no schema DDL privileges.
+
+Owner/bootstrap role:
 
 ```sql
-CREATE ROLE remarq_owner NOLOGIN;
-CREATE ROLE remarq_app LOGIN PASSWORD 'change-me';
+CREATE ROLE remarq_owner LOGIN PASSWORD 'change-owner-password';
 CREATE DATABASE remarq OWNER remarq_owner;
+```
 
+Runtime role after bootstrap:
+
+```sql
+CREATE ROLE remarq_app LOGIN PASSWORD 'change-runtime-password';
 GRANT CONNECT ON DATABASE remarq TO remarq_app;
-GRANT USAGE, CREATE ON SCHEMA public TO remarq_app;
+GRANT USAGE ON SCHEMA public TO remarq_app;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO remarq_app;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO remarq_app;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO remarq_app;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO remarq_app;
+ALTER DEFAULT PRIVILEGES FOR ROLE remarq_owner IN SCHEMA public
+  GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO remarq_app;
+ALTER DEFAULT PRIVILEGES FOR ROLE remarq_owner IN SCHEMA public
+  GRANT USAGE, SELECT ON SEQUENCES TO remarq_app;
 ```
+
+Runtime environment:
+
+```bash
+DATABASE_URL=postgres://remarq_app:...@postgres/remarq
+REMARQ_SKIP_SCHEMA_INIT=true
+```
+
+Do not grant `CREATE` or `ALTER` on `public` to the runtime role. Use the owner role only for controlled bootstrap/migration windows.
 
 ## Operator checklist
 
@@ -58,7 +78,7 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO re
 - [ ] Backups/snapshots encrypted
 - [ ] Daily backups configured
 - [ ] Restore tested and documented
-- [ ] Remarq connects with a non-superuser runtime role
+- [ ] Schema bootstrapped with owner/migration credentials
+- [ ] Remarq runtime uses `REMARQ_SKIP_SCHEMA_INIT=true`
+- [ ] Remarq connects with a non-superuser, no-DDL runtime role
 - [ ] Postgres accepts connections only from Remarq and operator networks
-
-Closes #281.
