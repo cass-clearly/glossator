@@ -298,6 +298,7 @@ Delete a document and all its comments.
 **Status Codes:**
 
 - `200 OK` — Document deleted
+- `403 Forbidden` — Current actor cannot delete documents
 - `404 Not Found` — Document not found
 
 **Example:**
@@ -464,6 +465,7 @@ Create a new comment or reply.
 
 - `201 Created` — Comment created
 - `400 Bad Request` — Missing required fields or invalid data
+- `403 Forbidden` — Current actor cannot create comments
 - `404 Not Found` — Referenced document ID does not exist
 
 **Error Responses:**
@@ -640,6 +642,7 @@ Update a comment's body or status.
 
 - `200 OK` — Comment updated
 - `400 Bad Request` — Invalid status value or attempting to set status on a reply
+- `403 Forbidden` — Current actor cannot edit or resolve this comment
 - `404 Not Found` — Comment not found
 
 **Error Responses:**
@@ -714,6 +717,7 @@ Delete a comment and all its replies.
 **Status Codes:**
 
 - `200 OK` — Comment deleted
+- `403 Forbidden` — Current actor cannot delete comments
 - `404 Not Found` — Comment not found
 
 **Example:**
