@@ -270,19 +270,24 @@ app.get(
 app.delete(
   "/documents/:id",
   asyncHandler(async (req, res) => {
-    const deletedComments = await pool.query("SELECT * FROM comments WHERE document = $1", [req.params.id]);
-    await pool.query("DELETE FROM comments WHERE document = $1", [req.params.id]);
-    for (const comment of deletedComments.rows) {
-      await recordAuditEvent(pool, {
-        actor: actorFromRequest(req),
-        action: "comment.deleted",
-        target: comment.id,
-        metadata: { document: comment.document, source: "document.delete" },
-      });
-    }
-    const { rows } = await pool.query("DELETE FROM documents WHERE id = $1 RETURNING *", [req.params.id]);
-    if (rows.length === 0) return res.status(404).json(errorResponse("Document not found"));
-    res.json(formatDocument(rows[0]));
+    const deleted = await withTransaction(async (client) => {
+      const deletedComments = await client.query("DELETE FROM comments WHERE document = $1 RETURNING *", [
+        req.params.id,
+      ]);
+      const { rows } = await client.query("DELETE FROM documents WHERE id = $1 RETURNING *", [req.params.id]);
+      if (rows.length === 0) return { document: null };
+      for (const comment of deletedComments.rows) {
+        await recordAuditEvent(client, {
+          actor: actorFromRequest(req),
+          action: "comment.deleted",
+          target: comment.id,
+          metadata: { document: comment.document, source: "document.delete" },
+        });
+      }
+      return { document: rows[0] };
+    });
+    if (!deleted.document) return res.status(404).json(errorResponse("Document not found"));
+    res.json(formatDocument(deleted.document));
   }),
 );
 

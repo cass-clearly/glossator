@@ -16,6 +16,21 @@ Audit events are retained for at least 90 days. `REMARQ_AUDIT_RETENTION_DAYS` ca
 ## Verification
 
 ```bash
-curl -H 'X-Remarq-User: alice' https://remarq.internal/comments/cmt_123
-psql "$DATABASE_URL" -c "select actor, action, target, created_at from audit_events order by created_at desc limit 5;"
+# Create a comment.
+COMMENT=$(curl -s -X POST http://localhost:3333/comments \
+  -H 'Content-Type: application/json' \
+  -H 'X-Remarq-User: alice@example.com' \
+  -d '{"uri":"https://example.com/audit","quote":"text","body":"hello","author":"alice"}')
+COMMENT_ID=$(echo "$COMMENT" | jq -r '.id')
+
+# Access, update, and delete it.
+curl -s -H 'X-Remarq-User: bob@example.com' "http://localhost:3333/comments/$COMMENT_ID" >/dev/null
+curl -s -X PATCH "http://localhost:3333/comments/$COMMENT_ID" \
+  -H 'Content-Type: application/json' \
+  -H 'X-Remarq-User: alice@example.com' \
+  -d '{"body":"updated"}' >/dev/null
+curl -s -X DELETE -H 'X-Remarq-User: alice@example.com' "http://localhost:3333/comments/$COMMENT_ID" >/dev/null
+
+# Verify audit rows.
+psql "$DATABASE_URL" -c "select actor, action, target, created_at from audit_events order by created_at desc limit 10;"
 ```
