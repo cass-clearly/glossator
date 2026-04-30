@@ -428,6 +428,13 @@ describe("API", async () => {
         headers: { "X-Remarq-User": "alice@example.com" },
       });
       assert.equal(deleteDoc.status, 403);
+
+      const webhook = await fetch(`${BASE}/webhooks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Remarq-User": "alice@example.com" },
+        body: JSON.stringify({ url: "https://example.com/hook", secret: "secret", events: ["comment.created"] }),
+      });
+      assert.equal(webhook.status, 403);
     });
   });
 

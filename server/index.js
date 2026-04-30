@@ -581,6 +581,7 @@ app.delete(
 
 // ── Webhook endpoints ───────────────────────────────────────────────
 
+app.use("/webhooks", requirePermission("users:manage"));
 registerWebhookRoutes(app, pool, asyncHandler);
 
 // ── Static files ────────────────────────────────────────────────────
