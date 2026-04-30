@@ -56,11 +56,48 @@ When deployed, replace with your server's URL.
 
 #### `GET /me/permissions`
 
-Returns the current actor's role and permissions.
+Returns the current actor's role and permissions. In trusted-header deployments, the actor is identified by `X-Remarq-User` or `X-Forwarded-User`.
+
+**Response:**
+
+```json
+{
+  "object": "user",
+  "id": "alice@example.com",
+  "role": "commenter",
+  "permissions": ["comments:read", "comments:create", "comments:edit-own"]
+}
+```
+
+**Example:**
+
+```bash
+curl -H 'X-Remarq-User: alice@example.com' http://localhost:3333/me/permissions
+```
 
 #### `PUT /users/:id/role`
 
-Admin-only endpoint to assign a persisted role. Body: `{ "role": "viewer|commenter|resolver|admin" }`.
+Admin-only endpoint to assign a persisted role. Valid roles: `viewer`, `commenter`, `resolver`, `admin`.
+
+**Request Body:**
+
+```json
+{ "role": "commenter" }
+```
+
+**Status Codes:**
+
+- `200 OK` — Role assigned
+- `400 Bad Request` — Invalid role
+- `403 Forbidden` — Current actor cannot manage users
+
+**Example:**
+
+```bash
+curl -X PUT http://localhost:3333/users/alice@example.com/role \
+  -H 'Content-Type: application/json' \
+  -d '{"role":"commenter"}'
+```
 
 ### Health Check
 

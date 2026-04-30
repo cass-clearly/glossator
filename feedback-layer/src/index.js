@@ -60,6 +60,7 @@ const _commentRanges = new Map(); // Map comment ID to its range for position so
 let _wsConnection = null; // WebSocket connection handle
 let _apiUrl = null; // API base URL for establishing WS connection later
 let _permissions = null;
+let _actorId = null;
 
 /**
  * Add a comment to _comments if no comment with the same ID exists.
@@ -133,10 +134,12 @@ function init() {
 
       const me = await fetchPermissions().catch(() => ({ permissions: null }));
       _permissions = me.permissions ?? null;
+      _actorId = me.id || null;
 
       // Sidebar
       createSidebar({
         permissions: _permissions,
+        currentUser: _actorId,
         onSubmit: handleCommentSubmit,
         onDelete: handleDelete,
         onResolve: handleResolve,

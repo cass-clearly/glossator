@@ -57,6 +57,7 @@ let _activeThreadIndex = -1;
 let _keydownHandler = null;
 let _stylesInjected = false;
 let _permissions = null;
+let _currentUser = null;
 
 /**
  * Inject CSS styles eagerly (before sidebar DOM is created).
@@ -85,6 +86,7 @@ export function getCommenter() {
  */
 export function createSidebar({
   permissions = null,
+  currentUser = null,
   onSubmit,
   onDelete,
   onResolve,
@@ -95,6 +97,7 @@ export function createSidebar({
   defaultColor,
 }) {
   _permissions = permissions;
+  _currentUser = currentUser;
   _onSubmit = onSubmit;
   _onDelete = onDelete;
   _onResolve = onResolve;
@@ -560,7 +563,7 @@ function buildCard(ann, isReply, isOrphaned = false) {
     <div class="fb-cmt-meta">
       <span class="fb-cmt-author">${escapeHtml(ann.author)}</span>
       <span class="fb-cmt-time">${timeAgo(ann.created_at)}</span>
-      ${canEditComment(_permissions, ann, getCommenter()) ? `<button class="fb-cmt-edit" title="Edit">&#x270E;</button>` : ""}
+      ${canEditComment(_permissions, ann, _currentUser || getCommenter()) ? `<button class="fb-cmt-edit" title="Edit">&#x270E;</button>` : ""}
       ${!isReply && canResolveComment(_permissions) ? `<button class="fb-cmt-resolve" title="${isClosed ? "Reopen" : "Resolve"}">${isClosed ? "&#x21a9;" : "&#x2713;"}</button>` : ""}
       ${canDeleteComment(_permissions) ? `<button class="fb-cmt-delete" title="Delete">&times;</button>` : ""}
     </div>
