@@ -15,9 +15,14 @@ jobs:
         with:
           node-version: 24
           cache: npm
-      - run: test ! -f package-lock.json || npm audit --audit-level=high --omit=dev
-      - run: test ! -f server/package-lock.json || npm audit --audit-level=high --omit=dev --prefix server
-      - run: test ! -f feedback-layer/package-lock.json || npm audit --audit-level=high --omit=dev --prefix feedback-layer
-      - run: test ! -f mcp-server/package-lock.json || npm audit --audit-level=high --omit=dev --prefix mcp-server
-      - run: test ! -f cli/package-lock.json || npm audit --audit-level=high --omit=dev --prefix cli
-      - run: test ! -f agent-loop/package-lock.json || npm audit --audit-level=high --omit=dev --prefix agent-loop
+      - name: Audit production dependencies for every lockfile
+        run: |
+          set -euo pipefail
+          git ls-files 'package-lock.json' '*/package-lock.json' | while read -r lockfile; do
+            prefix="$(dirname "$lockfile")"
+            if [ "$prefix" = "." ]; then
+              npm audit --audit-level=high --omit=dev
+            else
+              npm audit --audit-level=high --omit=dev --prefix "$prefix"
+            fi
+          done

@@ -29,6 +29,8 @@
 
 ### Security
 
+- Added a scheduled security-audit workflow that runs production dependency audits for every tracked package lockfile.
+- Updated vulnerable production dependencies in the server and GitHub Action lockfiles.
 - CORS now restricted to trusted origins via `ALLOWED_ORIGINS` env var (previously allowed all origins)
 
 ### Docs
