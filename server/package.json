@@ -12,6 +12,7 @@
   },
   "files": [
     "index.js",
+    "authz.js",
     "generate-id.js",
     "normalize-uri.js",
     "sanitize.js",

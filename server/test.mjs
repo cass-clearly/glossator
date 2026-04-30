@@ -104,6 +104,23 @@ describe("sanitize", async () => {
   });
 });
 
+describe("authz", async () => {
+  const { can, normalizeRole, permissionsForRole } = await import("./authz.js");
+
+  it("normalizes unknown roles to viewer", () => {
+    assert.equal(normalizeRole("admin"), "admin");
+    assert.equal(normalizeRole("owner"), "viewer");
+  });
+
+  it("maps permissions by role", () => {
+    assert.deepEqual(permissionsForRole("viewer"), ["comments:read"]);
+    assert.equal(can("commenter", "comments:create"), true);
+    assert.equal(can("commenter", "comments:delete"), false);
+    assert.equal(can("resolver", "comments:resolve"), true);
+    assert.equal(can("admin", "users:manage"), true);
+  });
+});
+
 describe("validate-color", async () => {
   const { validateColor } = await import("./validate-color.js");
 
@@ -316,6 +333,108 @@ describe("API", async () => {
         headers: { Origin: "http://localhost:3333" },
       });
       assert.equal(res.headers.get("access-control-allow-credentials"), "true");
+    });
+  });
+
+  // ── RBAC integration ───────────────────────────────────────────
+
+  describe("RBAC enforcement", () => {
+    async function setRole(actor, target, role) {
+      const headers = { "Content-Type": "application/json" };
+      if (actor) headers["X-Remarq-User"] = actor;
+      return fetch(`${BASE}/users/${target}/role`, {
+        method: "PUT",
+        headers,
+        body: JSON.stringify({ role }),
+      });
+    }
+
+    it("defaults authenticated users to viewer and blocks writes", async () => {
+      const res = await fetch(`${BASE}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Remarq-User": "viewer@example.com" },
+        body: JSON.stringify({
+          uri: "https://example.com/rbac-viewer",
+          quote: "q",
+          body: "b",
+          author: "viewer@example.com",
+        }),
+      });
+      assert.equal(res.status, 403);
+    });
+
+    it("does not trust client-supplied role headers", async () => {
+      const res = await fetch(`${BASE}/users/alice@example.com/role`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Remarq-User": "mallory@example.com",
+          "X-Remarq-Role": "admin",
+        },
+        body: JSON.stringify({ role: "admin" }),
+      });
+      assert.equal(res.status, 403);
+    });
+
+    it("rejects invalid roles", async () => {
+      const res = await setRole(null, "alice@example.com", "owner");
+      assert.equal(res.status, 400);
+    });
+
+    it("enforces own edit, resolve, delete, and role management permissions", async () => {
+      assert.equal((await setRole(null, "alice@example.com", "commenter")).status, 200);
+      assert.equal((await setRole(null, "bob@example.com", "commenter")).status, 200);
+      assert.equal((await setRole(null, "rachel@example.com", "resolver")).status, 200);
+
+      const create = await fetch(`${BASE}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Remarq-User": "alice@example.com" },
+        body: JSON.stringify({ uri: "https://example.com/rbac", quote: "q", body: "b", author: "spoof@example.com" }),
+      });
+      assert.equal(create.status, 201);
+      const comment = await create.json();
+      assert.equal(comment.author, "alice@example.com");
+
+      const editOther = await fetch(`${BASE}/comments/${comment.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", "X-Remarq-User": "bob@example.com" },
+        body: JSON.stringify({ body: "stolen" }),
+      });
+      assert.equal(editOther.status, 403);
+
+      const editOwn = await fetch(`${BASE}/comments/${comment.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", "X-Remarq-User": "alice@example.com" },
+        body: JSON.stringify({ body: "mine" }),
+      });
+      assert.equal(editOwn.status, 200);
+
+      const resolveAsCommenter = await fetch(`${BASE}/comments/${comment.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", "X-Remarq-User": "alice@example.com" },
+        body: JSON.stringify({ status: "closed" }),
+      });
+      assert.equal(resolveAsCommenter.status, 403);
+
+      const resolve = await fetch(`${BASE}/comments/${comment.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", "X-Remarq-User": "rachel@example.com" },
+        body: JSON.stringify({ status: "closed" }),
+      });
+      assert.equal(resolve.status, 200);
+
+      const deleteDoc = await fetch(`${BASE}/documents/${comment.document}`, {
+        method: "DELETE",
+        headers: { "X-Remarq-User": "alice@example.com" },
+      });
+      assert.equal(deleteDoc.status, 403);
+
+      const webhook = await fetch(`${BASE}/webhooks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Remarq-User": "alice@example.com" },
+        body: JSON.stringify({ url: "https://example.com/hook", secret: "secret", events: ["comment.created"] }),
+      });
+      assert.equal(webhook.status, 403);
     });
   });
 
@@ -1536,6 +1655,31 @@ describe("API", async () => {
       assert.ok(json.paths["/comments/{id}"]);
       assert.ok(json.paths["/comments/{id}/reactions"]);
       assert.ok(json.paths["/comments/{id}/reactions/{emoji}"]);
+      assert.ok(json.paths["/webhooks"]);
+      assert.ok(json.paths["/webhooks/{id}"]);
+    });
+
+    it("documents 403 responses for RBAC-protected operations", async () => {
+      const res = await fetch(`${BASE}/openapi.json`);
+      const json = await res.json();
+      const protectedOperations = [
+        json.paths["/documents/{id}"].delete,
+        json.paths["/comments"].post,
+        json.paths["/comments/{id}"].patch,
+        json.paths["/comments/{id}"].delete,
+        json.paths["/comments/{id}/reactions"].post,
+        json.paths["/comments/{id}/reactions/{emoji}"].delete,
+        json.paths["/webhooks"].get,
+        json.paths["/webhooks"].post,
+        json.paths["/webhooks/{id}"].get,
+        json.paths["/webhooks/{id}"].patch,
+        json.paths["/webhooks/{id}"].delete,
+      ];
+      for (const operation of protectedOperations) {
+        assert.ok(operation.responses[403]);
+        assert.ok(operation.responses[403].content["application/json"].schema.properties.error);
+      }
+      assert.ok(json.paths["/users/{id}/role"].put.responses[200].content["application/json"].schema);
     });
 
     it("includes x-cli extensions on operations", async () => {

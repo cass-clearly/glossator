@@ -122,6 +122,10 @@ npm install --prefix server
 DATABASE_URL=postgres://user:pass@localhost:5432/remarq node server/index.js
 ```
 
+## Enterprise security
+
+Role-based access control is available for internal deployments. See [docs/rbac.md](docs/rbac.md).
+
 ## OpenAPI Spec
 
 The server exposes a machine-readable OpenAPI 3.0 spec at:
@@ -141,6 +145,13 @@ The spec includes `x-cli` vendor extensions that drive the CLI — every endpoin
 ## API Reference
 
 Stripe-inspired resource pattern. All responses include an `object` field. **Full documentation with request/response schemas, error codes, and curl examples: [docs/api.md](docs/api.md)**
+
+### Users and permissions
+
+| Method | Endpoint          | Description                            |
+| ------ | ----------------- | -------------------------------------- |
+| `GET`  | `/me/permissions` | Return current actor role/permissions  |
+| `PUT`  | `/users/:id/role` | Admin-only assignment of a user's role |
 
 ### Documents
 

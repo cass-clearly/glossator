@@ -364,3 +364,21 @@ describe("api", async () => {
     setBaseUrl("");
   });
 });
+
+describe("permission utils", async () => {
+  const { canCreateComment, canDeleteComment, canEditComment, canResolveComment } =
+    await import("../src/utils/permissions.js");
+
+  it("treats null permissions as legacy-compatible", () => {
+    assert.equal(canCreateComment(null), true);
+    assert.equal(canEditComment(null, { author: "alice" }, "bob"), true);
+  });
+
+  it("gates viewer, commenter, resolver, and admin actions", () => {
+    assert.equal(canCreateComment(["comments:read"]), false);
+    assert.equal(canEditComment(["comments:edit-own"], { author: "alice" }, "alice"), true);
+    assert.equal(canEditComment(["comments:edit-own"], { author: "alice" }, "bob"), false);
+    assert.equal(canResolveComment(["comments:resolve"]), true);
+    assert.equal(canDeleteComment(["comments:delete"]), true);
+  });
+});

@@ -13,6 +13,7 @@ import { timeAgo } from "./utils/time-ago.js";
 import { initToastContainer } from "./toast.js";
 import { wrapIndex } from "./utils/keyboard-nav.js";
 import { COLOR_PRESETS, DEFAULT_COLOR, resolveColor } from "./utils/color.js";
+import { canCreateComment, canDeleteComment, canEditComment, canResolveComment } from "./utils/permissions.js";
 
 /**
  * Scroll an element into view within the sidebar without affecting main page scroll.
@@ -55,6 +56,8 @@ let _lastAnchoredIds = new Set();
 let _activeThreadIndex = -1;
 let _keydownHandler = null;
 let _stylesInjected = false;
+let _permissions = null;
+let _currentUser = null;
 
 /**
  * Inject CSS styles eagerly (before sidebar DOM is created).
@@ -82,6 +85,8 @@ export function getCommenter() {
  * @param {Function} opts.onReaction - Called with (commentId, emoji) when reaction toggled
  */
 export function createSidebar({
+  permissions = null,
+  currentUser = null,
   onSubmit,
   onDelete,
   onResolve,
@@ -91,6 +96,8 @@ export function createSidebar({
   onColorChange,
   defaultColor,
 }) {
+  _permissions = permissions;
+  _currentUser = currentUser;
   _onSubmit = onSubmit;
   _onDelete = onDelete;
   _onResolve = onResolve;
@@ -511,14 +518,16 @@ export function renderComments(comments, anchoredIds = new Set(), commentRanges 
     }
 
     // Reply button
-    const replyBtn = document.createElement("button");
-    replyBtn.className = "fb-reply-btn";
-    replyBtn.textContent = "Reply";
-    replyBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      showReplyForm(ann.id, thread, replyBtn);
-    });
-    thread.appendChild(replyBtn);
+    if (canCreateComment(_permissions)) {
+      const replyBtn = document.createElement("button");
+      replyBtn.className = "fb-reply-btn";
+      replyBtn.textContent = "Reply";
+      replyBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        showReplyForm(ann.id, thread, replyBtn);
+      });
+      thread.appendChild(replyBtn);
+    }
 
     // Sync document highlight when thread receives focus (e.g. via Tab)
     thread.addEventListener("focus", () => {
@@ -554,9 +563,9 @@ function buildCard(ann, isReply, isOrphaned = false) {
     <div class="fb-cmt-meta">
       <span class="fb-cmt-author">${escapeHtml(ann.author)}</span>
       <span class="fb-cmt-time">${timeAgo(ann.created_at)}</span>
-      <button class="fb-cmt-edit" title="Edit">&#x270E;</button>
-      ${!isReply ? `<button class="fb-cmt-resolve" title="${isClosed ? "Reopen" : "Resolve"}">${isClosed ? "&#x21a9;" : "&#x2713;"}</button>` : ""}
-      <button class="fb-cmt-delete" title="Delete">&times;</button>
+      ${canEditComment(_permissions, ann, _currentUser || getCommenter()) ? `<button class="fb-cmt-edit" title="Edit">&#x270E;</button>` : ""}
+      ${!isReply && canResolveComment(_permissions) ? `<button class="fb-cmt-resolve" title="${isClosed ? "Reopen" : "Resolve"}">${isClosed ? "&#x21a9;" : "&#x2713;"}</button>` : ""}
+      ${canDeleteComment(_permissions) ? `<button class="fb-cmt-delete" title="Delete">&times;</button>` : ""}
     </div>
     <div class="fb-reactions"></div>
   `;
@@ -583,21 +592,30 @@ function buildCard(ann, isReply, isOrphaned = false) {
       card.classList.add("fb-cmt-active");
     });
 
-    card.querySelector(".fb-cmt-resolve").addEventListener("click", (e) => {
+    const resolveButton = card.querySelector(".fb-cmt-resolve");
+    if (resolveButton) {
+      resolveButton.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (_onResolve) _onResolve(ann.id, !isClosed);
+      });
+    }
+  }
+
+  const editButton = card.querySelector(".fb-cmt-edit");
+  if (editButton) {
+    editButton.addEventListener("click", (e) => {
       e.stopPropagation();
-      if (_onResolve) _onResolve(ann.id, !isClosed);
+      showEditForm(ann, card);
     });
   }
 
-  card.querySelector(".fb-cmt-edit").addEventListener("click", (e) => {
-    e.stopPropagation();
-    showEditForm(ann, card);
-  });
-
-  card.querySelector(".fb-cmt-delete").addEventListener("click", (e) => {
-    e.stopPropagation();
-    if (_onDelete) _onDelete(ann.id);
-  });
+  const deleteButton = card.querySelector(".fb-cmt-delete");
+  if (deleteButton) {
+    deleteButton.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (_onDelete) _onDelete(ann.id);
+    });
+  }
 
   return card;
 }

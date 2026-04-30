@@ -52,6 +52,68 @@ When deployed, replace with your server's URL.
 
 ## Endpoints
 
+### Users and Permissions
+
+#### `GET /me/permissions`
+
+Returns the current actor's role and permissions. In trusted-header deployments, the actor is identified by `X-Remarq-User` or `X-Forwarded-User`. Unknown authenticated users default to `viewer`; the example response below assumes `alice@example.com` has already been assigned the `commenter` role.
+
+**Response:**
+
+```json
+{
+  "object": "user",
+  "id": "alice@example.com",
+  "role": "commenter",
+  "permissions": ["comments:read", "comments:create", "comments:edit-own"]
+}
+```
+
+**Example:**
+
+```bash
+# Local unauthenticated admin-compatible mode can assign the example role first.
+curl -X PUT http://localhost:3333/users/alice@example.com/role \
+  -H 'Content-Type: application/json' \
+  -d '{"role":"commenter"}'
+
+curl -H 'X-Remarq-User: alice@example.com' http://localhost:3333/me/permissions
+```
+
+#### `PUT /users/:id/role`
+
+Admin-only endpoint to assign a persisted role. Valid roles: `viewer`, `commenter`, `resolver`, `admin`.
+
+**Request Body:**
+
+```json
+{ "role": "commenter" }
+```
+
+**Response:**
+
+```json
+{
+  "object": "user",
+  "id": "alice@example.com",
+  "role": "commenter"
+}
+```
+
+**Status Codes:**
+
+- `200 OK` — Role assigned
+- `400 Bad Request` — Invalid role
+- `403 Forbidden` — Current actor cannot manage users
+
+**Example:**
+
+```bash
+curl -X PUT http://localhost:3333/users/alice@example.com/role \
+  -H 'Content-Type: application/json' \
+  -d '{"role":"commenter"}'
+```
+
 ### Health Check
 
 #### `GET /health`
@@ -241,6 +303,7 @@ Delete a document and all its comments.
 **Status Codes:**
 
 - `200 OK` — Document deleted
+- `403 Forbidden` — Current actor cannot delete documents
 - `404 Not Found` — Document not found
 
 **Example:**
@@ -407,6 +470,7 @@ Create a new comment or reply.
 
 - `201 Created` — Comment created
 - `400 Bad Request` — Missing required fields or invalid data
+- `403 Forbidden` — Current actor cannot create comments
 - `404 Not Found` — Referenced document ID does not exist
 
 **Error Responses:**
@@ -583,6 +647,7 @@ Update a comment's body or status.
 
 - `200 OK` — Comment updated
 - `400 Bad Request` — Invalid status value or attempting to set status on a reply
+- `403 Forbidden` — Current actor cannot edit or resolve this comment
 - `404 Not Found` — Comment not found
 
 **Error Responses:**
@@ -657,6 +722,7 @@ Delete a comment and all its replies.
 **Status Codes:**
 
 - `200 OK` — Comment deleted
+- `403 Forbidden` — Current actor cannot delete comments
 - `404 Not Found` — Comment not found
 
 **Example:**
@@ -688,6 +754,7 @@ All errors follow this format:
 - `200 OK` — Request succeeded
 - `201 Created` — Resource created
 - `400 Bad Request` — Invalid request (missing fields, invalid values)
+- `403 Forbidden` — Current actor does not have the required RBAC permission
 - `404 Not Found` — Resource not found
 - `500 Internal Server Error` — Server error
 
@@ -822,7 +889,7 @@ if (signature !== expected) throw new Error("Invalid signature");
 
 ### `GET /webhooks`
 
-List all registered webhooks.
+Admin-only. List all registered webhooks. Returns `403 Forbidden` when the current actor cannot manage users/webhooks.
 
 **Response:**
 
@@ -846,7 +913,7 @@ List all registered webhooks.
 
 ### `POST /webhooks`
 
-Register a new webhook.
+Admin-only. Register a new webhook. Returns `403 Forbidden` when the current actor cannot manage users/webhooks.
 
 **Request body:**
 
@@ -860,13 +927,13 @@ Register a new webhook.
 
 ### `GET /webhooks/:id`
 
-Retrieve a single webhook.
+Admin-only. Retrieve a single webhook. Returns `403 Forbidden` when the current actor cannot manage users/webhooks.
 
 **Response:** Webhook object. Returns `404` if not found.
 
 ### `PATCH /webhooks/:id`
 
-Update a webhook. All fields are optional.
+Admin-only. Update a webhook. All fields are optional. Returns `403 Forbidden` when the current actor cannot manage users/webhooks.
 
 **Request body:**
 
@@ -880,6 +947,6 @@ Update a webhook. All fields are optional.
 
 ### `DELETE /webhooks/:id`
 
-Delete a webhook.
+Admin-only. Delete a webhook. Returns `403 Forbidden` when the current actor cannot manage users/webhooks.
 
 **Response:** Deleted webhook object. Returns `404` if not found.
