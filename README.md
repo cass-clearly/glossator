@@ -122,9 +122,9 @@ npm install --prefix server
 DATABASE_URL=postgres://user:pass@localhost:5432/remarq node server/index.js
 ```
 
-## Enterprise security
+## Data retention
 
-Configurable comment retention and soft delete controls are documented in [docs/data-retention.md](docs/data-retention.md).
+Configurable comment retention and soft-delete controls are documented in [docs/data-retention.md](docs/data-retention.md).
 
 ## OpenAPI Spec
 
@@ -167,7 +167,7 @@ Stripe-inspired resource pattern. All responses include an `object` field. **Ful
 | `POST`   | `/comments`                 | Create a comment (set `parent` to reply to an existing comment) |
 | `GET`    | `/comments/:id`             | Retrieve a comment                                              |
 | `PATCH`  | `/comments/:id`             | Update body, status, or color                                   |
-| `DELETE` | `/comments/:id`             | Delete a comment and its replies                                |
+| `DELETE` | `/comments/:id`             | Soft-delete a comment and its replies                           |
 
 ### Webhooks
 

@@ -29,6 +29,7 @@
 
 ### Security
 
+- Added configurable comment retention with soft-delete recovery and scheduled purge.
 - CORS now restricted to trusted origins via `ALLOWED_ORIGINS` env var (previously allowed all origins)
 
 ### Docs

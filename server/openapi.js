@@ -415,12 +415,12 @@ const spec = {
 
       delete: {
         operationId: "deleteComment",
-        summary: "Delete a comment and its replies",
+        summary: "Soft-delete a comment and its replies",
         tags: ["comments"],
         "x-cli": {
           group: "comments",
           command: "delete <id>",
-          describe: "Delete a comment",
+          describe: "Soft-delete a comment",
           positional: [{ name: "id", describe: "Comment ID", from: "path", paramName: "id" }],
         },
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],

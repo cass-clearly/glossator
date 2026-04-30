@@ -361,7 +361,7 @@ Both fields are optional. `status` accepts `"open"` or `"closed"` and can only b
 
 ### DELETE /comments/:id
 
-Delete a comment and all its replies.
+Soft-delete a comment and all its replies. Soft-deleted comments are excluded from read/list endpoints and remain recoverable in the database until `purge_after`.
 
 **Response (200):** Returns the deleted comment object. Returns `404` if not found.
 

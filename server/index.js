@@ -282,7 +282,7 @@ app.get(
           `SELECT * FROM comments WHERE document = $1
           AND deleted_at IS NULL
           AND ((parent IS NULL AND status = $2)
-            OR (parent IN (SELECT id FROM comments WHERE document = $1 AND parent IS NULL AND status = $2)))
+            OR (parent IN (SELECT id FROM comments WHERE document = $1 AND parent IS NULL AND status = $2 AND deleted_at IS NULL)))
           ORDER BY created_at ASC`,
           [resolvedDocId, status],
         ));
@@ -295,8 +295,8 @@ app.get(
     } else if (status) {
       ({ rows } = await pool.query(
         `SELECT * FROM comments
-        WHERE deleted_at IS NULL AND (parent IS NULL AND status = $1)
-          OR (parent IN (SELECT id FROM comments WHERE parent IS NULL AND status = $1))
+        WHERE deleted_at IS NULL AND ((parent IS NULL AND status = $1)
+          OR (parent IN (SELECT id FROM comments WHERE parent IS NULL AND status = $1 AND deleted_at IS NULL)))
         ORDER BY created_at ASC`,
         [status],
       ));
@@ -366,6 +366,11 @@ app.post(
       }
     } catch (err) {
       return res.status(400).json(errorResponse(err.message));
+    }
+
+    if (parent) {
+      const parentResult = await pool.query("SELECT id FROM comments WHERE id = $1 AND deleted_at IS NULL", [parent]);
+      if (parentResult.rows.length === 0) return res.status(404).json(errorResponse("Parent comment not found"));
     }
 
     const commentStatus = parent ? null : "open";
@@ -467,7 +472,7 @@ app.delete(
   asyncHandler(async (req, res) => {
     const { recoveryDays } = retentionConfig();
     await pool.query(
-      "UPDATE comments SET deleted_at = COALESCE(deleted_at, NOW()), purge_after = COALESCE(purge_after, NOW() + ($2::text || ' days')::interval) WHERE parent = $1",
+      "UPDATE comments SET deleted_at = NOW(), purge_after = NOW() + ($2::text || ' days')::interval WHERE parent = $1 AND deleted_at IS NULL",
       [req.params.id, recoveryDays],
     );
     const comment = await softDeleteComment(pool, req.params.id, recoveryDays);
@@ -498,7 +503,9 @@ app.post(
     const cleanAuthor = sanitize(author);
 
     // Verify comment exists
-    const { rows: check } = await pool.query("SELECT id FROM comments WHERE id = $1", [req.params.id]);
+    const { rows: check } = await pool.query("SELECT id FROM comments WHERE id = $1 AND deleted_at IS NULL", [
+      req.params.id,
+    ]);
     if (check.length === 0) return res.status(404).json(errorResponse("Comment not found"));
 
     await pool.query(
@@ -527,7 +534,9 @@ app.delete(
     const cleanAuthor = sanitize(author);
 
     // Verify comment exists
-    const { rows: check } = await pool.query("SELECT id FROM comments WHERE id = $1", [req.params.id]);
+    const { rows: check } = await pool.query("SELECT id FROM comments WHERE id = $1 AND deleted_at IS NULL", [
+      req.params.id,
+    ]);
     if (check.length === 0) return res.status(404).json(errorResponse("Comment not found"));
 
     await pool.query("DELETE FROM reactions WHERE comment_id = $1 AND author = $2 AND emoji = $3", [
@@ -579,6 +588,7 @@ function broadcast(documentId, event) {
 }
 
 const SUBSCRIBE_TIMEOUT_MS = 30000; // Close connections that never subscribe
+const RETENTION_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
 function handleWsConnection(ws) {
   const subscribedDocs = new Set();
@@ -662,6 +672,11 @@ async function start(options = {}) {
   await initSchema();
   await runRetention(pool, retentionConfig());
 
+  const retentionTimer = setInterval(() => {
+    runRetention(pool, retentionConfig()).catch((err) => console.error("[retention] Failed to run:", err));
+  }, RETENTION_INTERVAL_MS);
+  retentionTimer.unref();
+
   const server = http.createServer(app);
   const wss = new WebSocketServer({ noServer: true });
 
@@ -678,6 +693,7 @@ async function start(options = {}) {
 
   // Graceful shutdown: terminate all WebSocket clients before stopping
   server.on("close", () => {
+    clearInterval(retentionTimer);
     for (const ws of wss.clients) {
       ws.terminate();
     }

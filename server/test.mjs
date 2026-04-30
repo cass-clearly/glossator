@@ -1267,6 +1267,78 @@ describe("API", async () => {
     });
   });
 
+  describe("comment retention and soft delete", () => {
+    it("soft-deletes comments, hides them, and makes repeated delete 404", async () => {
+      const c = await (
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ uri: "https://example.com/soft-delete", quote: "q", body: "b", author: "a" }),
+        })
+      ).json();
+
+      const del = await fetch(`${BASE}/comments/${c.id}`, { method: "DELETE" });
+      assert.equal(del.status, 200);
+      const { rows } = await pool.query("SELECT deleted_at, purge_after FROM comments WHERE id = $1", [c.id]);
+      assert.ok(rows[0].deleted_at);
+      assert.ok(rows[0].purge_after);
+
+      assert.equal((await fetch(`${BASE}/comments/${c.id}`)).status, 404);
+      assert.equal((await fetch(`${BASE}/comments/${c.id}`, { method: "DELETE" })).status, 404);
+    });
+
+    it("does not allow reactions or replies on soft-deleted comments", async () => {
+      const c = await (
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ uri: "https://example.com/deleted-mutate", quote: "q", body: "b", author: "a" }),
+        })
+      ).json();
+      await fetch(`${BASE}/comments/${c.id}`, { method: "DELETE" });
+
+      const reaction = await fetch(`${BASE}/comments/${c.id}/reactions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ emoji: "👍", author: "a" }),
+      });
+      assert.equal(reaction.status, 404);
+
+      const reply = await fetch(`${BASE}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uri: "https://example.com/deleted-mutate", body: "reply", author: "a", parent: c.id }),
+      });
+      assert.equal(reply.status, 404);
+    });
+
+    it("status filters do not leak soft-deleted replies", async () => {
+      const parent = await (
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ uri: "https://example.com/status-soft", quote: "q", body: "parent", author: "a" }),
+        })
+      ).json();
+      const reply = await (
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            uri: "https://example.com/status-soft",
+            body: "reply",
+            author: "a",
+            parent: parent.id,
+          }),
+        })
+      ).json();
+      await fetch(`${BASE}/comments/${reply.id}`, { method: "DELETE" });
+      const res = await fetch(`${BASE}/comments?status=open`);
+      const json = await res.json();
+      assert.ok(!json.data.some((comment) => comment.id === reply.id));
+    });
+  });
+
   // ── Reactions ────────────────────────────────────────────────────
 
   describe("POST /comments/:id/reactions", () => {

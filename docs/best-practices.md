@@ -50,11 +50,13 @@ The `.env` file is read automatically by Docker Compose. Use a strong, random pa
 
 ### Environment variables
 
-| Variable            | Default                                    | Description                                 |
-| ------------------- | ------------------------------------------ | ------------------------------------------- |
-| `DATABASE_URL`      | `postgresql://postgres@localhost/postgres` | PostgreSQL connection string                |
-| `PORT`              | `3333`                                     | Port the server listens on                  |
-| `POSTGRES_PASSWORD` | _(required in Docker)_                     | Password for the bundled Postgres container |
+| Variable                        | Default                                    | Description                                                |
+| ------------------------------- | ------------------------------------------ | ---------------------------------------------------------- |
+| `DATABASE_URL`                  | `postgresql://postgres@localhost/postgres` | PostgreSQL connection string                               |
+| `PORT`                          | `3333`                                     | Port the server listens on                                 |
+| `POSTGRES_PASSWORD`             | _(required in Docker)_                     | Password for the bundled Postgres container                |
+| `REMARQ_COMMENT_RETENTION_DAYS` | `365`                                      | Days before active comments are soft-deleted               |
+| `REMARQ_COMMENT_RECOVERY_DAYS`  | `30`                                       | Days soft-deleted comments remain recoverable before purge |
 
 ### Reverse proxy (HTTPS)
 

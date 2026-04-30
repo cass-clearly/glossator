@@ -630,7 +630,7 @@ curl -X PATCH http://localhost:3000/comments/cmt_abc123 \
 
 #### `DELETE /comments/:id`
 
-Delete a comment and all its replies.
+Soft-delete a comment and all its replies. Soft-deleted comments are excluded from read/list endpoints and remain recoverable in the database until `purge_after`.
 
 **Parameters:**
 

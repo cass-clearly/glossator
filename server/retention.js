@@ -13,7 +13,7 @@ async function ensureRetentionColumns(pool) {
 
 async function softDeleteComment(pool, id, recoveryDays) {
   const { rows } = await pool.query(
-    "UPDATE comments SET deleted_at = COALESCE(deleted_at, NOW()), purge_after = COALESCE(purge_after, NOW() + ($2::text || ' days')::interval) WHERE id = $1 RETURNING *",
+    "UPDATE comments SET deleted_at = NOW(), purge_after = NOW() + ($2::text || ' days')::interval WHERE id = $1 AND deleted_at IS NULL RETURNING *",
     [id, recoveryDays],
   );
   return rows[0] || null;
@@ -21,7 +21,11 @@ async function softDeleteComment(pool, id, recoveryDays) {
 
 async function runRetention(pool, { retentionDays, recoveryDays } = retentionConfig()) {
   await pool.query(
-    "UPDATE comments SET deleted_at = NOW(), purge_after = NOW() + ($2::text || ' days')::interval WHERE deleted_at IS NULL AND created_at < NOW() - ($1::text || ' days')::interval",
+    `UPDATE comments SET deleted_at = NOW(), purge_after = NOW() + ($2::text || ' days')::interval
+     WHERE deleted_at IS NULL AND (
+       created_at < NOW() - ($1::text || ' days')::interval
+       OR parent IN (SELECT id FROM comments WHERE deleted_at IS NOT NULL)
+     )`,
     [retentionDays, recoveryDays],
   );
   await pool.query("DELETE FROM comments WHERE deleted_at IS NOT NULL AND purge_after <= NOW()");
