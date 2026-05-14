@@ -139,8 +139,21 @@ function formatComment(row) {
   };
 }
 
-function listResponse(items) {
-  return { object: "list", data: items };
+function listResponse(items, extra) {
+  return { object: "list", data: items, ...extra };
+}
+
+// Encode/decode an opaque cursor for the comments endpoint.
+// Cursor encodes { offset } — offset into the ordered result set.
+function encodeCursor(offset) {
+  return Buffer.from(JSON.stringify({ offset })).toString("base64url");
+}
+function decodeCursor(cursor) {
+  try {
+    return JSON.parse(Buffer.from(cursor, "base64url").toString("utf8"));
+  } catch {
+    return null;
+  }
 }
 function errorResponse(msg) {
   return { error: { message: msg } };
@@ -323,10 +336,35 @@ app.delete(
 app.get(
   "/comments",
   asyncHandler(async (req, res) => {
-    const { document: docId, uri, status, expand } = req.query;
+    const { document: docId, uri, status, expand, after, limit: limitParam } = req.query;
 
     if (status !== undefined && status !== "open" && status !== "closed") {
       return res.status(400).json(errorResponse('status must be "open" or "closed"'));
+    }
+
+    // Pagination params — only active when limit is provided explicitly.
+    // Default: no pagination (return all, backward compatible).
+    let paginated = false;
+    let limit = null;
+    let afterId = null;
+
+    if (limitParam !== undefined) {
+      const parsedLimit = parseInt(limitParam, 10);
+      if (isNaN(parsedLimit) || parsedLimit < 1 || parsedLimit > 200) {
+        return res.status(400).json(errorResponse("limit must be an integer between 1 and 200"));
+      }
+      paginated = true;
+      limit = parsedLimit;
+    }
+
+    if (after !== undefined) {
+      const decoded = decodeCursor(after);
+      if (!decoded || typeof decoded.offset !== "number") {
+        return res.status(400).json(errorResponse("invalid cursor value for 'after'"));
+      }
+      afterId = decoded.offset; // reusing afterId as offset number
+      paginated = true;
+      if (limit === null) limit = 50; // default when only cursor is provided
     }
 
     let resolvedDocId;
@@ -345,31 +383,47 @@ app.get(
       resolvedDocId = docResult.rows[0].id;
     }
 
+    // Determine offset for cursor-based pagination.
+    // afterId is reused to hold the numeric offset from the decoded cursor.
+    const offset = paginated && afterId !== null ? afterId : 0;
+
     let rows;
+    // Fetch limit+1 rows (or all rows if not paginated) to detect next page.
+    const fetchLimit = paginated ? limit + 1 : null;
+    const limitClause = fetchLimit ? ` LIMIT ${fetchLimit} OFFSET ${offset}` : "";
+
     if (resolvedDocId) {
       if (status) {
         ({ rows } = await pool.query(
           `SELECT * FROM comments WHERE document = $1
           AND ((parent IS NULL AND status = $2)
             OR (parent IN (SELECT id FROM comments WHERE document = $1 AND parent IS NULL AND status = $2)))
-          ORDER BY created_at ASC`,
+          ORDER BY created_at ASC, id ASC${limitClause}`,
           [resolvedDocId, status],
         ));
       } else {
-        ({ rows } = await pool.query("SELECT * FROM comments WHERE document = $1 ORDER BY created_at ASC", [
-          resolvedDocId,
-        ]));
+        ({ rows } = await pool.query(
+          `SELECT * FROM comments WHERE document = $1 ORDER BY created_at ASC, id ASC${limitClause}`,
+          [resolvedDocId],
+        ));
       }
     } else if (status) {
       ({ rows } = await pool.query(
         `SELECT * FROM comments
         WHERE (parent IS NULL AND status = $1)
           OR (parent IN (SELECT id FROM comments WHERE parent IS NULL AND status = $1))
-        ORDER BY created_at ASC`,
+        ORDER BY created_at ASC, id ASC${limitClause}`,
         [status],
       ));
     } else {
-      ({ rows } = await pool.query("SELECT * FROM comments ORDER BY created_at ASC"));
+      ({ rows } = await pool.query(`SELECT * FROM comments ORDER BY created_at ASC, id ASC${limitClause}`));
+    }
+
+    // Determine next cursor
+    let nextCursor = null;
+    if (paginated && rows.length > limit) {
+      rows = rows.slice(0, limit);
+      nextCursor = encodeCursor(offset + limit);
     }
 
     let data = rows.map(formatComment);
@@ -388,7 +442,8 @@ app.get(
       }
     }
 
-    res.json(listResponse(data));
+    const extra = paginated ? { next_cursor: nextCursor } : {};
+    res.json(listResponse(data, extra));
   }),
 );
 

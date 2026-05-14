@@ -268,11 +268,35 @@ const spec = {
           { name: "uri", in: "query", schema: { type: "string" } },
           { name: "status", in: "query", schema: { type: "string", enum: ["open", "closed"] } },
           { name: "expand", in: "query", schema: { type: "string", enum: ["document"] } },
+          {
+            name: "limit",
+            in: "query",
+            description:
+              "Maximum number of comments to return (1–200). When omitted, all comments are returned (backward-compatible).",
+            schema: { type: "integer", minimum: 1, maximum: 200 },
+          },
+          {
+            name: "after",
+            in: "query",
+            description:
+              "Opaque cursor returned as next_cursor in a previous paginated response. Used to fetch the next page.",
+            schema: { type: "string" },
+          },
         ],
         responses: {
           200: {
             description: "List of comments",
-            content: jsonContent(listResponse(commentSchema)),
+            content: jsonContent({
+              ...listResponse(commentSchema),
+              properties: {
+                ...listResponse(commentSchema).properties,
+                next_cursor: {
+                  type: "string",
+                  nullable: true,
+                  description: "Cursor to pass as 'after' to fetch the next page. Null when no more pages.",
+                },
+              },
+            }),
           },
           400: { description: "Bad request", content: jsonContent(errorSchema) },
         },
