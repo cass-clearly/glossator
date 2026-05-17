@@ -15,6 +15,9 @@ const { triggerEvent } = require("./webhooks.js");
 const { registerWebhookRoutes } = require("./webhook-routes.js");
 const path = require("path");
 const openApiSpec = require("./openapi.js");
+const { renderJson } = require("./export-json.js");
+const { renderCsv } = require("./export-csv.js");
+const { renderPdf } = require("./export-pdf.js");
 
 const app = express();
 const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(",") : ["http://localhost:3333"];
@@ -315,6 +318,56 @@ app.delete(
     const { rows } = await pool.query("DELETE FROM documents WHERE id = $1 RETURNING *", [req.params.id]);
     if (rows.length === 0) return res.status(404).json(errorResponse("Document not found"));
     res.json(formatDocument(rows[0]));
+  }),
+);
+
+// ── Export endpoint ─────────────────────────────────────────────────
+
+app.get(
+  "/documents/:id/export",
+  asyncHandler(async (req, res) => {
+    const { format } = req.query;
+    if (!format || !["json", "csv", "pdf"].includes(format)) {
+      return res.status(400).json(errorResponse("format query parameter must be json, csv, or pdf"));
+    }
+
+    // Fetch document
+    const { rows: docRows } = await pool.query("SELECT * FROM documents WHERE id = $1", [req.params.id]);
+    if (docRows.length === 0) return res.status(404).json(errorResponse("Document not found"));
+    const document = formatDocument(docRows[0]);
+
+    // Fetch comments for document
+    const { rows: commentRows } = await pool.query(
+      "SELECT * FROM comments WHERE document = $1 ORDER BY created_at ASC",
+      [req.params.id],
+    );
+    const comments = commentRows.map(formatComment);
+
+    // Attach reactions to comments
+    const commentIds = comments.map((c) => c.id);
+    const reactionsMap = await fetchReactionsForComments(commentIds);
+    const commentsWithReactions = comments.map((c) => ({
+      ...c,
+      reactions: reactionsMap.get(c.id) || [],
+    }));
+
+    if (format === "json") {
+      res.setHeader("Content-Disposition", `attachment; filename="annotations-${req.params.id}.json"`);
+      return res.json(renderJson(document, commentsWithReactions));
+    }
+
+    if (format === "csv") {
+      res.setHeader("Content-Type", "text/csv");
+      res.setHeader("Content-Disposition", `attachment; filename="annotations-${req.params.id}.csv"`);
+      return res.send(renderCsv(commentsWithReactions));
+    }
+
+    if (format === "pdf") {
+      const pdfBuffer = await renderPdf(document, commentsWithReactions);
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename="annotations-${req.params.id}.pdf"`);
+      return res.send(pdfBuffer);
+    }
   }),
 );
 

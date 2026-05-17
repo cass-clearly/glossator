@@ -205,6 +205,67 @@ const spec = {
       },
     },
 
+    "/documents/{id}/export": {
+      get: {
+        operationId: "exportDocument",
+        summary: "Export document annotations as JSON, CSV, or PDF",
+        tags: ["documents"],
+        "x-cli": {
+          group: "documents",
+          command: "export <id>",
+          describe: "Export annotations for a document",
+          positional: [{ name: "id", describe: "Document ID", from: "path", paramName: "id" }],
+          options: {
+            format: {
+              type: "string",
+              demandOption: true,
+              describe: "Export format",
+              choices: ["json", "csv", "pdf"],
+              from: "query",
+            },
+          },
+        },
+        parameters: [
+          { name: "id", in: "path", required: true, schema: { type: "string" } },
+          {
+            name: "format",
+            in: "query",
+            required: true,
+            schema: { type: "string", enum: ["json", "csv", "pdf"] },
+            description: "Export format",
+          },
+        ],
+        responses: {
+          200: {
+            description: "Exported annotations",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    document: documentSchema,
+                    comments: { type: "array", items: commentSchema },
+                    exported_at: { type: "string", format: "date-time" },
+                  },
+                },
+                description: "Returned when format=json",
+              },
+              "text/csv": {
+                schema: { type: "string" },
+                description: "Returned when format=csv",
+              },
+              "application/pdf": {
+                schema: { type: "string", format: "binary" },
+                description: "Returned when format=pdf",
+              },
+            },
+          },
+          400: { description: "Missing or invalid format parameter", content: jsonContent(errorSchema) },
+          404: { description: "Document not found", content: jsonContent(errorSchema) },
+        },
+      },
+    },
+
     "/documents/{id}": {
       get: {
         operationId: "getDocument",

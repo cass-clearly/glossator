@@ -246,6 +246,52 @@
 .fb-shortcuts-btn:hover {
   background: #f3f0ff;
 }
+.fb-export-container {
+  position: relative;
+}
+.fb-export-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--remarq-accent);
+  padding: 4px;
+  line-height: 1;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.fb-export-btn:hover {
+  background: var(--remarq-bg-hover);
+}
+.fb-export-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background: var(--remarq-bg-surface);
+  border: 1px solid var(--remarq-border);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px var(--remarq-shadow);
+  z-index: 10003;
+  min-width: 80px;
+  overflow: hidden;
+}
+.fb-export-option {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: none;
+  text-align: left;
+  font-size: 13px;
+  color: var(--remarq-text);
+  cursor: pointer;
+  font-family: inherit;
+}
+.fb-export-option:hover {
+  background: var(--remarq-bg-hover);
+}
 .fb-sidebar-toggle {
   background: none;
   border: none;

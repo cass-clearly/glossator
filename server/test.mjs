@@ -5,6 +5,137 @@ import { WebSocket } from "ws";
 import fs from "node:fs";
 import path from "node:path";
 
+// ── Export module unit tests ────────────────────────────────────────
+
+/** Shared helper: build a minimal comment with reactions */
+function makeComment(overrides = {}) {
+  return {
+    id: "cmt_test1",
+    object: "comment",
+    document: "doc_test1",
+    quote: "some text",
+    body: "a comment",
+    author: "Alice",
+    status: "open",
+    parent: null,
+    color: null,
+    created_at: "2026-01-01T00:00:00.000Z",
+    reactions: [],
+    ...overrides,
+  };
+}
+
+const testDoc = {
+  id: "doc_test1",
+  object: "document",
+  uri: "https://example.com/page",
+  created_at: "2026-01-01T00:00:00.000Z",
+};
+
+describe("export-json", async () => {
+  const { renderJson } = await import("./export-json.js");
+
+  it("returns document, comments, and exported_at", () => {
+    const comment = makeComment();
+    const result = renderJson(testDoc, [comment]);
+    assert.deepEqual(result.document, testDoc);
+    assert.deepEqual(result.comments, [comment]);
+    assert.ok(result.exported_at);
+    assert.ok(new Date(result.exported_at).getTime() > 0);
+  });
+
+  it("handles empty comments array", () => {
+    const result = renderJson(testDoc, []);
+    assert.deepEqual(result.comments, []);
+  });
+});
+
+describe("export-csv", async () => {
+  const { renderCsv, escape } = await import("./export-csv.js");
+
+  it("escape wraps value in double quotes", () => {
+    assert.equal(escape("hello"), '"hello"');
+  });
+
+  it("escape handles null/undefined as empty string", () => {
+    assert.equal(escape(null), "");
+    assert.equal(escape(undefined), "");
+  });
+
+  it("escape doubles internal double quotes", () => {
+    assert.equal(escape('say "hi"'), '"say ""hi"""');
+  });
+
+  it("renderCsv produces correct header", () => {
+    const csv = renderCsv([]);
+    assert.ok(csv.startsWith("quote,body,author,status,created_at,parent_id\n"));
+  });
+
+  it("renderCsv includes comment fields", () => {
+    const comment = makeComment({ quote: "text", body: "body", author: "Bob", status: "open", parent: null });
+    const csv = renderCsv([comment]);
+    assert.ok(csv.includes('"text"'));
+    assert.ok(csv.includes('"body"'));
+    assert.ok(csv.includes('"Bob"'));
+    assert.ok(csv.includes('"open"'));
+  });
+
+  it("renderCsv handles null status (replies)", () => {
+    const comment = makeComment({ status: null, parent: "cmt_parent" });
+    const csv = renderCsv([comment]);
+    // null status should render as empty string, not "null"
+    const row = csv.split("\n")[1];
+    const cols = row.split(",");
+    assert.equal(cols[3], ""); // status column is empty
+  });
+});
+
+describe("export-pdf", async () => {
+  const { renderPdf } = await import("./export-pdf.js");
+
+  it("returns a Buffer starting with %PDF-", async () => {
+    const comment = makeComment();
+    const buf = await renderPdf(testDoc, [comment]);
+    assert.ok(Buffer.isBuffer(buf));
+    assert.equal(buf.slice(0, 5).toString(), "%PDF-");
+  });
+
+  it("handles empty comments array", async () => {
+    const buf = await renderPdf(testDoc, []);
+    assert.ok(Buffer.isBuffer(buf));
+    assert.equal(buf.slice(0, 5).toString(), "%PDF-");
+  });
+
+  it("handles comments with null status (renders as 'open', not 'reply')", async () => {
+    // A top-level comment with null status should not crash and should render "open"
+    const comment = makeComment({ status: null });
+    const buf = await renderPdf(testDoc, [comment]);
+    assert.ok(Buffer.isBuffer(buf));
+    assert.equal(buf.slice(0, 5).toString(), "%PDF-");
+    // PDFKit compresses page streams with FlateDecode. Locate the zlib magic bytes
+    // (0x78 0x9c), decompress, then extract hex-encoded TJ text segments to get the
+    // rendered text content.
+    const { inflateSync } = await import("node:zlib");
+    const hexStr = buf.toString("hex");
+    const zlibStart = hexStr.indexOf("789c");
+    assert.ok(zlibStart >= 0, "Expected a FlateDecode stream in the PDF");
+    const decompressed = inflateSync(buf.slice(zlibStart / 2)).toString("latin1");
+    const hexMatches = decompressed.match(/<([0-9a-fA-F]+)>/g) || [];
+    const renderedText = hexMatches.map((m) => Buffer.from(m.slice(1, -1), "hex").toString("utf8")).join("");
+    assert.ok(
+      renderedText.includes("| open |"),
+      `PDF should render null status as 'open' for top-level comments. Rendered: ${renderedText.slice(0, 200)}`,
+    );
+  });
+
+  it("handles comments with replies", async () => {
+    const parent = makeComment({ id: "cmt_p1" });
+    const reply = makeComment({ id: "cmt_r1", parent: "cmt_p1", quote: null, status: null });
+    const buf = await renderPdf(testDoc, [parent, reply]);
+    assert.ok(Buffer.isBuffer(buf));
+  });
+});
+
 // ── Utility unit tests ──────────────────────────────────────────────
 
 describe("generate-id", async () => {
@@ -439,6 +570,115 @@ describe("API", async () => {
 
     it("returns 404 for missing document", async () => {
       const res = await fetch(`${BASE}/documents/doc_nonexistent`, { method: "DELETE" });
+      assert.equal(res.status, 404);
+    });
+  });
+
+  // ── Export ──────────────────────────────────────────────────────
+
+  describe("GET /documents/:id/export", () => {
+    it("exports JSON with document and comments", async () => {
+      const docRes = await fetch(`${BASE}/documents`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uri: "https://example.com/page" }),
+      });
+      const doc = await docRes.json();
+
+      await fetch(`${BASE}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ document: doc.id, quote: "text", body: "hello", author: "me" }),
+      });
+
+      const res = await fetch(`${BASE}/documents/${doc.id}/export?format=json`);
+      assert.equal(res.status, 200);
+      assert.equal(res.headers.get("content-type"), "application/json; charset=utf-8");
+      assert.ok(res.headers.get("content-disposition").includes("attachment"));
+
+      const json = await res.json();
+      assert.equal(json.document.id, doc.id);
+      assert.equal(json.comments.length, 1);
+      assert.equal(json.comments[0].body, "hello");
+      assert.ok(json.exported_at);
+    });
+
+    it("exports CSV with proper headers and data", async () => {
+      const docRes = await fetch(`${BASE}/documents`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uri: "https://example.com/page" }),
+      });
+      const doc = await docRes.json();
+
+      await fetch(`${BASE}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ document: doc.id, quote: "quoted text", body: "comment body", author: "tester" }),
+      });
+
+      const res = await fetch(`${BASE}/documents/${doc.id}/export?format=csv`);
+      assert.equal(res.status, 200);
+      assert.ok(res.headers.get("content-type").includes("text/csv"));
+      assert.ok(res.headers.get("content-disposition").includes("attachment"));
+
+      const csv = await res.text();
+      assert.ok(csv.startsWith("quote,body,author,status,created_at,parent_id\n"));
+      assert.ok(csv.includes('"quoted text"'));
+      assert.ok(csv.includes('"comment body"'));
+      assert.ok(csv.includes('"tester"'));
+    });
+
+    it("exports PDF with proper content type", async () => {
+      const docRes = await fetch(`${BASE}/documents`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uri: "https://example.com/page" }),
+      });
+      const doc = await docRes.json();
+
+      await fetch(`${BASE}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ document: doc.id, quote: "text", body: "hello", author: "me" }),
+      });
+
+      const res = await fetch(`${BASE}/documents/${doc.id}/export?format=pdf`);
+      assert.equal(res.status, 200);
+      assert.equal(res.headers.get("content-type"), "application/pdf");
+      assert.ok(res.headers.get("content-disposition").includes("attachment"));
+
+      const buffer = await res.arrayBuffer();
+      const header = new Uint8Array(buffer.slice(0, 5));
+      assert.equal(String.fromCharCode(...header), "%PDF-");
+    });
+
+    it("returns 400 for missing format", async () => {
+      const docRes = await fetch(`${BASE}/documents`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uri: "https://example.com/page" }),
+      });
+      const doc = await docRes.json();
+
+      const res = await fetch(`${BASE}/documents/${doc.id}/export`);
+      assert.equal(res.status, 400);
+    });
+
+    it("returns 400 for invalid format", async () => {
+      const docRes = await fetch(`${BASE}/documents`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uri: "https://example.com/page" }),
+      });
+      const doc = await docRes.json();
+
+      const res = await fetch(`${BASE}/documents/${doc.id}/export?format=xml`);
+      assert.equal(res.status, 400);
+    });
+
+    it("returns 404 for missing document", async () => {
+      const res = await fetch(`${BASE}/documents/doc_nonexistent/export?format=json`);
       assert.equal(res.status, 404);
     });
   });
@@ -1532,6 +1772,7 @@ describe("API", async () => {
       assert.ok(json.paths["/health"]);
       assert.ok(json.paths["/documents"]);
       assert.ok(json.paths["/documents/{id}"]);
+      assert.ok(json.paths["/documents/{id}/export"]);
       assert.ok(json.paths["/comments"]);
       assert.ok(json.paths["/comments/{id}"]);
       assert.ok(json.paths["/comments/{id}/reactions"]);

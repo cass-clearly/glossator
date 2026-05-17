@@ -4,6 +4,7 @@
 
 ### Added
 
+- Annotation exports: download all comments for a document as JSON, CSV, or PDF via `GET /documents/:id/export?format=json|csv|pdf`. Take your feedback out of Remarq and into any tool.
 - Product Council for structured opportunity evaluation and JTBD-driven feature planning — 7 parallel evaluators (Opportunist, Advocate, Economist, Skeptic, Narrator, Copywriter, Channel Scout) with CPO authority, RICE scoring with engineering feasibility input, and goal-chunk management
 - ADR-002: Product Council structure and design decisions
 - The Copywriter (7th product council member) — owns copy execution, developer voice, awareness stages, and all public-facing words. Executes the story the Narrator defines.
