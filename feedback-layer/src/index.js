@@ -40,6 +40,7 @@ import {
   focusCommentCard,
   openSidebar,
   getCommenter,
+  setDocumentUri,
 } from "./sidebar.js";
 import { initAuthorUI } from "./ui.js";
 import { showToast } from "./toast.js";
@@ -140,6 +141,7 @@ function init() {
         onColorChange: handleColorChange,
         defaultColor: _defaultColor,
       });
+      setDocumentUri(_docUri);
 
       // Highlight click → scroll sidebar to card
       setHighlightClickHandler((id) => {
