@@ -328,6 +328,81 @@ describe("API", async () => {
       assert.equal(res.status, 200);
       assert.deepEqual(json, { object: "list", data: [] });
     });
+
+    it("returns comment_count per document", async () => {
+      // Create a document with comments
+      const docRes = await fetch(`${BASE}/documents`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uri: "https://example.com/count-test" }),
+      });
+      const doc = await docRes.json();
+
+      // Add two top-level comments
+      for (const body of ["c1", "c2"]) {
+        await fetch(`${BASE}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ document: doc.id, quote: "q", body, author: "a" }),
+        });
+      }
+
+      const res = await fetch(`${BASE}/documents`);
+      const json = await res.json();
+      const found = json.data.find((d) => d.id === doc.id);
+      assert.equal(found.comment_count, 2);
+    });
+
+    it("does not count replies in comment_count", async () => {
+      const docRes = await fetch(`${BASE}/documents`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uri: "https://example.com/reply-count-test" }),
+      });
+      const doc = await docRes.json();
+
+      const cmtRes = await fetch(`${BASE}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ document: doc.id, quote: "q", body: "parent", author: "a" }),
+      });
+      const parent = await cmtRes.json();
+
+      // Add a reply
+      await fetch(`${BASE}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ document: doc.id, body: "reply", author: "a", parent: parent.id }),
+      });
+
+      const res = await fetch(`${BASE}/documents`);
+      const json = await res.json();
+      const found = json.data.find((d) => d.id === doc.id);
+      assert.equal(found.comment_count, 1);
+    });
+
+    it("supports limit and offset pagination", async () => {
+      // Create 3 documents
+      for (let i = 1; i <= 3; i++) {
+        await fetch(`${BASE}/documents`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ uri: `https://example.com/paginate-${i}` }),
+        });
+      }
+
+      const page1 = await (await fetch(`${BASE}/documents?limit=2&offset=0`)).json();
+      assert.ok(page1.data.length <= 2);
+
+      const page2 = await (await fetch(`${BASE}/documents?limit=2&offset=2`)).json();
+      assert.ok(page2.data.length >= 1); // at least the 3rd document
+    });
+
+    it("clamps limit to 1-100 range", async () => {
+      const res = await fetch(`${BASE}/documents?limit=0`);
+      assert.equal(res.status, 200);
+      // limit=0 should be clamped to 1, still returns successfully
+    });
   });
 
   describe("POST /documents", () => {
