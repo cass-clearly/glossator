@@ -352,6 +352,60 @@ describe("injectPrintHideStyles", async () => {
   });
 });
 
+// ── comment-counts ───────────────────────────────────────────────────
+
+describe("commentCounts", async () => {
+  const { commentCounts } = await import("../src/utils/comment-counts.js");
+
+  it("returns zeros for empty array", () => {
+    assert.deepEqual(commentCounts([]), { total: 0, resolved: 0, unresolved: 0 });
+  });
+
+  it("counts top-level comments only (excludes replies)", () => {
+    const comments = [
+      { id: "1", status: "open" },
+      { id: "2", status: "open", parent: "1" }, // reply — excluded
+      { id: "3", status: "closed" },
+    ];
+    assert.deepEqual(commentCounts(comments), { total: 2, resolved: 1, unresolved: 1 });
+  });
+
+  it("counts all as unresolved when none are closed", () => {
+    const comments = [{ id: "1", status: "open" }, { id: "2", status: "open" }];
+    assert.deepEqual(commentCounts(comments), { total: 2, resolved: 0, unresolved: 2 });
+  });
+});
+
+describe("titleSuffix", async () => {
+  const { titleSuffix } = await import("../src/utils/comment-counts.js");
+
+  it("returns empty string for zero comments", () => {
+    assert.equal(titleSuffix(0, 0), "");
+  });
+
+  it("uses singular 'comment' for exactly 1", () => {
+    assert.ok(titleSuffix(1, 0).includes("1 comment)"));
+  });
+
+  it("uses plural 'comments' for 2+", () => {
+    assert.ok(titleSuffix(3, 0).includes("3 comments)"));
+  });
+
+  it("includes resolved count when some are resolved", () => {
+    const s = titleSuffix(5, 2);
+    assert.ok(s.includes("5 comments, 2 resolved"));
+  });
+
+  it("uses singular label when 1 resolved", () => {
+    const s = titleSuffix(1, 1);
+    assert.ok(s.includes("1 comment, 1 resolved"));
+  });
+
+  it("includes Remarq suffix", () => {
+    assert.ok(titleSuffix(2, 0).includes("Remarq"));
+  });
+});
+
 // ── api (setBaseUrl only — no fetch mocks) ────────────────────────────
 
 describe("api", async () => {
