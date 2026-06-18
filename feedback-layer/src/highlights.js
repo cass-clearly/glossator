@@ -338,6 +338,24 @@ export function setHighlightResolved(commentId, resolved) {
 }
 
 /**
+ * Dim highlights that don't match the active color filter.
+ * Pass null to clear the filter and restore all highlights.
+ *
+ * @param {string|null} activeColor - hex color to keep visible, or null to clear
+ */
+export function setHighlightColorFilter(activeColor) {
+  document.querySelectorAll(`.${HIGHLIGHT_CLASS}`).forEach((el) => {
+    const commentId = el.dataset.commentId;
+    const color = _commentColors.get(commentId) || DEFAULT_COLOR;
+    if (activeColor && color !== activeColor) {
+      el.classList.add("fb-dim");
+    } else {
+      el.classList.remove("fb-dim");
+    }
+  });
+}
+
+/**
  * Collect all text nodes within a Range.
  */
 function getTextNodesInRange(range) {

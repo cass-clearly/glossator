@@ -2,7 +2,7 @@
  * Sidebar UI: name input, comment list, comment form.
  */
 
-import { setActiveHighlight, scrollToHighlight } from "./highlights.js";
+import { setActiveHighlight, scrollToHighlight, setHighlightColorFilter } from "./highlights.js";
 import { openModal } from "./ui.js";
 import { createInlineStyles } from "./styles.js";
 import { escapeHtml } from "./utils/escape-html.js";
@@ -50,6 +50,7 @@ let _onReaction = null;
 let _onColorChange = null; // eslint-disable-line no-unused-vars -- tracked for future color picker callback
 let _defaultColor = null;
 let _showResolved = false;
+let _colorFilter = null;
 let _lastComments = [];
 let _lastAnchoredIds = new Set();
 let _activeThreadIndex = -1;
@@ -131,6 +132,7 @@ export function createSidebar({
           <span>Show closed</span>
         </label>
       </div>
+      <div class="fb-color-chips" style="display:none" role="group" aria-label="Filter by color"></div>
       <div class="fb-comment-list"></div>
       <div class="fb-form-section" style="display:none"></div>
     </div>
@@ -481,8 +483,16 @@ export function renderComments(comments, anchoredIds = new Set(), commentRanges 
   // Anchored first, then orphaned at the bottom
   const sortedTopLevel = [...anchored, ...orphaned];
 
+  // Render color filter chips
+  _renderColorChips(comments);
+
   // Apply closed filter
-  const visibleTopLevel = _showResolved ? sortedTopLevel : sortedTopLevel.filter((a) => a.status !== "closed");
+  let visibleTopLevel = _showResolved ? sortedTopLevel : sortedTopLevel.filter((a) => a.status !== "closed");
+
+  // Apply color filter
+  if (_colorFilter) {
+    visibleTopLevel = visibleTopLevel.filter((a) => (a.color || DEFAULT_COLOR) === _colorFilter);
+  }
 
   if (sortedTopLevel.length === 0) {
     _listEl.innerHTML = `<div class="fb-empty">No comments yet. Select text to add one.</div>`;
@@ -490,7 +500,7 @@ export function renderComments(comments, anchoredIds = new Set(), commentRanges 
   }
 
   if (visibleTopLevel.length === 0) {
-    _listEl.innerHTML = `<div class="fb-empty">All ${sortedTopLevel.length} comment(s) resolved. Check "Show closed" to see them.</div>`;
+    _listEl.innerHTML = `<div class="fb-empty">No comments match the current filter.</div>`;
     return;
   }
 
@@ -530,6 +540,53 @@ export function renderComments(comments, anchoredIds = new Set(), commentRanges 
     });
 
     _listEl.appendChild(thread);
+  }
+}
+
+/**
+ * Render color filter chips in the sidebar. Shows chips when 2+ distinct colors in use.
+ */
+function _renderColorChips(comments) {
+  const chipsEl = _sidebar.querySelector(".fb-color-chips");
+  if (!chipsEl) return;
+
+  const colors = new Set(comments.map((c) => c.color || DEFAULT_COLOR).filter(Boolean));
+
+  if (colors.size < 2) {
+    chipsEl.style.display = "none";
+    if (_colorFilter) {
+      _colorFilter = null;
+      setHighlightColorFilter(null);
+    }
+    return;
+  }
+
+  chipsEl.style.display = "flex";
+  chipsEl.innerHTML = "";
+
+  // "All" chip to clear filter
+  const allChip = document.createElement("button");
+  allChip.className = "fb-color-chip fb-color-chip-all" + (_colorFilter === null ? " fb-color-chip-active" : "");
+  allChip.textContent = "All";
+  allChip.title = "Show all colors";
+  allChip.addEventListener("click", () => {
+    _colorFilter = null;
+    setHighlightColorFilter(null);
+    renderComments(_lastComments, _lastAnchoredIds);
+  });
+  chipsEl.appendChild(allChip);
+
+  for (const color of colors) {
+    const chip = document.createElement("button");
+    chip.className = "fb-color-chip" + (_colorFilter === color ? " fb-color-chip-active" : "");
+    chip.title = color;
+    chip.style.background = color;
+    chip.addEventListener("click", () => {
+      _colorFilter = _colorFilter === color ? null : color;
+      setHighlightColorFilter(_colorFilter);
+      renderComments(_lastComments, _lastAnchoredIds);
+    });
+    chipsEl.appendChild(chip);
   }
 }
 
